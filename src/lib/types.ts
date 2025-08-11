@@ -70,8 +70,10 @@ export interface Customer {
   financialHistory: FinancialHistoryItem[];
 }
 
-export interface ExpenseData {
-  category: string;
+export type ExpenseCategory = 'insumos' | 'salarios' | 'infraestrutura' | 'marketing' | 'impostos' | 'outros';
+
+export interface ExpenseChartItem {
+  category: ExpenseCategory;
   value: number;
   fill: string;
 }
@@ -92,10 +94,13 @@ export type PaymentMethod = 'pix' | 'boleto' | 'dinheiro' | 'cartao_credito' | '
 
 export interface FinancialMovement {
     id: string;
+    description: string;
     dueDate: string;
     amount: number;
     status: 'pending' | 'paid' | 'overdue';
     paymentDate?: string;
+    category: ExpenseCategory;
+    referenceId?: string; // e.g., purchaseId or expenseId
 }
 
 export interface Purchase {

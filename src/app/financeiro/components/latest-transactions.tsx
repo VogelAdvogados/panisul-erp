@@ -10,7 +10,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { purchases, suppliers } from '@/lib/data';
+import { initialFinancialMovements } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 
@@ -23,19 +23,16 @@ interface Transaction {
 }
 
 export function LatestTransactions() {
-  const suppliersMap = new Map(suppliers.map(s => [s.id, s.name]));
 
-  const expenses: Transaction[] = purchases.flatMap(p =>
-    p.financialMovements
+  const expenses: Transaction[] = initialFinancialMovements
       .filter(fm => fm.status === 'paid' && fm.paymentDate)
       .map(fm => ({
         id: fm.id,
         date: fm.paymentDate!,
-        description: `Pgto Fornecedor: ${suppliersMap.get(p.supplierId) || 'N/A'}`,
+        description: fm.description,
         type: 'expense',
         amount: fm.amount,
-      }))
-  );
+      }));
 
   const revenues: Transaction[] = [
     { id: 'REV-001', date: '2024-06-20', description: 'Recebimento Cliente: Padaria Central', type: 'revenue', amount: 1200 },

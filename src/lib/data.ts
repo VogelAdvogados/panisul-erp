@@ -1,7 +1,8 @@
 
 
-import type { Product, Sale, Customer, ExpenseData, BillingData, OperationalSummaryItem, Purchase, Supplier, Ingredient, Recipe } from './types';
+import type { Product, Sale, Customer, ExpenseChartItem, BillingData, OperationalSummaryItem, Purchase, Supplier, Ingredient, Recipe, FinancialMovement } from './types';
 import { ShoppingCart, ChefHat, RefreshCw } from 'lucide-react';
+import { expenseCategories } from './categories';
 
 export const salesData: Sale[] = [
   { name: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
@@ -116,12 +117,12 @@ export const customers: Customer[] = [
     },
 ];
 
-export const expenseData: ExpenseData[] = [
-  { category: 'Insumos', value: 2450, fill: 'var(--color-insumos)' },
-  { category: 'Salários', value: 1800, fill: 'var(--color-salarios)' },
-  { category: 'Energia', value: 420, fill: 'var(--color-energia)' },
-  { category: 'Aluguel', value: 500, fill: 'var(--color-aluguel)' },
-  { category: 'Outros', value: 280, fill: 'var(--color-outros)' },
+export const expenseChartData: ExpenseChartItem[] = [
+  { category: 'insumos', value: 2350.50, fill: expenseCategories.insumos.color },
+  { category: 'salarios', value: 4800, fill: expenseCategories.salarios.color },
+  { category: 'infraestrutura', value: 620, fill: expenseCategories.infraestrutura.color },
+  { category: 'impostos', value: 950, fill: expenseCategories.impostos.color },
+  { category: 'outros', value: 280, fill: expenseCategories.outros.color },
 ];
 
 export const billingData: BillingData[] = [
@@ -139,6 +140,15 @@ export const suppliers: Supplier[] = [
     { id: 'SUP-002', name: 'Ovos de Ouro', cnpj: '22.222.222/0001-22', contact: 'Maria' },
 ];
 
+export const initialFinancialMovements: FinancialMovement[] = [
+    { id: 'FM-001', description: 'Compra de Insumos NFE-12345', referenceId: 'PUR-001', dueDate: '2024-06-15', amount: 1500, status: 'paid', paymentDate: '2024-06-14', category: 'insumos' },
+    { id: 'FM-002', description: 'Compra de Insumos NFE-12360', referenceId: 'PUR-002', dueDate: '2024-05-20', amount: 850.50, status: 'overdue', category: 'insumos' },
+    { id: 'FM-003', description: 'Conta de Energia', dueDate: '2024-06-10', amount: 450.80, status: 'paid', paymentDate: '2024-06-10', category: 'infraestrutura' },
+    { id: 'FM-004', description: 'Salários Funcionários', dueDate: '2024-06-05', amount: 4800, status: 'paid', paymentDate: '2024-06-05', category: 'salarios' },
+    { id: 'FM-005', description: 'Aluguel', dueDate: '2024-06-10', amount: 1200, status: 'pending', category: 'infraestrutura' },
+];
+
+// Re-generate purchases from financial movements for consistency
 export const purchases: Purchase[] = [
     {
         id: 'PUR-001',
@@ -151,9 +161,7 @@ export const purchases: Purchase[] = [
             { name: 'Farinha de Trigo', quantity: 50, unitPrice: 5.50 },
             { name: 'Fermento Biológico', quantity: 10, unitPrice: 12.00 },
         ],
-        financialMovements: [
-            { id: 'FM-001', dueDate: '2024-06-15', amount: 1500, status: 'paid', paymentDate: '2024-06-14' }
-        ]
+        financialMovements: initialFinancialMovements.filter(fm => fm.referenceId === 'PUR-001')
     },
     {
         id: 'PUR-002',
@@ -166,9 +174,7 @@ export const purchases: Purchase[] = [
             { name: 'Ovos', quantity: 360, unitPrice: 0.80 },
             { name: 'Manteiga', quantity: 20, unitPrice: 20.00 },
         ],
-        financialMovements: [
-             { id: 'FM-002', dueDate: '2024-05-20', amount: 850.50, status: 'pending' }
-        ]
+        financialMovements: initialFinancialMovements.filter(fm => fm.referenceId === 'PUR-002')
     }
 ];
 

@@ -1,4 +1,6 @@
 
+'use client';
+
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +12,14 @@ import { AccountsPayable } from './components/accounts-payable';
 import { AccountsReceivable } from './components/accounts-receivable';
 import { TransactionsList } from './components/transactions-list';
 import { LatestTransactions } from './components/latest-transactions';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function FinanceiroPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'overview';
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
       <div className="flex items-center justify-between">
@@ -30,13 +38,15 @@ export default function FinanceiroPage() {
                     <SelectItem value="this_month">Este Mês</SelectItem>
                 </SelectContent>
             </Select>
-            <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Nova Transação
+            <Button asChild>
+                <Link href="/financeiro/despesas/nova">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Nova Despesa
+                </Link>
             </Button>
         </div>
       </div>
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue={defaultTab} onValueChange={(tab) => router.push(`/financeiro?tab=${tab}`)}>
           <TabsList>
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
               <TabsTrigger value="receivable">Contas a Receber</TabsTrigger>

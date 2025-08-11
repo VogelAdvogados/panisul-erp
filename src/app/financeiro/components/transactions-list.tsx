@@ -13,10 +13,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Search, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
-import { purchases, suppliers, customers } from '@/lib/data';
+import { initialFinancialMovements } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { expenseCategories } from '@/lib/categories';
 
 interface Transaction {
   id: string;
@@ -24,27 +25,25 @@ interface Transaction {
   description: string;
   type: 'revenue' | 'expense';
   amount: number;
+  category: string;
 }
 
 export function TransactionsList() {
-    const suppliersMap = new Map(suppliers.map(s => [s.id, s.name]));
-    
-    const expenses: Transaction[] = purchases.flatMap(p => 
-        p.financialMovements
-            .filter(fm => fm.status === 'paid' && fm.paymentDate)
-            .map(fm => ({
-                id: fm.id,
-                date: fm.paymentDate!,
-                description: `Pagamento Fornecedor: ${suppliersMap.get(p.supplierId) || 'N/A'} - Ref NFE ${p.invoiceNumber}`,
-                type: 'expense',
-                amount: fm.amount,
-            }))
-    );
+    const expenses: Transaction[] = initialFinancialMovements
+        .filter(fm => fm.status === 'paid' && fm.paymentDate)
+        .map(fm => ({
+            id: fm.id,
+            date: fm.paymentDate!,
+            description: fm.description,
+            type: 'expense',
+            amount: fm.amount,
+            category: expenseCategories[fm.category].label
+        }));
     
     // This is a mock for revenues. In a real app, this would come from sales orders.
     const revenues: Transaction[] = [
-        { id: 'REV-001', date: '2024-06-20', description: 'Recebimento Cliente: Padaria Central', type: 'revenue', amount: 1200 },
-        { id: 'REV-002', date: '2024-06-19', description: 'Recebimento Cliente: Mercado São João', type: 'revenue', amount: 2500 },
+        { id: 'REV-001', date: '2024-06-20', description: 'Recebimento Cliente: Padaria Central', type: 'revenue', amount: 1200, category: 'Vendas' },
+        { id: 'REV-002', date: '2024-06-19', description: 'Recebimento Cliente: Mercado São João', type: 'revenue', amount: 2500, category: 'Vendas' },
     ];
 
     const allTransactions = [...expenses, ...revenues].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -81,6 +80,7 @@ export function TransactionsList() {
             <TableRow>
             <TableHead>Data</TableHead>
             <TableHead>Descrição</TableHead>
+            <TableHead>Categoria</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead className="text-right">Valor</TableHead>
             </TableRow>
@@ -90,6 +90,7 @@ export function TransactionsList() {
                 <TableRow key={transaction.id}>
                     <TableCell>{new Date(transaction.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                     <TableCell className="font-medium">{transaction.description}</TableCell>
+                    <TableCell><Badge variant="outline">{transaction.category}</Badge></TableCell>
                     <TableCell>
                         <Badge variant={transaction.type === 'revenue' ? 'default' : 'destructive'} className={transaction.type === 'revenue' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
                              {transaction.type === 'revenue' ? 
