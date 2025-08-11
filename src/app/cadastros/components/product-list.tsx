@@ -1,7 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -39,33 +41,64 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MoreHorizontal, Edit, Trash2, PlusCircle } from 'lucide-react';
-import { products as initialProducts } from '@/lib/data';
+import { MoreHorizontal, Edit, Trash2, PlusCircle, Loader2 } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
 export function ProductList() {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+        try {
+            const productsCollection = collection(db, 'products');
+            const productSnapshot = await getDocs(productsCollection);
+            const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+            setProducts(productList);
+        } catch (error) {
+            toast({
+                title: "Erro ao buscar produtos",
+                description: "Não foi possível carregar os produtos do banco de dados.",
+                variant: "destructive"
+            });
+            console.error("Error fetching products: ", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    fetchProducts();
+  }, [toast]);
 
   const handleOpenForm = (product: Product | null) => {
     setEditingProduct(product);
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
-    toast({
-        title: "Produto Excluído!",
-        description: "O produto foi removido com sucesso.",
-        variant: "destructive"
-    });
+  const handleDelete = async (id: string) => {
+    try {
+        await deleteDoc(doc(db, "products", id));
+        setProducts(products.filter(p => p.id !== id));
+        toast({
+            title: "Produto Excluído!",
+            description: "O produto foi removido com sucesso.",
+            variant: "destructive"
+        });
+    } catch (error) {
+        toast({
+            title: "Erro ao excluir",
+            description: "Não foi possível excluir o produto.",
+            variant: "destructive"
+        });
+    }
   };
 
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newProductData = {
@@ -74,26 +107,41 @@ export function ProductList() {
       stock: parseInt(formData.get('stock') as string),
     };
 
-    if (editingProduct) {
-      // Edit existing product
-      setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...newProductData } : p));
-      toast({ title: "Produto Atualizado!", description: "Os dados do produto foram atualizados." });
-    } else {
-      // Add new product
-      const newProduct: Product = {
-        id: `PROD-${Date.now()}`,
-        ...newProductData,
-        produced: 0,
-        sold: 0,
-        imageUrl: 'https://placehold.co/600x400.png',
-        'data-ai-hint': newProductData.name.toLowerCase(),
-      };
-      setProducts([newProduct, ...products]);
-      toast({ title: "Produto Criado!", description: "Um novo produto foi adicionado ao sistema." });
+    try {
+        if (editingProduct) {
+          // Edit existing product
+          const productDoc = doc(db, "products", editingProduct.id);
+          await updateDoc(productDoc, newProductData);
+          setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...newProductData } : p));
+          toast({ title: "Produto Atualizado!", description: "Os dados do produto foram atualizados." });
+        } else {
+          // Add new product
+          const newProduct: Omit<Product, 'id'> = {
+            ...newProductData,
+            produced: 0,
+            sold: 0,
+            imageUrl: 'https://placehold.co/600x400.png',
+            'data-ai-hint': newProductData.name.toLowerCase(),
+          };
+          const docRef = await addDoc(collection(db, "products"), newProduct);
+          setProducts([{ id: docRef.id, ...newProduct }, ...products]);
+          toast({ title: "Produto Criado!", description: "Um novo produto foi adicionado ao sistema." });
+        }
+    } catch(error) {
+         toast({ title: "Erro!", description: "Ocorreu um erro ao salvar o produto.", variant: 'destructive' });
+    } finally {
+        setIsFormOpen(false);
+        setEditingProduct(null);
     }
-    setIsFormOpen(false);
-    setEditingProduct(null);
   };
+
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
+  }
 
   return (
     <div className="space-y-4">

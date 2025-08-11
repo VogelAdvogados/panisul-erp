@@ -2,13 +2,15 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, ShoppingCart, Package, RefreshCw, Eye, ShoppingBag } from 'lucide-react';
-import { products as initialProducts } from '@/lib/data';
 import Image from 'next/image';
 import { generateImage } from '@/ai/flows/generate-image';
 import { Skeleton } from '@/components/ui/skeleton';
 import React from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import type { Product } from '@/lib/types';
 
-async function ProductImage({ product }: { product: typeof initialProducts[0] }) {
+async function ProductImage({ product }: { product: Product }) {
   // If we already have a real URL, use it.
   if (product.imageUrl && !product.imageUrl.startsWith('https://placehold.co')) {
     return <Image src={product.imageUrl} alt={product.name} width={600} height={400} className="object-cover w-full h-full" />;
@@ -26,8 +28,10 @@ async function ProductImage({ product }: { product: typeof initialProducts[0] })
   }
 }
 
-export default function OperacoesPage() {
-  const products = initialProducts;
+export default async function OperacoesPage() {
+  const productsCollection = collection(db, 'products');
+  const productSnapshot = await getDocs(productsCollection);
+  const products: Product[] = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
 
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
