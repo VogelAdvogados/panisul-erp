@@ -6,6 +6,7 @@ import { PlusCircle } from 'lucide-react';
 import { SupplierList } from './components/supplier-list';
 import { ProductList } from './components/product-list';
 import { RecipeList } from './components/recipe-list';
+import { IngredientList } from './components/ingredient-list';
 
 export default function CadastrosPage() {
   return (
@@ -41,7 +42,7 @@ export default function CadastrosPage() {
                     <CardDescription>Gerencie suas matérias-primas e outros insumos.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p>Tabela de insumos aqui...</p>
+                    <IngredientList />
                 </CardContent>
             </Card>
           </TabsContent>
