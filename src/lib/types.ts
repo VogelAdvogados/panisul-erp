@@ -52,6 +52,14 @@ export interface Customer {
   phone: string;
   status: 'ativo' | 'inativo' | 'pendente';
   registeredAt: string;
+  type: 'pessoa-juridica' | 'pessoa-fisica';
+  doc: string;
+  address: string;
+  totalPurchasesValue: number;
+  totalOrders: number;
+  exchanges: number;
+  lastPurchaseDate: string;
+  pendingAmount: number;
   purchaseHistory: PurchaseHistoryItem[];
   exchangeHistory: ExchangeHistoryItem[];
   financialHistory: FinancialHistoryItem[];
