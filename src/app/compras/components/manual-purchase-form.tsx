@@ -27,8 +27,8 @@ const formSchema = z.object({
   invoiceNumber: z.string().optional(),
   purchaseDate: z.string().min(1, 'A data da compra é obrigatória.'),
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
-  installments: z.coerce.number().min(1, 'Pelo menos uma parcela é necessária.').default(1),
-  firstDueDate: z.string().min(1, 'A data de vencimento é obrigatória.'),
+  installments: z.coerce.number().int().min(1, 'Pelo menos uma parcela é necessária.').default(1),
+  firstDueDate: z.string().min(1, 'A data de vencimento da primeira parcela é obrigatória.'),
   items: z.array(purchaseItemSchema).min(1, 'Adicione pelo menos um item à compra.'),
 });
 
@@ -67,10 +67,30 @@ export function ManualPurchaseForm() {
 
 
   const onSubmit = (data: PurchaseFormValues) => {
-    console.log(data);
+    // Lógica para criar as movimentações financeiras (parcelas)
+    const financialMovements = [];
+    const installmentValue = totalAmount / data.installments;
+
+    for (let i = 0; i < data.installments; i++) {
+        const dueDate = add(new Date(data.firstDueDate), { months: i });
+        financialMovements.push({
+            id: `FM-${Date.now()}-${i}`,
+            dueDate: dueDate.toISOString().split('T')[0],
+            amount: installmentValue,
+            status: 'pending',
+        });
+    }
+
+    // Aqui você salvaria a 'compra' e as 'movimentações financeiras' no seu estado ou banco de dados
+    console.log({
+        purchaseData: data,
+        calculatedTotal: totalAmount,
+        generatedFinancialMovements: financialMovements,
+    });
+    
     toast({
         title: "Compra Lançada com Sucesso!",
-        description: `Compra do fornecedor ${suppliers.find(s => s.id === data.supplierId)?.name} no valor de ${totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} foi registrada com ${data.installments} parcela(s).`
+        description: `Compra de ${totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} registrada com ${data.installments} parcela(s). As contas a pagar foram geradas.`,
     });
     form.reset();
   };
@@ -239,7 +259,7 @@ export function ManualPurchaseForm() {
                             <FormItem>
                             <FormLabel>Parcelas</FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder="Nº de parcelas" {...field} />
+                                <Input type="number" min="1" step="1" placeholder="Nº de parcelas" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
