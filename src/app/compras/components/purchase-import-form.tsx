@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
 const formSchema = z.object({
-  file: z.instanceof(FileList).refine((files) => files.length > 0, 'Um arquivo é necessário.'),
+  file: z.any().refine((files) => files?.length > 0, 'Um arquivo é necessário.'),
 });
 
 export function PurchaseImportForm() {
