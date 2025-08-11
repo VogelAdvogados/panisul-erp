@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import {
@@ -23,9 +23,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
     DialogFooter,
-    DialogClose,
 } from '@/components/ui/dialog';
 import {
     AlertDialog,
@@ -51,10 +49,11 @@ export function SupplierList() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const { toast } = useToast();
 
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = useCallback(async () => {
       setIsLoading(true);
       try {
           const suppliersCollection = collection(db, 'suppliers');
@@ -71,11 +70,11 @@ export function SupplierList() {
       } finally {
           setIsLoading(false);
       }
-  };
+  }, [toast]);
   
   useEffect(() => {
     fetchSuppliers();
-  }, []);
+  }, [fetchSuppliers]);
 
   const handleOpenForm = (supplier: Supplier | null) => {
     setEditingSupplier(supplier);
@@ -90,7 +89,7 @@ export function SupplierList() {
   const handleDelete = async (id: string) => {
     try {
         await deleteDoc(doc(db, "suppliers", id));
-        setSuppliers(suppliers.filter(s => s.id !== id));
+        await fetchSuppliers(); // Refetch
         toast({ title: "Fornecedor Excluído!", description: "O fornecedor foi removido com sucesso." });
     } catch (error) {
         toast({ title: "Erro ao excluir", description: "Não foi possível excluir o fornecedor.", variant: "destructive" });
@@ -99,6 +98,7 @@ export function SupplierList() {
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     const supplierData = {
       name: formData.get('name') as string,
@@ -110,16 +110,16 @@ export function SupplierList() {
         if (editingSupplier) {
           const supplierDoc = doc(db, "suppliers", editingSupplier.id);
           await updateDoc(supplierDoc, supplierData);
-          setSuppliers(suppliers.map(s => s.id === editingSupplier.id ? { ...s, ...supplierData } : s));
           toast({ title: "Fornecedor Atualizado!", description: "Os dados do fornecedor foram atualizados." });
         } else {
-          const docRef = await addDoc(collection(db, "suppliers"), supplierData);
-          setSuppliers([{ id: docRef.id, ...supplierData }, ...suppliers]);
+          await addDoc(collection(db, "suppliers"), supplierData);
           toast({ title: "Fornecedor Criado!", description: "Um novo fornecedor foi adicionado." });
         }
+        await fetchSuppliers(); // Refetch
     } catch(error) {
          toast({ title: "Erro!", description: "Ocorreu um erro ao salvar o fornecedor.", variant: 'destructive' });
     } finally {
+        setIsSubmitting(false);
         handleCloseForm();
     }
   };
@@ -224,7 +224,7 @@ export function SupplierList() {
     </Card>
 
     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => { if(isSubmitting) e.preventDefault()}} onEscapeKeyDown={(e) => { if(isSubmitting) e.preventDefault()}}>
             <DialogHeader>
                 <DialogTitle>{editingSupplier ? 'Editar Fornecedor' : 'Adicionar Novo Fornecedor'}</DialogTitle>
             </DialogHeader>
@@ -244,8 +244,11 @@ export function SupplierList() {
                     </div>
                 </div>
                     <DialogFooter>
-                    <Button type="button" variant="ghost" onClick={handleCloseForm}>Cancelar</Button>
-                    <Button type="submit">{editingSupplier ? 'Salvar Alterações' : 'Cadastrar Fornecedor'}</Button>
+                    <Button type="button" variant="ghost" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSubmitting ? 'Salvando...' : (editingSupplier ? 'Salvar Alterações' : 'Cadastrar Fornecedor')}
+                    </Button>
                 </DialogFooter>
             </form>
         </DialogContent>

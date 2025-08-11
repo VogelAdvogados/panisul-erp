@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, writeBatch, addDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -25,7 +25,6 @@ import {
     DialogTitle,
     DialogDescription,
     DialogFooter,
-    DialogClose,
 } from '@/components/ui/dialog';
 import {
     AlertDialog,
@@ -56,11 +55,12 @@ export function RecipeList() {
   const [ingredientsMap, setIngredientsMap] = useState<Map<string, Ingredient>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [recipeItems, setRecipeItems] = useState<Partial<RecipeItem>[]>([{ ingredientId: '', quantity: 0 }]);
   const { toast } = useToast();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [productsSnapshot, ingredientsSnapshot, recipesSnapshot] = await Promise.all([
@@ -91,11 +91,11 @@ export function RecipeList() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleOpenForm = (recipe: Recipe | null) => {
     setEditingRecipe(recipe);
@@ -116,7 +116,7 @@ export function RecipeList() {
   const handleDelete = async (id: string) => {
     try {
         await deleteDoc(doc(db, "recipes", id));
-        setRecipes(recipes.filter(r => r.id !== id));
+        await fetchData(); // Refetch
         toast({ title: "Ficha Técnica Excluída!", description: "A receita foi removida com sucesso." });
     } catch (error) {
         toast({ title: "Erro ao excluir", description: "Não foi possível excluir a ficha técnica.", variant: "destructive" });
@@ -125,11 +125,13 @@ export function RecipeList() {
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     const productId = formData.get('productId') as string;
 
     if (!productId || recipeItems.some(item => !item.ingredientId || !item.quantity || item.quantity <= 0)) {
         toast({ title: "Dados inválidos", description: "Preencha todos os campos da receita.", variant: "destructive" });
+        setIsSubmitting(false);
         return;
     }
     
@@ -139,21 +141,22 @@ export function RecipeList() {
     }
 
     try {
-        const batch = writeBatch(db);
+        const docId = editingRecipe ? editingRecipe.id : productId;
+        const recipeRef = doc(db, 'recipes', docId);
+        
+        // Using setDoc with the product ID as the recipe ID
+        await setDoc(recipeRef, recipeData);
+
         if (editingRecipe) {
-            const recipeRef = doc(db, 'recipes', editingRecipe.id);
-            batch.update(recipeRef, recipeData);
             toast({ title: "Ficha Técnica Atualizada!", description: "A receita foi atualizada com sucesso."});
         } else {
-            const recipeRef = doc(collection(db, 'recipes'));
-            batch.set(recipeRef, recipeData);
             toast({ title: "Ficha Técnica Criada!", description: "A nova receita foi salva com sucesso."});
         }
-        await batch.commit();
-        fetchData(); // Refetch all data
+        await fetchData(); // Refetch all data
     } catch (err) {
         toast({ title: "Erro ao salvar", description: "Não foi possível salvar a ficha técnica.", variant: "destructive" });
     } finally {
+        setIsSubmitting(false);
         handleCloseForm();
     }
   };
@@ -284,18 +287,18 @@ export function RecipeList() {
     </Card>
 
     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl" onInteractOutside={(e) => { if(isSubmitting) e.preventDefault()}} onEscapeKeyDown={(e) => { if(isSubmitting) e.preventDefault()}}>
             <DialogHeader>
                 <DialogTitle>{editingRecipe ? 'Editar Ficha Técnica' : 'Criar Nova Ficha Técnica'}</DialogTitle>
                 <DialogDescription>
-                    Defina os insumos e quantidades para produzir um item.
+                    Defina os insumos e quantidades para produzir um item. O ID da receita será o mesmo do produto final.
                 </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleFormSubmit}>
                 <div className="space-y-4 py-4">
                     <div>
                         <Label htmlFor="productId">Produto Final</Label>
-                        <Select name="productId" required defaultValue={editingRecipe?.productId}>
+                        <Select name="productId" required defaultValue={editingRecipe?.productId} disabled={!!editingRecipe}>
                             <SelectTrigger id="productId">
                                 <SelectValue placeholder="Selecione o produto" />
                             </SelectTrigger>
@@ -336,8 +339,11 @@ export function RecipeList() {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="ghost" onClick={handleCloseForm}>Cancelar</Button>
-                    <Button type="submit">{editingRecipe ? 'Salvar Alterações' : 'Criar Ficha'}</Button>
+                    <Button type="button" variant="ghost" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSubmitting ? 'Salvando...' : (editingRecipe ? 'Salvar Alterações' : 'Criar Ficha')}
+                    </Button>
                 </DialogFooter>
             </form>
         </DialogContent>

@@ -1,14 +1,13 @@
 
 'use client';
 
-import type { Supplier, Purchase } from '@/lib/types';
+import type { Supplier, Purchase, FinancialMovement } from '@/lib/types';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -19,7 +18,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Phone, Hash, DollarSign, Package, Sparkles, Loader2 } from 'lucide-react';
+import { Mail, Hash, DollarSign, Package, Sparkles, Loader2, CreditCard, Clock } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -27,15 +26,15 @@ import { useState } from 'react';
 interface SupplierDetailProps {
   supplier: Supplier;
   purchases: Purchase[];
+  movements: FinancialMovement[];
 }
 
-export function SupplierDetail({ supplier, purchases }: SupplierDetailProps) {
+export function SupplierDetail({ supplier, purchases, movements }: SupplierDetailProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
 
   const totalPurchased = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
-  const totalPaid = purchases
-    .flatMap(p => p.financialMovements)
+  const totalPaid = movements
     .filter(fm => fm.status === 'paid')
     .reduce((acc, fm) => acc + fm.amount, 0);
   const pendingAmount = totalPurchased - totalPaid;
@@ -57,16 +56,10 @@ export function SupplierDetail({ supplier, purchases }: SupplierDetailProps) {
     }
   }
 
-  const getOverallStatus = (purchase: Purchase): {variant: 'default' | 'secondary' | 'destructive' | 'outline', text: string} => {
-    const total = purchase.financialMovements.length;
-    if (total === 0) return { variant: 'outline', text: 'N/A' };
-    const paidCount = purchase.financialMovements.filter(m => m.status === 'paid').length;
-    const overdueCount = purchase.financialMovements.filter(m => m.status === 'overdue').length;
-
-    if(overdueCount > 0) return { variant: 'destructive', text: 'Vencida' };
-    if(paidCount === total) return { variant: 'default', text: 'Paga' };
-    if(paidCount > 0 && paidCount < total) return { variant: 'outline', text: 'Parcialmente Paga' };
-    return { variant: 'secondary', text: 'Pendente' };
+  const getMovementStatus = (movement: FinancialMovement) => {
+    if (movement.status === 'paid') return { variant: 'default', text: 'Pago', icon: CreditCard };
+    if (new Date(movement.dueDate) < new Date() && movement.status === 'pending') return { variant: 'destructive', text: 'Vencido', icon: Clock };
+    return { variant: 'secondary', text: 'Pendente', icon: Clock };
   }
 
   return (
@@ -85,7 +78,7 @@ export function SupplierDetail({ supplier, purchases }: SupplierDetailProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2">
               <Hash className="h-4 w-4 text-muted-foreground" />
               <span>CNPJ: {supplier.cnpj}</span>
@@ -121,28 +114,28 @@ export function SupplierDetail({ supplier, purchases }: SupplierDetailProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Compras</CardTitle>
-          <CardDescription>Todas as notas fiscais e compras registradas para este fornecedor.</CardDescription>
+          <CardTitle>Histórico de Contas a Pagar</CardTitle>
+          <CardDescription>Todas as movimentações financeiras para este fornecedor.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Nº da Nota</TableHead>
-                <TableHead className="text-right">Valor Total</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
                 <TableHead className="text-center">Status Pagamento</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {purchases.map((purchase) => {
-                const status = getOverallStatus(purchase);
+              {movements.map((movement) => {
+                const status = getMovementStatus(movement);
                 return (
-                  <TableRow key={purchase.id}>
-                    <TableCell>{new Date(purchase.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
-                    <TableCell className="font-medium">{purchase.invoiceNumber}</TableCell>
+                  <TableRow key={movement.id}>
+                    <TableCell>{new Date(movement.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
+                    <TableCell className="font-medium">{movement.description}</TableCell>
                     <TableCell className="text-right">
-                      {purchase.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      {movement.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </TableCell>
                     <TableCell className="text-center">
                         <Badge variant={status.variant}>{status.text}</Badge>
@@ -150,9 +143,9 @@ export function SupplierDetail({ supplier, purchases }: SupplierDetailProps) {
                   </TableRow>
                 );
               })}
-               {purchases.length === 0 && (
+               {movements.length === 0 && (
                   <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">Nenhuma compra registrada para este fornecedor.</TableCell>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma conta a pagar registrada para este fornecedor.</TableCell>
                   </TableRow>
               )}
             </TableBody>

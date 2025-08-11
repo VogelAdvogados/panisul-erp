@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch, getCountFromServer } from 'firebase/firestore';
 import {
@@ -52,11 +52,12 @@ export function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { toast } = useToast();
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     try {
         const productsCollection = collection(db, 'products');
@@ -73,25 +74,30 @@ export function ProductList() {
     } finally {
         setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchProducts();
-  }, [toast]);
+  }, [fetchProducts]);
 
   const handleOpenForm = (product: Product | null) => {
     setEditingProduct(product);
     setIsFormOpen(true);
   };
+  
+  const handleCloseForm = () => {
+    setEditingProduct(null);
+    setIsFormOpen(false);
+  };
+
 
   const handleDelete = async (id: string) => {
     try {
         await deleteDoc(doc(db, "products", id));
-        setProducts(products.filter(p => p.id !== id));
+        await fetchProducts(); // Refetch data
         toast({
             title: "Produto Excluído!",
             description: "O produto foi removido com sucesso.",
-            variant: "destructive"
         });
     } catch (error) {
         toast({
@@ -104,6 +110,7 @@ export function ProductList() {
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     const newProductData = {
       name: formData.get('name') as string,
@@ -115,7 +122,6 @@ export function ProductList() {
         if (editingProduct) {
           const productDoc = doc(db, "products", editingProduct.id);
           await updateDoc(productDoc, newProductData);
-          setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...newProductData } : p));
           toast({ title: "Produto Atualizado!", description: "Os dados do produto foram atualizados." });
         } else {
           const newProduct: Omit<Product, 'id'> = {
@@ -125,22 +131,21 @@ export function ProductList() {
             imageUrl: 'https://placehold.co/600x400.png',
             'data-ai-hint': newProductData.name.toLowerCase(),
           };
-          const docRef = await addDoc(collection(db, "products"), newProduct);
-          setProducts([{ id: docRef.id, ...newProduct }, ...products]);
+          await addDoc(collection(db, "products"), newProduct);
           toast({ title: "Produto Criado!", description: "Um novo produto foi adicionado ao sistema." });
         }
+        await fetchProducts(); // Refetch data
     } catch(error) {
          toast({ title: "Erro!", description: "Ocorreu um erro ao salvar o produto.", variant: 'destructive' });
     } finally {
-        setIsFormOpen(false);
-        setEditingProduct(null);
+        setIsSubmitting(false);
+        handleCloseForm();
     }
   };
 
   const seedDatabase = async () => {
       setIsSeeding(true);
       try {
-        // Check a single collection to see if data exists
         const productsCollection = collection(db, 'products');
         const snapshot = await getCountFromServer(productsCollection);
         
@@ -192,8 +197,7 @@ export function ProductList() {
             title: 'Sucesso!',
             description: 'Todo o sistema foi populado com dados iniciais.'
         });
-        // Fetch all data again after seeding
-        fetchProducts(); 
+        await fetchProducts(); // Fetch data again after seeding
 
       } catch (error) {
         console.error("Error seeding database: ", error);
@@ -216,6 +220,7 @@ export function ProductList() {
   }
 
   return (
+    <>
     <Card>
         <CardHeader>
             <div className="flex items-center justify-between">
@@ -306,40 +311,42 @@ export function ProductList() {
                 </TableBody>
                 </Table>
             </div>
-
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</DialogTitle>
-                        <DialogDescription>
-                            {editingProduct ? 'Altere os dados abaixo para atualizar o produto.' : 'Preencha os dados abaixo para cadastrar um novo produto.'}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleFormSubmit}>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="name" className="text-right">Nome</Label>
-                                <Input id="name" name="name" defaultValue={editingProduct?.name} className="col-span-3" required />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="price" className="text-right">Preço</Label>
-                                <Input id="price" name="price" type="number" step="0.01" defaultValue={editingProduct?.price} className="col-span-3" required/>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="stock" className="text-right">Estoque</Label>
-                                <Input id="stock" name="stock" type="number" defaultValue={editingProduct?.stock} className="col-span-3" required />
-                            </div>
-                        </div>
-                         <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="ghost">Cancelar</Button>
-                            </DialogClose>
-                            <Button type="submit">{editingProduct ? 'Salvar Alterações' : 'Cadastrar Produto'}</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-        </CardContent>
+            </CardContent>
     </Card>
+
+    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => { if(isSubmitting) e.preventDefault()}} onEscapeKeyDown={(e) => { if(isSubmitting) e.preventDefault()}}>
+            <DialogHeader>
+                <DialogTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</DialogTitle>
+                <DialogDescription>
+                    {editingProduct ? 'Altere os dados abaixo para atualizar o produto.' : 'Preencha os dados abaixo para cadastrar um novo produto.'}
+                </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleFormSubmit}>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="name" className="text-right">Nome</Label>
+                        <Input id="name" name="name" defaultValue={editingProduct?.name} className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="price" className="text-right">Preço</Label>
+                        <Input id="price" name="price" type="number" step="0.01" defaultValue={editingProduct?.price} className="col-span-3" required/>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="stock" className="text-right">Estoque</Label>
+                        <Input id="stock" name="stock" type="number" defaultValue={editingProduct?.stock} className="col-span-3" required />
+                    </div>
+                </div>
+                 <DialogFooter>
+                    <Button type="button" variant="ghost" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSubmitting ? 'Salvando...' : (editingProduct ? 'Salvar Alterações' : 'Cadastrar Produto')}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }

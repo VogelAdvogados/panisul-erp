@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import {
@@ -25,7 +25,6 @@ import {
     DialogTitle,
     DialogDescription,
     DialogFooter,
-    DialogClose,
 } from '@/components/ui/dialog';
 import {
     AlertDialog,
@@ -52,10 +51,11 @@ export function IngredientList() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
   const { toast } = useToast();
 
-  const fetchIngredients = async () => {
+  const fetchIngredients = useCallback(async () => {
     setIsLoading(true);
     try {
       const ingredientsCollection = collection(db, 'ingredients');
@@ -72,11 +72,11 @@ export function IngredientList() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchIngredients();
-  }, []);
+  }, [fetchIngredients]);
 
   const handleOpenForm = (ingredient: Ingredient | null) => {
     setEditingIngredient(ingredient);
@@ -91,7 +91,7 @@ export function IngredientList() {
   const handleDelete = async (id: string) => {
     try {
         await deleteDoc(doc(db, "ingredients", id));
-        setIngredients(ingredients.filter(i => i.id !== id));
+        await fetchIngredients(); // Refetch data
         toast({
             title: "Insumo Excluído!",
             description: "O insumo foi removido com sucesso.",
@@ -107,6 +107,7 @@ export function IngredientList() {
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     const ingredientData = {
       name: formData.get('name') as string,
@@ -119,16 +120,16 @@ export function IngredientList() {
         if (editingIngredient) {
           const ingredientDoc = doc(db, "ingredients", editingIngredient.id);
           await updateDoc(ingredientDoc, ingredientData);
-          setIngredients(ingredients.map(i => i.id === editingIngredient.id ? { ...i, ...ingredientData } : i));
           toast({ title: "Insumo Atualizado!", description: "Os dados do insumo foram atualizados." });
         } else {
-          const docRef = await addDoc(collection(db, "ingredients"), ingredientData);
-          setIngredients([{ id: docRef.id, ...ingredientData }, ...ingredients]);
+          await addDoc(collection(db, "ingredients"), ingredientData);
           toast({ title: "Insumo Criado!", description: "Um novo insumo foi adicionado ao sistema." });
         }
+        await fetchIngredients(); // Refetch data
     } catch(error) {
          toast({ title: "Erro!", description: "Ocorreu um erro ao salvar o insumo.", variant: 'destructive' });
     } finally {
+        setIsSubmitting(false);
         handleCloseForm();
     }
   };
@@ -246,7 +247,7 @@ export function IngredientList() {
     </Card>
 
     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => { if(isSubmitting) e.preventDefault()}} onEscapeKeyDown={(e) => { if(isSubmitting) e.preventDefault()}}>
             <DialogHeader>
                 <DialogTitle>{editingIngredient ? 'Editar Insumo' : 'Adicionar Novo Insumo'}</DialogTitle>
                 <DialogDescription>
@@ -284,8 +285,11 @@ export function IngredientList() {
                     </div>
                 </div>
                     <DialogFooter>
-                    <Button type="button" variant="ghost" onClick={handleCloseForm}>Cancelar</Button>
-                    <Button type="submit">{editingIngredient ? 'Salvar Alterações' : 'Cadastrar Insumo'}</Button>
+                    <Button type="button" variant="ghost" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSubmitting ? 'Salvando...' : (editingIngredient ? 'Salvar Alterações' : 'Cadastrar Insumo')}
+                    </Button>
                 </DialogFooter>
             </form>
         </DialogContent>
