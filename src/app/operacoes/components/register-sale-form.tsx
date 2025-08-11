@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { Product } from '@/lib/types';
-import { registerSale, RegisterSaleInputSchema } from '@/ai/flows/register-sale';
+import { registerSale, type RegisterSaleInput } from '@/ai/flows/register-sale';
 import { useState } from 'react';
 import { Loader2, ShoppingCart } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -20,6 +20,14 @@ interface RegisterSaleFormProps {
     product: Product;
     onSaleRegistered: () => void;
 }
+
+const RegisterSaleInputSchema = z.object({
+  productId: z.string().min(1, 'Selecione um produto.'),
+  quantity: z.coerce.number().int().positive('A quantidade deve ser um número positivo.'),
+  paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
+  sourceAccount: z.enum(['cash', 'bank']),
+});
+
 
 export function RegisterSaleForm({ product, onSaleRegistered }: RegisterSaleFormProps) {
   const [isLoading, setIsLoading] = useState(false);

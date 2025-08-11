@@ -7,18 +7,18 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, doc, runTransaction, getDoc } from 'firebase/firestore';
 import type { Recipe, Ingredient } from '@/lib/types';
 
-export const RegisterProductionInputSchema = z.object({
+const RegisterProductionInputSchema = z.object({
   productId: z.string().describe('The ID of the product being produced.'),
   quantity: z.number().int().positive().describe('The quantity of the product being produced.'),
 });
 export type RegisterProductionInput = z.infer<typeof RegisterProductionInputSchema>;
 
-export const RegisterProductionOutputSchema = z.object({
+const RegisterProductionOutputSchema = z.object({
   message: z.string(),
 });
 export type RegisterProductionOutput = z.infer<typeof RegisterProductionOutputSchema>;

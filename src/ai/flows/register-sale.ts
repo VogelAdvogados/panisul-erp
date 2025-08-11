@@ -12,7 +12,7 @@ import { collection, doc, runTransaction, addDoc } from 'firebase/firestore';
 import type { Product, FinancialMovement } from '@/lib/types';
 import { format } from 'date-fns';
 
-export const RegisterSaleInputSchema = z.object({
+const RegisterSaleInputSchema = z.object({
   productId: z.string().describe('The ID of the product being sold.'),
   quantity: z.number().int().positive().describe('The quantity of the product being sold.'),
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
@@ -20,7 +20,7 @@ export const RegisterSaleInputSchema = z.object({
 });
 export type RegisterSaleInput = z.infer<typeof RegisterSaleInputSchema>;
 
-export const RegisterSaleOutputSchema = z.object({
+const RegisterSaleOutputSchema = z.object({
   message: z.string(),
   saleId: z.string(),
 });
