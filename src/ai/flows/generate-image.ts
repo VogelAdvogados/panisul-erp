@@ -23,7 +23,7 @@ export async function generateImage(input: GenerateImageInput): Promise<string> 
 const generateImageFlow = ai.defineFlow(
   {
     name: 'generateImageFlow',
-    inputSchema: GenerateImageinputSchema,
+    inputSchema: GenerateImageInputSchema,
     outputSchema: z.string(),
   },
   async ({ prompt }) => {
