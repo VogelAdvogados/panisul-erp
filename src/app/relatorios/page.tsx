@@ -1,5 +1,5 @@
 import PageHeader from '@/components/page-header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { BarChart3, Users, Repeat, Wallet, AreaChart } from 'lucide-react';
 import Link from 'next/link';
 
@@ -17,20 +17,18 @@ export default function RelatoriosPage() {
       <PageHeader title="Central de Relatórios" />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {reports.map((report, index) => (
-            <Link href={report.href} key={index} legacyBehavior>
-                <a className="block">
-                    <Card className="hover:bg-muted/50 transition-colors h-full">
-                        <CardHeader className='flex flex-row items-center gap-4 space-y-0'>
-                            <div className='p-3 rounded-full bg-primary/10 text-primary'>
-                                <report.icon className="h-6 w-6" />
-                            </div>
-                            <div>
-                                <CardTitle>{report.title}</CardTitle>
-                                <CardDescription>{report.description}</CardDescription>
-                            </div>
-                        </CardHeader>
-                    </Card>
-                </a>
+            <Link href={report.href} key={index} className="block">
+                <Card className="hover:bg-muted/50 transition-colors h-full">
+                    <CardHeader className='flex flex-row items-center gap-4 space-y-0'>
+                        <div className='p-3 rounded-full bg-primary/10 text-primary'>
+                            <report.icon className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <CardTitle>{report.title}</CardTitle>
+                            <CardDescription>{report.description}</CardDescription>
+                        </div>
+                    </CardHeader>
+                </Card>
             </Link>
         ))}
       </div>
