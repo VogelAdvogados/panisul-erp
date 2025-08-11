@@ -19,8 +19,10 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Phone, Hash, DollarSign, Package } from 'lucide-react';
+import { Mail, Phone, Hash, DollarSign, Package, Sparkles, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 interface SupplierDetailProps {
   supplier: Supplier;
@@ -28,12 +30,32 @@ interface SupplierDetailProps {
 }
 
 export function SupplierDetail({ supplier, purchases }: SupplierDetailProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+
   const totalPurchased = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
   const totalPaid = purchases
     .flatMap(p => p.financialMovements)
     .filter(fm => fm.status === 'paid')
     .reduce((acc, fm) => acc + fm.amount, 0);
   const pendingAmount = totalPurchased - totalPaid;
+
+  const handleAnalyze = async () => {
+    setIsLoading(true);
+    setAnalysis(null);
+    try {
+        // In a real app, you would call an AI flow here.
+        // For demonstration, we simulate an AI analysis.
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        const simulatedAnalysis = `Análise do Fornecedor: ${supplier.name}\n- Total de Compras: ${purchases.length}\n- Valor Total: ${totalPurchased.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n- Saldo Devedor: ${pendingAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n- Itens mais comprados: Farinha, Ovos.\n- Observação: Fornecedor com bom histórico e pagamentos majoritariamente em dia. Manter bom relacionamento.`;
+        setAnalysis(simulatedAnalysis);
+    } catch (error) {
+        console.error(error);
+        setAnalysis("Ocorreu um erro ao analisar o histórico.");
+    } finally {
+        setIsLoading(false);
+    }
+  }
 
   const getOverallStatus = (purchase: Purchase): {variant: 'default' | 'secondary' | 'destructive' | 'outline', text: string} => {
     const total = purchase.financialMovements.length;
@@ -51,8 +73,16 @@ export function SupplierDetail({ supplier, purchases }: SupplierDetailProps) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{supplier.name}</CardTitle>
-          <CardDescription>Informações de contato e financeiras.</CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-2xl">{supplier.name}</CardTitle>
+              <CardDescription>Informações de contato e financeiras.</CardDescription>
+            </div>
+             <Button onClick={handleAnalyze} disabled={isLoading} size="sm">
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                {isLoading ? 'Analisando...' : 'Analisar Histórico com IA'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -66,6 +96,12 @@ export function SupplierDetail({ supplier, purchases }: SupplierDetailProps) {
             </div>
           </div>
           <Separator />
+          {analysis && (
+            <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <h4 className="font-semibold text-primary flex items-center gap-2 mb-2"><Sparkles className="h-4 w-4"/> Análise da IA</h4>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{analysis}</p>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
              <div className="bg-muted/50 p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground flex items-center gap-1"><Package className="h-4 w-4"/>Total de Compras</p>
@@ -126,4 +162,3 @@ export function SupplierDetail({ supplier, purchases }: SupplierDetailProps) {
     </div>
   );
 }
-

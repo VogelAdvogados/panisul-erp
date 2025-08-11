@@ -1,9 +1,11 @@
+
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Wallet, CreditCard, ArrowUpRight, ArrowDownLeft, Clock, CalendarDays } from 'lucide-react';
+import { FinancialAnalysis } from './components/financial-analysis';
 
 export default function FinanceiroPage() {
   return (
@@ -106,6 +108,7 @@ export default function FinanceiroPage() {
                     </CardHeader>
                 </Card>
             </div>
+            <FinancialAnalysis />
             <Card>
                 <CardHeader>
                     <CardTitle>Últimas Movimentações</CardTitle>
