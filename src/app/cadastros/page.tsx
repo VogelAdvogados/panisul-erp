@@ -42,15 +42,7 @@ export default function CadastrosPage() {
               <TabsTrigger value="recipes">Fichas Técnicas</TabsTrigger>
           </TabsList>
           <TabsContent value="products">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Produtos</CardTitle>
-                    <CardDescription>Gerencie seus produtos acabados.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ProductList />
-                </CardContent>
-            </Card>
+            <ProductList />
           </TabsContent>
           <TabsContent value="ingredients">
             <Card>
