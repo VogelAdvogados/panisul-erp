@@ -18,9 +18,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react';
 import { suppliers as initialSuppliers } from '@/lib/data';
 import type { Supplier } from '@/lib/types';
+import Link from 'next/link';
 
 export function SupplierList() {
   const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
@@ -42,10 +43,22 @@ export function SupplierList() {
             </TableHeader>
             <TableBody>
                 {suppliers.map((supplier) => (
-                <TableRow key={supplier.id}>
-                    <TableCell className="font-medium">{supplier.name}</TableCell>
-                    <TableCell>{supplier.cnpj}</TableCell>
-                    <TableCell>{supplier.contact}</TableCell>
+                <TableRow key={supplier.id} className="cursor-pointer hover:bg-muted/20">
+                    <TableCell className="font-medium">
+                        <Link href={`/cadastros/fornecedores/${supplier.id}`} className="block w-full h-full">
+                            {supplier.name}
+                        </Link>
+                    </TableCell>
+                    <TableCell>
+                         <Link href={`/cadastros/fornecedores/${supplier.id}`} className="block w-full h-full">
+                            {supplier.cnpj}
+                        </Link>
+                    </TableCell>
+                    <TableCell>
+                         <Link href={`/cadastros/fornecedores/${supplier.id}`} className="block w-full h-full">
+                            {supplier.contact}
+                        </Link>
+                    </TableCell>
                     <TableCell className="text-right">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -54,6 +67,12 @@ export function SupplierList() {
                         </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                            <Link href={`/cadastros/fornecedores/${supplier.id}`} className="flex items-center w-full">
+                                <Eye className="mr-2 h-4 w-4" />
+                                Ver Detalhes
+                            </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem>
                             <Edit className="mr-2 h-4 w-4" />
                             Editar
