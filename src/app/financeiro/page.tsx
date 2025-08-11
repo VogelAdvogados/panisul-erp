@@ -19,6 +19,12 @@ export default function FinanceiroPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'overview';
+  const accountFilter = searchParams.get('account');
+
+
+  const handleTabChange = (tab: string) => {
+    router.push(`/financeiro?tab=${tab}`);
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
@@ -46,7 +52,7 @@ export default function FinanceiroPage() {
             </Button>
         </div>
       </div>
-      <Tabs defaultValue={defaultTab} onValueChange={(tab) => router.push(`/financeiro?tab=${tab}`)}>
+      <Tabs value={defaultTab} onValueChange={handleTabChange}>
           <TabsList>
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
               <TabsTrigger value="receivable">Contas a Receber</TabsTrigger>
@@ -55,34 +61,38 @@ export default function FinanceiroPage() {
           </TabsList>
           <TabsContent value="overview" className="mt-6 space-y-6">
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-                <Card className='shadow-md'>
-                    <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                        <div className='flex items-center gap-4'>
-                            <div className="bg-green-100 text-green-600 p-3 rounded-lg">
-                                <Wallet className='h-6 w-6' />
+                <Link href="/financeiro?tab=movements&account=cash" className="block hover:shadow-lg transition-shadow rounded-lg">
+                    <Card className='shadow-md h-full'>
+                        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                            <div className='flex items-center gap-4'>
+                                <div className="bg-green-100 text-green-600 p-3 rounded-lg">
+                                    <Wallet className='h-6 w-6' />
+                                </div>
+                                <div>
+                                    <CardTitle className='text-lg font-medium'>Caixa Físico</CardTitle>
+                                    <p className='text-xs text-muted-foreground'>23 transações hoje</p>
+                                </div>
                             </div>
-                            <div>
-                                <CardTitle className='text-lg font-medium'>Caixa Físico</CardTitle>
-                                <p className='text-xs text-muted-foreground'>23 transações hoje</p>
+                            <div className='text-2xl font-bold text-right'>R$ 1.247,50</div>
+                        </CardHeader>
+                    </Card>
+                </Link>
+                <Link href="/financeiro?tab=movements&account=bank" className="block hover:shadow-lg transition-shadow rounded-lg">
+                    <Card className='shadow-md h-full'>
+                        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                            <div className='flex items-center gap-4'>
+                                <div className="bg-blue-100 text-blue-600 p-3 rounded-lg">
+                                    <CreditCard className='h-6 w-6' />
+                                </div>
+                                <div>
+                                    <CardTitle className='text-lg font-medium'>Conta Corrente</CardTitle>
+                                    <p className='text-xs text-muted-foreground'>15 transações hoje</p>
+                                </div>
                             </div>
-                        </div>
-                        <div className='text-2xl font-bold text-right'>R$ 1.247,50</div>
-                    </CardHeader>
-                </Card>
-                <Card className='shadow-md'>
-                    <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                        <div className='flex items-center gap-4'>
-                            <div className="bg-blue-100 text-blue-600 p-3 rounded-lg">
-                                <CreditCard className='h-6 w-6' />
-                            </div>
-                            <div>
-                                <CardTitle className='text-lg font-medium'>Conta Corrente</CardTitle>
-                                <p className='text-xs text-muted-foreground'>15 transações hoje</p>
-                            </div>
-                        </div>
-                        <div className='text-2xl font-bold text-right'>R$ 8.456,30</div>
-                    </CardHeader>
-                </Card>
+                            <div className='text-2xl font-bold text-right'>R$ 8.456,30</div>
+                        </CardHeader>
+                    </Card>
+                </Link>
             </div>
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
                 <Card className='bg-green-50 border-green-200'>
@@ -132,7 +142,7 @@ export default function FinanceiroPage() {
             <AccountsReceivable />
           </TabsContent>
           <TabsContent value="movements">
-            <TransactionsList />
+            <TransactionsList accountFilter={accountFilter} />
           </TabsContent>
       </Tabs>
     </div>

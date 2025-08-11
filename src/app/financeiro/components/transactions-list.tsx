@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Table,
   TableHeader,
@@ -12,12 +12,13 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Search, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Search, ArrowUpCircle, ArrowDownCircle, Wallet, CreditCard } from 'lucide-react';
 import { initialFinancialMovements } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { expenseCategories } from '@/lib/categories';
+import type { SourceAccount } from '@/lib/types';
 
 interface Transaction {
   id: string;
@@ -26,9 +27,14 @@ interface Transaction {
   type: 'revenue' | 'expense';
   amount: number;
   category: string;
+  sourceAccount: SourceAccount;
 }
 
-export function TransactionsList() {
+interface TransactionsListProps {
+    accountFilter: string | null;
+}
+
+export function TransactionsList({ accountFilter }: TransactionsListProps) {
     const expenses: Transaction[] = initialFinancialMovements
         .filter(fm => fm.status === 'paid' && fm.paymentDate)
         .map(fm => ({
@@ -37,16 +43,24 @@ export function TransactionsList() {
             description: fm.description,
             type: 'expense',
             amount: fm.amount,
-            category: expenseCategories[fm.category].label
+            category: expenseCategories[fm.category].label,
+            sourceAccount: fm.sourceAccount,
         }));
     
     // This is a mock for revenues. In a real app, this would come from sales orders.
     const revenues: Transaction[] = [
-        { id: 'REV-001', date: '2024-06-20', description: 'Recebimento Cliente: Padaria Central', type: 'revenue', amount: 1200, category: 'Vendas' },
-        { id: 'REV-002', date: '2024-06-19', description: 'Recebimento Cliente: Mercado São João', type: 'revenue', amount: 2500, category: 'Vendas' },
+        { id: 'REV-001', date: '2024-06-20', description: 'Recebimento Cliente: Padaria Central', type: 'revenue', amount: 1200, category: 'Vendas', sourceAccount: 'bank' },
+        { id: 'REV-002', date: '2024-06-19', description: 'Recebimento Cliente: Mercado São João', type: 'revenue', amount: 2500, category: 'Vendas', sourceAccount: 'bank' },
+        { id: 'REV-003', date: '2024-06-20', description: 'Venda Balcão', type: 'revenue', amount: 500, category: 'Vendas', sourceAccount: 'cash' },
     ];
 
-    const allTransactions = [...expenses, ...revenues].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const allTransactions = useMemo(() => {
+        const combined = [...expenses, ...revenues].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        if (!accountFilter) {
+            return combined;
+        }
+        return combined.filter(t => t.sourceAccount === accountFilter);
+    }, [accountFilter]);
 
   return (
     <Card>
@@ -54,7 +68,9 @@ export function TransactionsList() {
         <div className='flex justify-between items-center'>
             <div>
                 <CardTitle>Extrato de Movimentações</CardTitle>
-                <CardDescription>Visualize o fluxo de entradas e saídas por conta financeira.</CardDescription>
+                <CardDescription>
+                    {accountFilter ? `Exibindo movimentações para: ${accountFilter === 'cash' ? 'Caixa Físico' : 'Conta Corrente'}` : 'Visualize o fluxo de entradas e saídas por conta financeira.'}
+                </CardDescription>
             </div>
             <div className="flex items-center gap-2">
                  <Select defaultValue="all">
@@ -80,6 +96,7 @@ export function TransactionsList() {
             <TableRow>
             <TableHead>Data</TableHead>
             <TableHead>Descrição</TableHead>
+            <TableHead>Conta</TableHead>
             <TableHead>Categoria</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead className="text-right">Valor</TableHead>
@@ -90,6 +107,12 @@ export function TransactionsList() {
                 <TableRow key={transaction.id}>
                     <TableCell>{new Date(transaction.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                     <TableCell className="font-medium">{transaction.description}</TableCell>
+                    <TableCell>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            {transaction.sourceAccount === 'cash' ? <Wallet className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                            <span>{transaction.sourceAccount === 'cash' ? 'Caixa' : 'C/C'}</span>
+                        </div>
+                    </TableCell>
                     <TableCell><Badge variant="outline">{transaction.category}</Badge></TableCell>
                     <TableCell>
                         <Badge variant={transaction.type === 'revenue' ? 'default' : 'destructive'} className={transaction.type === 'revenue' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
@@ -105,6 +128,11 @@ export function TransactionsList() {
                     </TableCell>
                 </TableRow>
             ))}
+             {allTransactions.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground h-24">Nenhuma transação encontrada para esta conta.</TableCell>
+                </TableRow>
+            )}
         </TableBody>
         </Table>
       </CardContent>
