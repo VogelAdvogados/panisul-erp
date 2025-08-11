@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, getDoc, query, where } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -34,13 +34,14 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, XCircle, FileText, ShoppingBag, Repeat, DollarSign, User, Building, Mail, Phone, MapPin, CreditCard, Package, RefreshCw, Calendar, Eye, Loader2 } from 'lucide-react';
-import type { Customer } from '@/lib/types';
+import type { Customer, FinancialMovement } from '@/lib/types';
 import PageHeader from '@/components/page-header';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { settleCustomerPayment } from '@/ai/flows/settle-customer-payment';
 
 type FilterTab = 'all' | 'pessoa-juridica' | 'pessoa-fisica' | 'com-pendencias';
 
@@ -55,12 +56,15 @@ export function ClientList() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerFinancials, setCustomerFinancials] = useState<FinancialMovement[]>([]);
+  const [isFinancialsLoading, setIsFinancialsLoading] = useState(false);
+  const [isSettlingPayment, setIsSettlingPayment] = useState<string | null>(null);
   
   const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
+  
+  const fetchCustomers = async () => {
+       setIsLoading(true);
+       try {
         const customersCollection = collection(db, 'customers');
         const customersSnapshot = await getDocs(customersCollection);
         const customersList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
@@ -75,8 +79,9 @@ export function ClientList() {
       } finally {
         setIsLoading(false);
       }
-    };
+  }
 
+  useEffect(() => {
     fetchCustomers();
   }, [toast]);
 
@@ -110,37 +115,56 @@ export function ClientList() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setCustomers(customers.filter(c => c.id !== id));
-    toast({
-        title: "Cliente Excluído!",
-        description: "O cliente foi removido do sistema.",
-        variant: "destructive"
-    })
-  };
-
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Form submission logic would be implemented here to add/update in Firestore
   }
 
-  const handleViewDetails = (customer: Customer) => {
+  const handleViewDetails = async (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsDetailOpen(true);
+    setIsFinancialsLoading(true);
+    try {
+        const movementsRef = collection(db, 'financialMovements');
+        const q = query(movementsRef, where('referenceId', '==', customer.id), where('type', '==', 'revenue'));
+        const querySnapshot = await getDocs(q);
+        const financials = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
+        setCustomerFinancials(financials);
+    } catch(err) {
+        toast({ title: "Erro ao buscar financeiro", description: "Não foi possível carregar o histórico financeiro do cliente."});
+    } finally {
+        setIsFinancialsLoading(false);
+    }
   }
 
-  const getStatusVariant = (status: Customer['status']) => {
-    switch (status) {
-      case 'ativo':
-        return 'default';
-      case 'inativo':
-        return 'destructive';
-      case 'pendente':
-        return 'secondary';
-      default:
-        return 'outline';
+  const handleSettlePayment = async (movement: FinancialMovement) => {
+    if (!selectedCustomer) return;
+    setIsSettlingPayment(movement.id);
+    try {
+        const result = await settleCustomerPayment({
+            movementId: movement.id,
+            customerId: selectedCustomer.id,
+            amount: movement.amount,
+        });
+        toast({ title: "Sucesso!", description: result.message });
+        
+        // Refresh data
+        handleViewDetails(selectedCustomer); // Re-fetch financials
+        const customerDoc = await getDoc(doc(db, 'customers', selectedCustomer.id));
+        if(customerDoc.exists()){
+            const updatedCustomer = {id: customerDoc.id, ...customerDoc.data()} as Customer;
+             setCustomers(customers.map(c => c.id === updatedCustomer.id ? updatedCustomer : c));
+             setSelectedCustomer(updatedCustomer);
+        }
+
+    } catch (err) {
+        const error = err as Error;
+        toast({ title: "Erro ao dar baixa", description: error.message, variant: 'destructive' });
+    } finally {
+        setIsSettlingPayment(null);
     }
-  };
+  }
+
   
   if (isLoading) {
     return (
@@ -320,58 +344,82 @@ export function ClientList() {
                 <DialogHeader>
                     <DialogTitle className="text-2xl">Ficha do Cliente: {selectedCustomer?.name}</DialogTitle>
                     <DialogDescription>
-                       Informações detalhadas, histórico e financeiro do cliente.
+                       Informações detalhadas, histórico e financeiro do cliente. Saldo devedor: 
+                       <span className='font-bold text-destructive'> {selectedCustomer?.pendingAmount.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</span>
                     </DialogDescription>
                 </DialogHeader>
                 <div className='flex-grow overflow-y-auto -mx-6 px-6'>
-                    <Tabs defaultValue="purchases" className="w-full">
+                    <Tabs defaultValue="financial" className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="financial"><DollarSign className="mr-2"/>Financeiro</TabsTrigger>
                             <TabsTrigger value="purchases"><ShoppingBag className="mr-2"/> Histórico de Compras</TabsTrigger>
                             <TabsTrigger value="exchanges"><Repeat className="mr-2"/> Histórico de Trocas</TabsTrigger>
-                            <TabsTrigger value="financial"><DollarSign className="mr-2"/>Financeiro</TabsTrigger>
                         </TabsList>
-                        <TabsContent value="purchases">
+                        <TabsContent value="financial">
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Contas a Receber</CardTitle>
+                                    <CardDescription>Movimentações financeiras pendentes para este cliente.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {isFinancialsLoading ? (
+                                        <div className='flex justify-center items-center h-40'><Loader2 className="h-8 w-8 animate-spin"/></div>
+                                    ) : (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Vencimento</TableHead>
+                                                    <TableHead>Descrição</TableHead>
+                                                    <TableHead className='text-right'>Valor</TableHead>
+                                                    <TableHead className='text-center'>Status</TableHead>
+                                                    <TableHead className='text-right'>Ação</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {customerFinancials.map(m => (
+                                                    <TableRow key={m.id}>
+                                                        <TableCell>{new Date(m.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
+                                                        <TableCell>{m.description}</TableCell>
+                                                        <TableCell className='text-right'>{m.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
+                                                        <TableCell className='text-center'>
+                                                            <Badge variant={m.status === 'paid' ? 'default' : 'destructive'}>{m.status === 'paid' ? 'Pago' : 'Pendente'}</Badge>
+                                                        </TableCell>
+                                                        <TableCell className='text-right'>
+                                                            {m.status === 'pending' && (
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    onClick={() => handleSettlePayment(m)} 
+                                                                    disabled={isSettlingPayment === m.id}
+                                                                >
+                                                                    {isSettlingPayment === m.id ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Dar Baixa'}
+                                                                </Button>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                                {customerFinancials.length === 0 && (
+                                                    <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Nenhuma movimentação financeira encontrada para este cliente.</TableCell></TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                         <TabsContent value="purchases">
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Compras Realizadas</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Data</TableHead>
-                                                <TableHead>Produto</TableHead>
-                                                <TableHead className='text-right'>Quantidade</TableHead>
-                                                <TableHead className='text-right'>Valor Total</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {selectedCustomer?.purchaseHistory.map(p => (
-                                                <TableRow key={p.id}>
-                                                    <TableCell>{new Date(p.date).toLocaleDateString('pt-BR')}</TableCell>
-                                                    <TableCell>{p.product}</TableCell>
-                                                    <TableCell className='text-right'>{p.quantity}</TableCell>
-                                                    <TableCell className='text-right'>{p.totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                             {selectedCustomer?.purchaseHistory.length === 0 && (
-                                                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Nenhuma compra registrada.</TableCell></TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
+                                   <p className='text-muted-foreground text-center py-8'>Em breve: Histórico de produtos comprados.</p>
                                 </CardContent>
                             </Card>
                         </TabsContent>
                         <TabsContent value="exchanges">
                              <Card>
                                 <CardHeader><CardTitle>Trocas Solicitadas</CardTitle></CardHeader>
-                                <CardContent><p>Tabela de trocas aqui...</p></CardContent>
-                            </Card>
-                        </TabsContent>
-                        <TabsContent value="financial">
-                             <Card>
-                                <CardHeader><CardTitle>Situação Financeira</CardTitle></CardHeader>
-                                <CardContent><p>Dados financeiros aqui...</p></CardContent>
+                                <CardContent><p className='text-muted-foreground text-center py-8'>Em breve: Histórico de trocas.</p></CardContent>
                             </Card>
                         </TabsContent>
                     </Tabs>
@@ -381,5 +429,3 @@ export function ClientList() {
     </>
   );
 }
-
-    
