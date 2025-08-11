@@ -68,7 +68,7 @@ const registerSaleFlow = ai.defineFlow(
       // 2. Create the Financial Movement (revenue)
       const saleAmount = product.price * quantity;
       const today = new Date();
-      const isSaleOnCredit = paymentMethod === 'boleto';
+      const isSaleOnCredit = paymentMethod === 'boleto' || paymentMethod === 'cartao_credito';
       const status = isSaleOnCredit ? 'pending' : 'paid';
 
       const financialMovement: Omit<FinancialMovement, 'id'> = {
