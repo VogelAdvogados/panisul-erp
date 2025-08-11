@@ -42,19 +42,29 @@ export function RegisterSaleForm({ product, customers, onSaleRegistered }: Regis
       quantity: 1,
       paymentMethod: 'dinheiro',
       sourceAccount: 'cash',
-      customerId: '',
+      customerId: undefined,
     },
   });
 
   const onSubmit = async (data: z.infer<typeof RegisterSaleInputSchema>) => {
     setIsLoading(true);
     try {
-        const result = await registerSale(data);
+        const payload = {
+            ...data,
+            customerId: data.customerId === 'none' ? undefined : data.customerId,
+        };
+        const result = await registerSale(payload);
         toast({
             title: "Venda Registrada!",
             description: result.message,
         });
-        form.reset();
+        form.reset({
+             productId: product.id,
+            quantity: 1,
+            paymentMethod: 'dinheiro',
+            sourceAccount: 'cash',
+            customerId: undefined,
+        });
         onSaleRegistered();
     } catch(error) {
         toast({
@@ -108,7 +118,7 @@ export function RegisterSaleForm({ product, customers, onSaleRegistered }: Regis
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                   <SelectItem value="">Venda Avulsa / Consumidor Final</SelectItem>
+                   <SelectItem value="none">Venda Avulsa / Consumidor Final</SelectItem>
                    {customers.map(customer => (
                     <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
                   ))}
