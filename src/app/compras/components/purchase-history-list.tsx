@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import {
@@ -28,36 +28,41 @@ export function PurchaseHistoryList() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [purchasesSnapshot, suppliersSnapshot] = await Promise.all([
-          getDocs(collection(db, 'purchases')),
-          getDocs(collection(db, 'suppliers'))
-        ]);
-        
-        const purchasesList = purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
-        const suppliersMap = suppliersSnapshot.docs.reduce((acc, doc) => {
-            acc[doc.id] = { id: doc.id, ...doc.data() } as Supplier;
-            return acc;
-        }, {} as Record<string, Supplier>);
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [purchasesSnapshot, suppliersSnapshot] = await Promise.all([
+        getDocs(collection(db, 'purchases')),
+        getDocs(collection(db, 'suppliers'))
+      ]);
+      
+      const purchasesList = purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+      const suppliersMap = suppliersSnapshot.docs.reduce((acc, doc) => {
+          acc[doc.id] = { id: doc.id, ...doc.data() } as Supplier;
+          return acc;
+      }, {} as Record<string, Supplier>);
 
-        setPurchases(purchasesList);
-        setSuppliers(suppliersMap);
+      // Sort purchases by date in descending order
+      purchasesList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      } catch (error) {
-        toast({
-            title: "Erro ao buscar histórico",
-            description: "Não foi possível carregar os dados de compras.",
-            variant: "destructive"
-        });
-        console.error("Error fetching data: ", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
+      setPurchases(purchasesList);
+      setSuppliers(suppliersMap);
+
+    } catch (error) {
+      toast({
+          title: "Erro ao buscar histórico",
+          description: "Não foi possível carregar os dados de compras.",
+          variant: "destructive"
+      });
+      console.error("Error fetching data: ", error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
 
   const getSupplierName = (supplierId: string) => {
@@ -77,7 +82,7 @@ export function PurchaseHistoryList() {
     return { variant: 'secondary', text: 'Pendente' };
   }
   
-  const getPaymentMethodText = (method: PaymentMethod, installments: number) => {
+  const getPaymentMethodText = (method: PaymentMethod, installments?: number) => {
     const texts = {
         pix: 'PIX',
         boleto: 'Boleto',
@@ -85,7 +90,8 @@ export function PurchaseHistoryList() {
         cartao_credito: 'Crédito',
         cartao_debito: 'Débito'
     }
-    return `${texts[method]} (${installments}x)`;
+    const installmentText = installments && installments > 1 ? ` (${installments}x)` : '';
+    return `${texts[method]}${installmentText}`;
   }
   
   if (isLoading) {
@@ -126,7 +132,7 @@ export function PurchaseHistoryList() {
             </TableHeader>
             <TableBody>
                 {purchases.map((purchase) => {
-                    const status = getOverallStatus(purchase.financialMovements);
+                    const status = getOverallStatus(purchase.financialMovements || []);
                     return (
                         <TableRow key={purchase.id}>
                             <TableCell>{new Date(purchase.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
@@ -137,11 +143,11 @@ export function PurchaseHistoryList() {
                                     <TooltipTrigger asChild>
                                         <div className="flex items-center gap-2 cursor-default">
                                             <CreditCard className="h-4 w-4 text-muted-foreground"/>
-                                            <span>{getPaymentMethodText(purchase.paymentMethod, purchase.financialMovements?.length || 1)}</span>
+                                            <span>{getPaymentMethodText(purchase.paymentMethod, purchase.financialMovements?.length)}</span>
                                         </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>Pago com {getPaymentMethodText(purchase.paymentMethod, purchase.financialMovements?.length || 1)}</p>
+                                        <p>Pago com {getPaymentMethodText(purchase.paymentMethod, purchase.financialMovements?.length)}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TableCell>
@@ -181,5 +187,3 @@ export function PurchaseHistoryList() {
     </Card>
   );
 }
-
-    

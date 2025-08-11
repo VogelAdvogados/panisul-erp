@@ -1,7 +1,7 @@
 
 import { SupplierDetail } from './components/supplier-detail';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
 import type { Supplier, Purchase, FinancialMovement } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -15,19 +15,24 @@ async function getSupplierData(id: string) {
 
     const supplier = { id: supplierDoc.id, ...supplierDoc.data() } as Supplier;
 
-    // Fetch related purchases
+    // Fetch related purchases - simplified query
     const purchasesQuery = query(collection(db, 'purchases'), where('supplierId', '==', id));
     const purchasesSnapshot = await getDocs(purchasesQuery);
-    const purchases = purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
-    const purchaseIds = purchases.map(p => p.id);
+    const purchases = purchasesSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Purchase))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort in code
     
     // Fetch related financial movements
     let movements: FinancialMovement[] = [];
-    if (purchaseIds.length > 0) {
+    if (purchases.length > 0) {
+        const purchaseIds = purchases.map(p => p.id);
         // Firestore 'in' query is limited to 30 items. For more, batching is needed.
-        const movementsQuery = query(collection(db, 'financialMovements'), where('referenceId', 'in', purchaseIds));
-        const movementsSnapshot = await getDocs(movementsQuery);
-        movements = movementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement));
+        // This simplified approach fetches all movements and filters in code for robustness without composite indexes.
+        const movementsSnapshot = await getDocs(collection(db, 'financialMovements'));
+        movements = movementsSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement))
+            .filter(m => purchaseIds.includes(m.referenceId || ''))
+            .sort((a,b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
     }
 
 

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch, getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch, getDocs as getCountFromServer } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -149,7 +149,7 @@ export function ProductList() {
         const productsCollection = collection(db, 'products');
         const snapshot = await getCountFromServer(productsCollection);
         
-        if (snapshot.data().count > 0) {
+        if (snapshot.size > 0) {
             toast({
                 title: 'Banco de dados já populado',
                 description: 'Os dados iniciais já existem no Firestore.',
