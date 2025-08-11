@@ -1,5 +1,6 @@
 
 
+
 import type { Product, Sale, Customer, ExpenseChartItem, BillingData, OperationalSummaryItem, Purchase, Supplier, Ingredient, Recipe, FinancialMovement } from './types';
 import { ShoppingCart, ChefHat, RefreshCw } from 'lucide-react';
 import { expenseCategories } from './categories';
@@ -35,11 +36,11 @@ export const operationalSummaryData: OperationalSummaryItem[] = [
 ];
 
 const productsData: Omit<Product, 'id'>[] = [
-  { name: 'Pão Francês', stock: 45, produced: 120, sold: 75, price: 0.75, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'french bread' },
-  { name: 'Croissant', stock: 8, produced: 20, sold: 12, price: 3.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'croissant' },
-  { name: 'Baguete', stock: 6, produced: 15, sold: 9, price: 4.00, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'baguette' },
-  { name: 'Pão de Queijo', stock: 25, produced: 60, sold: 35, price: 2.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'cheese bread' },
-  { name: 'Sonho', stock: 12, produced: 24, sold: 12, price: 4.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'cream donut' },
+  { name: 'Pão Francês', stock: 45, produced: 120, sold: 75, price: 0.75 },
+  { name: 'Croissant', stock: 8, produced: 20, sold: 12, price: 3.50 },
+  { name: 'Baguete', stock: 6, produced: 15, sold: 9, price: 4.00 },
+  { name: 'Pão de Queijo', stock: 25, produced: 60, sold: 35, price: 2.50 },
+  { name: 'Sonho', stock: 12, produced: 24, sold: 12, price: 4.50 },
 ];
 
 const customersData: Omit<Customer, 'id'>[] = [

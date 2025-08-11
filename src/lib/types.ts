@@ -1,6 +1,7 @@
 
 
 
+
 export interface Sale {
     name: string;
     total: number;
@@ -21,8 +22,6 @@ export interface Product {
     produced: number;
     sold: number;
     price: number;
-    imageUrl: string;
-    'data-ai-hint': string;
 }
 
 export interface PurchaseHistoryItem {

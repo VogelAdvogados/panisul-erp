@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch, getDocs as getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch, getCountFromServer } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -128,8 +128,6 @@ export function ProductList() {
             ...newProductData,
             produced: 0,
             sold: 0,
-            imageUrl: 'https://placehold.co/600x400.png',
-            'data-ai-hint': newProductData.name.toLowerCase(),
           };
           await addDoc(collection(db, "products"), newProduct);
           toast({ title: "Produto Criado!", description: "Um novo produto foi adicionado ao sistema." });

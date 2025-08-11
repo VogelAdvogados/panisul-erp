@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, ShoppingCart, Package, RefreshCw, Eye, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
-import { generateImage } from '@/ai/flows/generate-image';
 import { Skeleton } from '@/components/ui/skeleton';
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { db } from '@/lib/firebase';
@@ -16,42 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { RegisterProductionForm } from './components/register-production-form';
 import { RegisterSaleForm } from './components/register-sale-form';
-
-function ProductImage({ product }: { product: Product }) {
-  const [imageUrl, setImageUrl] = useState(product.imageUrl);
-
-  useEffect(() => {
-    if (product.imageUrl && !product.imageUrl.startsWith('https://placehold.co')) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    const generate = async () => {
-      try {
-        const imageDataUri = await generateImage({
-          prompt: `a professional, appetizing photo of a single ${product['data-ai-hint']} on a rustic wooden bakery table, warm lighting`
-        });
-        if (!isCancelled) {
-          setImageUrl(imageDataUri);
-          // TODO: Save this URL back to Firestore
-        }
-      } catch (e) {
-        console.error(`Failed to generate image for ${product.name}`, e);
-        // Keep placeholder if generation fails
-      }
-    };
-
-    generate();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [product]);
-
-  return <Image src={imageUrl} alt={product.name} width={600} height={400} className="object-cover w-full h-full" data-ai-hint={product['data-ai-hint']} />;
-}
-
 
 export default function OperacoesPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -117,9 +80,7 @@ export default function OperacoesPage() {
             <Card key={product.id} className="shadow-md hover:shadow-lg transition-shadow flex flex-col">
               <CardHeader className="p-0 bg-muted/30">
                 <div className="aspect-[3/2] w-full flex items-center justify-center bg-amber-50 rounded-t-lg overflow-hidden">
-                  <Suspense fallback={<Skeleton className="w-full h-full" />}>
-                    <ProductImage product={product} />
-                  </Suspense>
+                   <Package className="h-16 w-16 text-amber-200" />
                 </div>
               </CardHeader>
               <CardContent className="p-4 space-y-3 flex-grow">
