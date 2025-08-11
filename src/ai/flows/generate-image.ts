@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for generating images using AI.
@@ -8,7 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { experimental } from 'genkit/googleai';
+import { googleAI } from '@genkit-ai/googleai';
 
 const GenerateImageInputSchema = z.object({
   prompt: z.string().describe('The text prompt to generate an image from.'),
@@ -22,19 +23,19 @@ export async function generateImage(input: GenerateImageInput): Promise<string> 
 const generateImageFlow = ai.defineFlow(
   {
     name: 'generateImageFlow',
-    inputSchema: GenerateImageInputSchema,
+    inputSchema: GenerateImageinputSchema,
     outputSchema: z.string(),
   },
   async ({ prompt }) => {
     const { media } = await ai.generate({
-      model: experimental.googleAI.gemini2FlashImageGenerator,
+      model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt,
       config: {
         responseModalities: ['IMAGE'],
       },
     });
 
-    if (!media.url) {
+    if (!media?.url) {
       throw new Error('Image generation failed to return a data URI.');
     }
 
