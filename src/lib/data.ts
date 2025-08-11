@@ -1,6 +1,6 @@
 
 
-import type { Product, Sale, Customer, ExpenseData, BillingData, OperationalSummaryItem, Purchase, Supplier } from './types';
+import type { Product, Sale, Customer, ExpenseData, BillingData, OperationalSummaryItem, Purchase, Supplier, Ingredient, Recipe } from './types';
 import { ShoppingCart, ChefHat, RefreshCw } from 'lucide-react';
 
 export const salesData: Sale[] = [
@@ -26,9 +26,8 @@ export const operationalSummaryData: OperationalSummaryItem[] = [
 
 export const products: Product[] = [
   { id: '1', name: 'Pão Francês', stock: 45, produced: 120, sold: 75, price: 0.75, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'french bread' },
-  { id: '2', name: 'Pão de Açúcar', stock: 12, produced: 24, sold: 12, price: 1.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'sweet bread' },
-  { id: '3', name: 'Croissant', stock: 8, produced: 20, sold: 12, price: 3.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'croissant' },
-  { id: '4', name: 'Baguete', stock: 6, produced: 15, sold: 9, price: 4.00, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'baguette' },
+  { id: '2', name: 'Croissant', stock: 8, produced: 20, sold: 12, price: 3.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'croissant' },
+  { id: '3', name: 'Baguete', stock: 6, produced: 15, sold: 9, price: 4.00, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'baguette' },
 ];
 
 export const customers: Customer[] = [
@@ -161,6 +160,37 @@ export const purchases: Purchase[] = [
         items: [
             { name: 'Ovos', quantity: 360, unitPrice: 0.80 },
             { name: 'Manteiga', quantity: 20, unitPrice: 20.00 },
+        ]
+    }
+];
+
+export const ingredients: Ingredient[] = [
+    { id: 'ING-001', name: 'Farinha de Trigo', stock: 25000, unitOfMeasure: 'g', cost: 0.0055 }, // R$ 5,50/kg
+    { id: 'ING-002', name: 'Açúcar Refinado', stock: 10000, unitOfMeasure: 'g', cost: 0.004 }, // R$ 4,00/kg
+    { id: 'ING-003', name: 'Fermento Biológico Seco', stock: 500, unitOfMeasure: 'g', cost: 0.03 }, // R$ 30,00/kg
+    { id: 'ING-004', name: 'Sal', stock: 1000, unitOfMeasure: 'g', cost: 0.002 }, // R$ 2,00/kg
+    { id: 'ING-005', name: 'Manteiga', stock: 2000, unitOfMeasure: 'g', cost: 0.04 }, // R$ 40,00/kg
+];
+
+export const recipes: Recipe[] = [
+    {
+        id: 'REC-001',
+        productId: '1', // Pão Francês
+        items: [
+            { ingredientId: 'ING-001', quantity: 100 }, // 100g de Farinha
+            { ingredientId: 'ING-003', quantity: 2 }, // 2g de Fermento
+            { ingredientId: 'ING-004', quantity: 2 }, // 2g de Sal
+        ]
+    },
+     {
+        id: 'REC-002',
+        productId: '2', // Croissant
+        items: [
+            { ingredientId: 'ING-001', quantity: 80 }, // 80g de Farinha
+            { ingredientId: 'ING-005', quantity: 40 }, // 40g de Manteiga
+            { ingredientId: 'ING-002', quantity: 10 }, // 10g de Açúcar
+            { ingredientId: 'ING-003', quantity: 1.5 }, // 1.5g de Fermento
+            { ingredientId: 'ING-004', quantity: 1 }, // 1g de Sal
         ]
     }
 ];

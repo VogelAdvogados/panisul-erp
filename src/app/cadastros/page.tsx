@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle } from 'lucide-react';
 import { SupplierList } from './components/supplier-list';
 import { ProductList } from './components/product-list';
+import { RecipeList } from './components/recipe-list';
 
 export default function CadastrosPage() {
   return (
@@ -59,10 +60,10 @@ export default function CadastrosPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Fichas Técnicas</CardTitle>
-                    <CardDescription>Gerencie as receitas dos seus produtos para baixa automática de estoque.</CardDescription>
+                    <CardDescription>Gerencie as receitas dos seus produtos para cálculo de custo e baixa automática de estoque.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p>Tabela de fichas técnicas aqui...</p>
+                    <RecipeList />
                 </CardContent>
             </Card>
           </TabsContent>

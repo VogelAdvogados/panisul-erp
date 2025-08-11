@@ -101,3 +101,23 @@ export interface Purchase {
         unitPrice: number;
     }>;
 }
+
+export interface Ingredient {
+    id: string;
+    name: string;
+    stock: number; // in grams, ml, or units
+    unitOfMeasure: 'g' | 'kg' | 'ml' | 'l' | 'un';
+    cost: number; // cost per unit of measure (e.g., cost per gram)
+}
+
+export interface RecipeItem {
+    ingredientId: string;
+    quantity: number; // in the ingredient's unit of measure
+}
+
+export interface Recipe {
+    id: string;
+    productId: string;
+    items: RecipeItem[];
+    // totalCost is calculated on the fly
+}
