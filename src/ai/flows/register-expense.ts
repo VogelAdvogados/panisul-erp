@@ -43,7 +43,7 @@ const registerExpenseFlow = ai.defineFlow(
     const financialMovement: Omit<FinancialMovement, 'id'> = {
       description: input.description,
       dueDate: input.dueDate,
-      amount: -input.amount, // Expenses are negative
+      amount: -Math.abs(input.amount), // Ensure expense is always negative
       status: input.paymentStatus,
       paymentDate: input.paymentStatus === 'paid' ? format(new Date(input.dueDate), 'yyyy-MM-dd') : undefined,
       category: input.category as ExpenseCategory,
@@ -59,5 +59,3 @@ const registerExpenseFlow = ai.defineFlow(
     };
   }
 );
-
-    

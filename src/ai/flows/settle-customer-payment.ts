@@ -9,7 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { doc, runTransaction, increment } from 'firebase/firestore';
+import { doc, runTransaction, increment, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 const SettleCustomerPaymentInputSchema = z.object({
@@ -17,16 +17,14 @@ const SettleCustomerPaymentInputSchema = z.object({
   customerId: z.string().describe('The ID of the customer.'),
   amount: z.number().describe('The amount being paid.'),
 });
-type SettleCustomerPaymentInput = z.infer<typeof SettleCustomerPaymentInputSchema>;
 
 const SettleCustomerPaymentOutputSchema = z.object({
   message: z.string(),
 });
-type SettleCustomerPaymentOutput = z.infer<typeof SettleCustomerPaymentOutputSchema>;
 
 export async function settleCustomerPayment(
-  input: SettleCustomerPaymentInput
-): Promise<SettleCustomerPaymentOutput> {
+  input: z.infer<typeof SettleCustomerPaymentInputSchema>
+): Promise<z.infer<typeof SettleCustomerPaymentOutputSchema>> {
   return settleCustomerPaymentFlow(input);
 }
 
@@ -46,6 +44,9 @@ const settleCustomerPaymentFlow = ai.defineFlow(
       if (!movementDoc.exists()) {
         throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
       }
+       if (movementDoc.data()?.status === 'paid') {
+        throw new Error(`Esta conta já foi paga.`);
+      }
 
       // 1. Update Financial Movement status and payment date
       transaction.update(movementRef, {
@@ -54,8 +55,12 @@ const settleCustomerPaymentFlow = ai.defineFlow(
       });
 
       // 2. Decrement customer's pending amount
+      const customerDoc = await transaction.get(customerRef);
+      if (!customerDoc.exists()) {
+        throw new Error(`Cliente ${customerId} não encontrado.`);
+      }
       transaction.update(customerRef, {
-        pendingAmount: increment(-amount),
+        pendingAmount: increment(-Math.abs(amount)),
       });
     });
 

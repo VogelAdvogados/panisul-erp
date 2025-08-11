@@ -76,11 +76,12 @@ const registerManualPurchaseFlow = ai.defineFlow(
         if (!ingredientDoc.exists()) {
           throw new Error(`Insumo com ID ${item.ingredientId} não encontrado.`);
         }
+        const ingredientName = ingredientDoc.data().name || 'Insumo desconhecido';
         transaction.update(ingredientRef, {
           stock: increment(item.quantity)
         });
         purchaseData.items.push({
-            name: ingredientDoc.data().name,
+            name: ingredientName,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
         });
@@ -90,7 +91,7 @@ const registerManualPurchaseFlow = ai.defineFlow(
 
       // 3. Create Financial Movements for each installment
       const installmentValue = input.totalAmount / input.installments;
-      const isPaidOnPurchase = input.paymentMethod === 'pix' || input.paymentMethod === 'dinheiro' || input.paymentMethod === 'cartao_debito';
+      const isPaidOnPurchase = ['pix', 'dinheiro', 'cartao_debito'].includes(input.paymentMethod);
 
       for (let i = 0; i < input.installments; i++) {
         const dueDate = addMonths(new Date(input.firstDueDate), i);
@@ -118,5 +119,3 @@ const registerManualPurchaseFlow = ai.defineFlow(
     };
   }
 );
-
-    

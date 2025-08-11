@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, getDoc, query, where, doc } from 'firebase/firestore';
 import {
@@ -45,7 +45,11 @@ import { settleCustomerPayment } from '@/ai/flows/settle-customer-payment';
 
 type FilterTab = 'all' | 'pessoa-juridica' | 'pessoa-fisica' | 'com-pendencias';
 
-export function ClientList() {
+interface ClientListProps {
+    customerToOpen: string | null;
+}
+
+export function ClientList({ customerToOpen }: ClientListProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,7 +66,7 @@ export function ClientList() {
   
   const { toast } = useToast();
   
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
        setIsLoading(true);
        try {
         const customersCollection = collection(db, 'customers');
@@ -79,11 +83,39 @@ export function ClientList() {
       } finally {
         setIsLoading(false);
       }
-  }
+  }, [toast]);
 
   useEffect(() => {
     fetchCustomers();
+  }, [fetchCustomers]);
+
+  const handleViewDetails = useCallback(async (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsDetailOpen(true);
+    setIsFinancialsLoading(true);
+    try {
+        const movementsRef = collection(db, 'financialMovements');
+        const q = query(movementsRef, where('referenceId', '==', customer.id), where('type', '==', 'revenue'));
+        const querySnapshot = await getDocs(q);
+        const financials = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
+        setCustomerFinancials(financials.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()));
+    } catch(err) {
+        toast({ title: "Erro ao buscar financeiro", description: "Não foi possível carregar o histórico financeiro do cliente."});
+    } finally {
+        setIsFinancialsLoading(false);
+    }
   }, [toast]);
+
+
+  useEffect(() => {
+      if (customerToOpen && customers.length > 0) {
+          const customer = customers.find(c => c.id === customerToOpen);
+          if (customer) {
+              handleViewDetails(customer);
+          }
+      }
+  }, [customerToOpen, customers, handleViewDetails]);
+
 
   const filteredCustomers = useMemo(() => {
     return customers
@@ -120,24 +152,6 @@ export function ClientList() {
     // Form submission logic would be implemented here to add/update in Firestore
   }
 
-  const handleViewDetails = async (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setIsDetailOpen(true);
-    setIsFinancialsLoading(true);
-    try {
-        const movementsRef = collection(db, 'financialMovements');
-        const q = query(movementsRef, where('type', '==', 'revenue'));
-        const querySnapshot = await getDocs(q);
-        const financials = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
-        const customerFinancials = financials.filter(f => f.referenceId === customer.id);
-        setCustomerFinancials(customerFinancials);
-    } catch(err) {
-        toast({ title: "Erro ao buscar financeiro", description: "Não foi possível carregar o histórico financeiro do cliente."});
-    } finally {
-        setIsFinancialsLoading(false);
-    }
-  }
-
   const handleSettlePayment = async (movement: FinancialMovement) => {
     if (!selectedCustomer) return;
     setIsSettlingPayment(movement.id);
@@ -150,7 +164,7 @@ export function ClientList() {
         toast({ title: "Sucesso!", description: result.message });
         
         // Refresh data
-        handleViewDetails(selectedCustomer); // Re-fetch financials
+        await handleViewDetails(selectedCustomer); // Re-fetch financials
         const customerDoc = await getDoc(doc(db, 'customers', selectedCustomer.id));
         if(customerDoc.exists()){
             const updatedCustomer = {id: customerDoc.id, ...customerDoc.data()} as Customer;
@@ -360,7 +374,7 @@ export function ClientList() {
                              <Card>
                                 <CardHeader>
                                     <CardTitle>Contas a Receber</CardTitle>
-                                    <CardDescription>Movimentações financeiras pendentes para este cliente.</CardDescription>
+                                    <CardDescription>Movimentações financeiras pendentes e pagas para este cliente.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     {isFinancialsLoading ? (

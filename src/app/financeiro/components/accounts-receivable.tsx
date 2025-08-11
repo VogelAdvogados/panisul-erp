@@ -19,6 +19,7 @@ import type { Customer } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 export function AccountsReceivable() {
   const [accounts, setAccounts] = useState<Customer[]>([]);
@@ -27,6 +28,7 @@ export function AccountsReceivable() {
 
   useEffect(() => {
     const fetchReceivables = async () => {
+      setIsLoading(true);
       try {
         const customersCollection = collection(db, 'customers');
         const q = query(customersCollection, where('pendingAmount', '>', 0));
@@ -101,7 +103,9 @@ export function AccountsReceivable() {
                         </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                        <Button variant="outline" size="sm">Receber</Button>
+                        <Button variant="outline" size="sm" asChild>
+                           <Link href={`/clientes?open=${customer.id}`}>Ver Ficha</Link>
+                        </Button>
                     </TableCell>
                 </TableRow>
             ))}
@@ -121,5 +125,3 @@ export function AccountsReceivable() {
     </Card>
   );
 }
-
-    
