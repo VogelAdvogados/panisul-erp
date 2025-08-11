@@ -9,7 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, doc, runTransaction, addDoc, increment } from 'firebase/firestore';
+import { collection, doc, runTransaction, addDoc, increment, getDoc } from 'firebase/firestore';
 import type { Product, FinancialMovement, Customer } from '@/lib/types';
 import { format } from 'date-fns';
 

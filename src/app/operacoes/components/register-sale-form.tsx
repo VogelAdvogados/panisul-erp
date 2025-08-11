@@ -10,11 +10,19 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Customer } from '@/lib/types';
-import { registerSale, RegisterSaleInputSchema } from '@/ai/flows/register-sale';
+import { registerSale } from '@/ai/flows/register-sale';
 import { useState } from 'react';
 import { Loader2, ShoppingCart } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+
+const RegisterSaleInputSchema = z.object({
+  productId: z.string().describe('The ID of the product being sold.'),
+  quantity: z.coerce.number().int().positive().describe('The quantity of the product being sold.'),
+  paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
+  sourceAccount: z.enum(['cash', 'bank']),
+  customerId: z.string().optional().describe('The ID of the customer, if applicable.'),
+});
 
 
 interface RegisterSaleFormProps {
@@ -183,5 +191,3 @@ export function RegisterSaleForm({ product, customers, onSaleRegistered }: Regis
     </Form>
   );
 }
-
-    
