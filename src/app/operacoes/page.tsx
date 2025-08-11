@@ -8,13 +8,14 @@ import { PlusCircle, ShoppingCart, Package, RefreshCw, Eye, ShoppingBag } from '
 import Image from 'next/image';
 import { generateImage } from '@/ai/flows/generate-image';
 import { Skeleton } from '@/components/ui/skeleton';
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { RegisterProductionForm } from './components/register-production-form';
+import { RegisterSaleForm } from './components/register-sale-form';
 
 function ProductImage({ product }: { product: Product }) {
   const [imageUrl, setImageUrl] = useState(product.imageUrl);
@@ -54,10 +55,12 @@ function ProductImage({ product }: { product: Product }) {
 
 export default function OperacoesPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isProductionFormOpen, setIsProductionFormOpen] = useState(false);
+  const [isSaleFormOpen, setIsSaleFormOpen] = useState(false);
+  const [selectedProductForSale, setSelectedProductForSale] = useState<Product | null>(null);
   const { toast } = useToast();
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
         const productsCollection = collection(db, 'products');
         const productSnapshot = await getDocs(productsCollection);
@@ -70,18 +73,22 @@ export default function OperacoesPage() {
             variant: "destructive"
         });
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchProducts();
-  }, [toast]);
+  }, [fetchProducts]);
   
+  const handleOpenSaleForm = (product: Product) => {
+    setSelectedProductForSale(product);
+    setIsSaleFormOpen(true);
+  }
 
   return (
     <>
       <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader title="Painel do Dia">
-          <Button onClick={() => setIsFormOpen(true)}>
+          <Button onClick={() => setIsProductionFormOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Registrar Produção
           </Button>
@@ -113,7 +120,7 @@ export default function OperacoesPage() {
               </CardContent>
               <CardFooter className="p-4 pt-0 flex flex-col gap-2">
                 <div className='flex gap-2 w-full'>
-                  <Button size="sm" className="w-full bg-green-500 hover:bg-green-600">
+                  <Button size="sm" className="w-full bg-green-500 hover:bg-green-600" onClick={() => handleOpenSaleForm(product)} disabled={product.stock === 0}>
                       <ShoppingCart className='h-4 w-4 mr-2'/>
                       Vender
                   </Button>
@@ -177,7 +184,7 @@ export default function OperacoesPage() {
         </div>
 
       </div>
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isProductionFormOpen} onOpenChange={setIsProductionFormOpen}>
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Registrar Nova Produção</DialogTitle>
@@ -187,8 +194,25 @@ export default function OperacoesPage() {
             </DialogHeader>
             <RegisterProductionForm products={products} onProductionRegistered={() => {
                 fetchProducts();
-                setIsFormOpen(false);
+                setIsProductionFormOpen(false);
             }} />
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isSaleFormOpen} onOpenChange={setIsSaleFormOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Registrar Nova Venda</DialogTitle>
+                <DialogDescription>
+                    Confirme a quantidade e a forma de pagamento. O estoque e o financeiro serão atualizados automaticamente.
+                </DialogDescription>
+            </DialogHeader>
+            {selectedProductForSale && (
+                <RegisterSaleForm product={selectedProductForSale} onSaleRegistered={() => {
+                    fetchProducts();
+                    setIsSaleFormOpen(false);
+                }} />
+            )}
         </DialogContent>
       </Dialog>
     </>

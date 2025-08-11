@@ -92,6 +92,8 @@ export interface Supplier {
 
 export type PaymentMethod = 'pix' | 'boleto' | 'dinheiro' | 'cartao_credito' | 'cartao_debito';
 export type SourceAccount = 'cash' | 'bank';
+export type MovementType = 'revenue' | 'expense';
+
 
 export interface FinancialMovement {
     id: string;
@@ -99,6 +101,7 @@ export interface FinancialMovement {
     dueDate: string;
     amount: number;
     status: 'pending' | 'paid' | 'overdue';
+    type: MovementType;
     paymentDate?: string;
     category: ExpenseCategory;
     referenceId?: string; // e.g., purchaseId or expenseId

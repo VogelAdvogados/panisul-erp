@@ -1,0 +1,91 @@
+
+'use server';
+
+/**
+ * @fileOverview Registers a new sale, updating product stock and creating a financial revenue entry.
+ */
+
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+import { db } from '@/lib/firebase';
+import { collection, doc, runTransaction, addDoc } from 'firebase/firestore';
+import type { Product, FinancialMovement } from '@/lib/types';
+import { format } from 'date-fns';
+
+export const RegisterSaleInputSchema = z.object({
+  productId: z.string().describe('The ID of the product being sold.'),
+  quantity: z.number().int().positive().describe('The quantity of the product being sold.'),
+  paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
+  sourceAccount: z.enum(['cash', 'bank']),
+});
+export type RegisterSaleInput = z.infer<typeof RegisterSaleInputSchema>;
+
+export const RegisterSaleOutputSchema = z.object({
+  message: z.string(),
+  saleId: z.string(),
+});
+export type RegisterSaleOutput = z.infer<typeof RegisterSaleOutputSchema>;
+
+export async function registerSale(
+  input: RegisterSaleInput
+): Promise<RegisterSaleOutput> {
+  return registerSaleFlow(input);
+}
+
+const registerSaleFlow = ai.defineFlow(
+  {
+    name: 'registerSaleFlow',
+    inputSchema: RegisterSaleInputSchema,
+    outputSchema: RegisterSaleOutputSchema,
+  },
+  async ({ productId, quantity, paymentMethod, sourceAccount }) => {
+    
+    const saleId = await runTransaction(db, async (transaction) => {
+      const productRef = doc(db, 'products', productId);
+      const productDoc = await transaction.get(productRef);
+
+      if (!productDoc.exists()) {
+        throw new Error(`Produto ${productId} não encontrado.`);
+      }
+      const product = productDoc.data() as Product;
+
+      const currentStock = product.stock || 0;
+      if (currentStock < quantity) {
+        throw new Error(`Estoque insuficiente para ${product.name}. Disponível: ${currentStock}, Solicitado: ${quantity}`);
+      }
+      
+      const newStock = currentStock - quantity;
+      const newSold = (product.sold || 0) + quantity;
+
+      // 1. Update product stock and sold count
+      transaction.update(productRef, { 
+        stock: newStock,
+        sold: newSold
+      });
+
+      // 2. Create the Financial Movement (revenue)
+      const saleAmount = product.price * quantity;
+      const today = new Date();
+
+      const financialMovement: Omit<FinancialMovement, 'id'> = {
+        description: `Venda de ${quantity}x ${product.name}`,
+        referenceId: productId, 
+        dueDate: format(today, 'yyyy-MM-dd'),
+        paymentDate: format(today, 'yyyy-MM-dd'),
+        amount: saleAmount,
+        status: 'paid', // Sales are considered paid immediately
+        type: 'revenue',
+        category: 'vendas',
+        sourceAccount, // cash or bank
+      };
+      const movementRef = await addDoc(collection(db, 'financialMovements'), financialMovement);
+
+      return movementRef.id;
+    });
+
+    return {
+      message: `Venda de ${quantity} unidade(s) do produto ${productId} registrada com sucesso.`,
+      saleId: saleId,
+    };
+  }
+);
