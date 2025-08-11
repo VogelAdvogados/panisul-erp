@@ -12,17 +12,17 @@ import { db } from '@/lib/firebase';
 import { doc, runTransaction, increment } from 'firebase/firestore';
 import { format } from 'date-fns';
 
-export const SettleCustomerPaymentInputSchema = z.object({
+const SettleCustomerPaymentInputSchema = z.object({
   movementId: z.string().describe('The ID of the financial movement to be settled.'),
   customerId: z.string().describe('The ID of the customer.'),
   amount: z.number().describe('The amount being paid.'),
 });
-export type SettleCustomerPaymentInput = z.infer<typeof SettleCustomerPaymentInputSchema>;
+type SettleCustomerPaymentInput = z.infer<typeof SettleCustomerPaymentInputSchema>;
 
-export const SettleCustomerPaymentOutputSchema = z.object({
+const SettleCustomerPaymentOutputSchema = z.object({
   message: z.string(),
 });
-export type SettleCustomerPaymentOutput = z.infer<typeof SettleCustomerPaymentOutputSchema>;
+type SettleCustomerPaymentOutput = z.infer<typeof SettleCustomerPaymentOutputSchema>;
 
 export async function settleCustomerPayment(
   input: SettleCustomerPaymentInput
