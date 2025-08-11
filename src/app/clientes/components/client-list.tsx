@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, getDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, getDoc, query, where, doc } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -126,10 +126,11 @@ export function ClientList() {
     setIsFinancialsLoading(true);
     try {
         const movementsRef = collection(db, 'financialMovements');
-        const q = query(movementsRef, where('referenceId', '==', customer.id), where('type', '==', 'revenue'));
+        const q = query(movementsRef, where('type', '==', 'revenue'));
         const querySnapshot = await getDocs(q);
         const financials = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
-        setCustomerFinancials(financials);
+        const customerFinancials = financials.filter(f => f.referenceId === customer.id);
+        setCustomerFinancials(customerFinancials);
     } catch(err) {
         toast({ title: "Erro ao buscar financeiro", description: "Não foi possível carregar o histórico financeiro do cliente."});
     } finally {
@@ -429,3 +430,5 @@ export function ClientList() {
     </>
   );
 }
+
+    
