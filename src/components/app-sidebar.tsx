@@ -30,7 +30,7 @@ interface SidebarProps {
 const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, description: "Visão geral do negócio" },
     { href: '/operacoes', label: 'Painel do Dia', icon: ClipboardList, description: "Operações diárias" },
-    { href: '/vendas', label: 'Vendas', icon: ShoppingBag, description: "Registrar vendas e ver histórico" },
+    { href: '/vendas/pdv', label: 'Vendas (PDV)', icon: ShoppingBag, description: "Ponto de Venda" },
     { href: '/financeiro', label: 'Financeiro', icon: Wallet, description: "Contas e fluxo de caixa" },
     { href: '/compras', label: 'Compras', icon: ShoppingCart, description: "Importar XML/PDF" },
     { href: '/cadastros', label: 'Cadastros', icon: Archive, description: "Produtos e insumos" },
