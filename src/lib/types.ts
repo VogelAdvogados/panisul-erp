@@ -1,6 +1,5 @@
 
 
-
 export interface Sale {
     name: string;
     total: number;
@@ -71,7 +70,7 @@ export interface Customer {
   financialHistory: FinancialHistoryItem[];
 }
 
-export type ExpenseCategory = 'insumos' | 'salarios' | 'infraestrutura' | 'marketing' | 'impostos' | 'outros';
+export type ExpenseCategory = 'insumos' | 'salarios' | 'infraestrutura' | 'marketing' | 'impostos' | 'outros' | 'vendas';
 
 export interface ExpenseChartItem {
   category: ExpenseCategory;
@@ -118,7 +117,7 @@ export interface Purchase {
         quantity: number;
         unitPrice: number;
     }>;
-    financialMovements: FinancialMovement[];
+    financialMovements?: FinancialMovement[];
 }
 
 export interface Ingredient {
@@ -140,5 +139,4 @@ export interface Recipe {
     items: RecipeItem[];
     // totalCost is calculated on the fly
 }
-
     
