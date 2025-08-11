@@ -1,3 +1,7 @@
+
+'use client';
+
+import { useState } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,16 +12,29 @@ import { ProductList } from './components/product-list';
 import { RecipeList } from './components/recipe-list';
 import { IngredientList } from './components/ingredient-list';
 
+type CadastrosTab = 'products' | 'ingredients' | 'suppliers' | 'recipes';
+
 export default function CadastrosPage() {
+  const [activeTab, setActiveTab] = useState<CadastrosTab>('products');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const handleAddNew = () => {
+    // This is a simplified way to trigger the form in the child component.
+    // In a real app, you might use a more robust state management solution.
+    if (activeTab === 'products') {
+      // We will control the form state within the ProductList component itself
+      // This is just a conceptual placeholder for more complex state management
+    }
+    // Logic for other tabs can be added here
+  };
+
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
       <PageHeader title="Cadastros Base">
-        <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Novo
-        </Button>
+        {/* The add button will be moved inside each component for better context */}
       </PageHeader>
-      <Tabs defaultValue="products">
+      <Tabs defaultValue="products" onValueChange={(value) => setActiveTab(value as CadastrosTab)}>
           <TabsList>
               <TabsTrigger value="products">Produtos</TabsTrigger>
               <TabsTrigger value="ingredients">Insumos</TabsTrigger>
