@@ -9,7 +9,7 @@ const firebaseConfig = {
   projectId: "panisul-gemini",
   storageBucket: "panisul-gemini.appspot.com",
   messagingSenderId: "609465293628",
-  appId: "1:609465293628:web:d21e64344917f415c9a78c"
+  appId: "1:609465293628:web:8e2e7d9f1569c975331c39"
 };
 
 // Initialize Firebase
