@@ -10,7 +10,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, doc, runTransaction, increment } from 'firebase/firestore';
-import type { Product, FinancialMovement, Customer } from '@/lib/types';
+import type { Product, FinancialMovement, Customer, SourceAccount } from '@/lib/types';
 import { format } from 'date-fns';
 
 const SaleItemSchema = z.object({
@@ -24,7 +24,7 @@ const RegisterSaleInputSchema = z.object({
   items: z.array(SaleItemSchema),
   totalAmount: z.number(),
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
-  sourceAccount: z.enum(['cash', 'bank']),
+  sourceAccount: z.custom<SourceAccount>(),
   customerId: z.string().optional(),
   dueDate: z.string().optional(),
 });
@@ -70,6 +70,7 @@ const registerSaleFlow = ai.defineFlow(
       
       // 2. Create the Financial Movement (revenue)
       const today = new Date();
+      // 'boleto' or 'cartao_credito' always imply a credit sale that will be settled later
       const isSaleOnCredit = paymentMethod === 'boleto' || paymentMethod === 'cartao_credito';
       const status = isSaleOnCredit ? 'pending' : 'paid';
 

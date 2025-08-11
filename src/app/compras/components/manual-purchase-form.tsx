@@ -30,7 +30,6 @@ const formSchema = z.object({
   supplierId: z.string().min(1, 'Selecione um fornecedor.'),
   invoiceNumber: z.string().optional(),
   date: z.string().min(1, 'A data da compra é obrigatória.'),
-  sourceAccount: z.enum(['cash', 'bank'], { required_error: 'Selecione a conta de origem.'}),
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
   installments: z.coerce.number().int().min(1, 'Pelo menos uma parcela é necessária.').default(1),
   firstDueDate: z.string().min(1, 'A data de vencimento da primeira parcela é obrigatória.'),
@@ -73,7 +72,6 @@ export function ManualPurchaseForm() {
       supplierId: '',
       invoiceNumber: '',
       date: new Date().toISOString().split('T')[0],
-      sourceAccount: 'bank',
       paymentMethod: 'boleto',
       installments: 1,
       firstDueDate: add(new Date(), {days: 30}).toISOString().split('T')[0],
@@ -87,21 +85,11 @@ export function ManualPurchaseForm() {
   });
   
   const watchedItems = form.watch('items');
-  const paymentMethod = form.watch('paymentMethod');
   const totalAmount = watchedItems.reduce((acc, item) => {
     const quantity = Number(item.quantity) || 0;
     const unitPrice = Number(item.unitPrice) || 0;
     return acc + quantity * unitPrice;
   }, 0);
-
-  // Effect to automatically set source account based on payment method
-  useEffect(() => {
-    if (paymentMethod === 'dinheiro') {
-      form.setValue('sourceAccount', 'cash');
-    } else {
-      form.setValue('sourceAccount', 'bank');
-    }
-  }, [paymentMethod, form]);
 
   // Effect to manage installments and payment method when payment type changes
   useEffect(() => {
@@ -117,7 +105,8 @@ export function ManualPurchaseForm() {
   const onSubmit = async (data: ManualPurchaseFormInput) => {
     setIsSubmitting(true);
     try {
-        const result = await registerManualPurchase({...data, totalAmount });
+        const sourceAccount = data.paymentMethod === 'dinheiro' ? 'cash' : 'bank';
+        const result = await registerManualPurchase({...data, totalAmount, sourceAccount });
         toast({
             title: "Compra Lançada com Sucesso!",
             description: result.message,
@@ -311,6 +300,8 @@ export function ManualPurchaseForm() {
                                         </>
                                     ) : (
                                         <>
+                                            <SelectItem value="dinheiro">Dinheiro (a prazo)</SelectItem>
+                                            <SelectItem value="pix">PIX (a prazo)</SelectItem>
                                             <SelectItem value="boleto">Boleto</SelectItem>
                                             <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
                                         </>

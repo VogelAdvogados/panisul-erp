@@ -10,7 +10,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, runTransaction, getDoc, increment } from 'firebase/firestore';
-import type { Purchase, FinancialMovement, Supplier, Ingredient } from '@/lib/types';
+import type { Purchase, FinancialMovement, Supplier, Ingredient, SourceAccount } from '@/lib/types';
 import { format, addMonths } from 'date-fns';
 
 const PurchaseItemSchema = z.object({
@@ -23,7 +23,7 @@ const RegisterManualPurchaseInputSchema = z.object({
   supplierId: z.string(),
   invoiceNumber: z.string().optional(),
   date: z.string(),
-  sourceAccount: z.enum(['cash', 'bank']),
+  sourceAccount: z.custom<SourceAccount>(),
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
   installments: z.number().int().min(1),
   firstDueDate: z.string(),

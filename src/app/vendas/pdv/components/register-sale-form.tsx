@@ -20,7 +20,6 @@ import type { CartItem } from '../page';
 
 const RegisterSaleInputSchema = z.object({
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
-  sourceAccount: z.enum(['cash', 'bank']),
   customerId: z.string().optional().describe('The ID of the customer, if applicable.'),
   dueDate: z.string().optional().describe('The due date for credit sales.'),
 });
@@ -44,28 +43,20 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
     resolver: zodResolver(RegisterSaleInputSchema),
     defaultValues: {
       paymentMethod: 'dinheiro',
-      sourceAccount: 'cash',
       customerId: 'none',
       dueDate: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
     },
   });
 
   const paymentMethod = form.watch('paymentMethod');
-
-  // Effect to automatically set source account based on payment method
-  useEffect(() => {
-    if (paymentMethod === 'dinheiro') {
-      form.setValue('sourceAccount', 'cash');
-    } else {
-      form.setValue('sourceAccount', 'bank');
-    }
-  }, [paymentMethod, form]);
+  const isCreditSale = paymentType === 'a_prazo';
 
   // Effect to reset payment method when payment type changes
   useEffect(() => {
     if (paymentType === 'a_vista') {
       form.setValue('paymentMethod', 'dinheiro');
     } else {
+      // Allow cash/pix for credit sales (fiado)
       form.setValue('paymentMethod', 'boleto');
     }
   }, [paymentType, form]);
@@ -80,12 +71,18 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
             unitPrice: item.product.price,
             productName: item.product.name,
         }));
+        
+        const sourceAccount = data.paymentMethod === 'dinheiro' ? 'cash' : 'bank';
 
         const payload = {
             ...data,
             items: itemsToSell,
             totalAmount: total,
+            sourceAccount: sourceAccount,
             customerId: data.customerId === 'none' ? undefined : data.customerId,
+            // Force paymentMethod to 'boleto' if it's a credit sale for logic purposes in the backend
+            // The actual combined method is known, but the financial movement type is what matters
+            paymentMethod: isCreditSale ? 'boleto' : data.paymentMethod,
         };
         const result = await registerSale(payload);
         toast({
@@ -103,8 +100,6 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
         setIsLoading(false);
     }
   };
-  
-  const isCreditSale = paymentType === 'a_prazo';
 
   return (
     <Form {...form}>
@@ -178,8 +173,10 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
                                     </>
                                 ) : (
                                     <>
-                                        <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                                        <SelectItem value="dinheiro">Dinheiro (a prazo)</SelectItem>
+                                        <SelectItem value="pix">PIX (a prazo)</SelectItem>
                                         <SelectItem value="boleto">Boleto</SelectItem>
+                                        <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
                                     </>
                                 )}
                             </SelectContent>
