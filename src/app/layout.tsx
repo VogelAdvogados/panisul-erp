@@ -35,7 +35,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased bg-muted/50">
+      <body className="font-body antialiased bg-background">
         <div className="flex min-h-screen">
           <AppSidebar 
             isCollapsed={isCollapsed} 
