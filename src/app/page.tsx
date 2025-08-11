@@ -37,8 +37,8 @@ async function getDashboardData() {
     // Low stock ingredients (simplified: checking stock < 1000)
     const lowStockQuery = query(ingredientsRef, where('stock', '<', 1000), limit(5));
 
-    // Latest transactions
-    const latestTransactionsQuery = query(collection(db, "financialMovements"), where("status", "==", "paid"), orderBy("paymentDate", "desc"), limit(5));
+    // Latest transactions - Simplified query to avoid composite index
+    const latestTransactionsQuery = query(collection(db, "financialMovements"), orderBy("paymentDate", "desc"), limit(15));
 
 
     const [
@@ -64,7 +64,12 @@ async function getDashboardData() {
     const totalRevenueToday = calculateTotal(paidRevenuesSnapshot);
     const totalExpenseToday = calculateTotal(paidExpensesSnapshot);
     const lowStockItems = lowStockSnapshot.docs.map(doc => doc.data() as Ingredient);
-    const latestTransactions = latestTransactionsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
+    
+    // Filter for paid transactions in code and take the first 5
+    const latestTransactions = latestTransactionsSnapshot.docs
+        .map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement)
+        .filter(t => t.status === 'paid')
+        .slice(0, 5);
 
 
     // Note: Cash and Bank balances would typically come from a separate 'accounts' collection
