@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle } from 'lucide-react';
 import { SupplierList } from './components/supplier-list';
+import { ProductList } from './components/product-list';
 
 export default function CadastrosPage() {
   return (
@@ -28,7 +29,7 @@ export default function CadastrosPage() {
                     <CardDescription>Gerencie seus produtos acabados.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p>Tabela de produtos aqui...</p>
+                    <ProductList />
                 </CardContent>
             </Card>
           </TabsContent>
