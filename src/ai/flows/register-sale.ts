@@ -13,20 +13,20 @@ import { collection, doc, runTransaction, addDoc, increment } from 'firebase/fir
 import type { Product, FinancialMovement, Customer } from '@/lib/types';
 import { format } from 'date-fns';
 
-export const RegisterSaleInputSchema = z.object({
+const RegisterSaleInputSchema = z.object({
   productId: z.string().describe('The ID of the product being sold.'),
   quantity: z.number().int().positive().describe('The quantity of the product being sold.'),
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
   sourceAccount: z.enum(['cash', 'bank']),
   customerId: z.string().optional().describe('The ID of the customer, if applicable.'),
 });
-export type RegisterSaleInput = z.infer<typeof RegisterSaleInputSchema>;
+type RegisterSaleInput = z.infer<typeof RegisterSaleInputSchema>;
 
-export const RegisterSaleOutputSchema = z.object({
+const RegisterSaleOutputSchema = z.object({
   message: z.string(),
   saleId: z.string(),
 });
-export type RegisterSaleOutput = z.infer<typeof RegisterSaleOutputSchema>;
+type RegisterSaleOutput = z.infer<typeof RegisterSaleOutputSchema>;
 
 export async function registerSale(
   input: RegisterSaleInput
@@ -101,10 +101,8 @@ const registerSaleFlow = ai.defineFlow(
     });
 
     return {
-      message: `Venda de ${quantity} unidade(s) do produto ${product.name} registrada com sucesso.`,
+      message: `Venda de ${quantity} unidade(s) do produto ${(await getDoc(doc(db, 'products', productId))).data()?.name} registrada com sucesso.`,
       saleId: saleId,
     };
   }
 );
-
-    
