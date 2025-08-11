@@ -13,8 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { suppliers as initialSuppliers, ingredients as initialIngredients } from '@/lib/data';
 import { FilePlus2, Trash, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { PaymentMethod } from '@/lib/types';
-import { add } from 'date-fns';
+import type { PaymentMethod, SourceAccount } from '@/lib/types';
+import { add, addDays } from 'date-fns';
 
 const purchaseItemSchema = z.object({
   ingredientId: z.string().min(1, 'Selecione um insumo.'),
@@ -26,6 +26,7 @@ const formSchema = z.object({
   supplierId: z.string().min(1, 'Selecione um fornecedor.'),
   invoiceNumber: z.string().optional(),
   purchaseDate: z.string().min(1, 'A data da compra é obrigatória.'),
+  sourceAccount: z.enum(['cash', 'bank'], { required_error: 'Selecione a conta de origem.'}),
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
   installments: z.coerce.number().int().min(1, 'Pelo menos uma parcela é necessária.').default(1),
   firstDueDate: z.string().min(1, 'A data de vencimento da primeira parcela é obrigatória.'),
@@ -45,6 +46,7 @@ export function ManualPurchaseForm() {
       supplierId: '',
       invoiceNumber: '',
       purchaseDate: new Date().toISOString().split('T')[0],
+      sourceAccount: 'bank',
       paymentMethod: 'boleto',
       installments: 1,
       firstDueDate: add(new Date(), {days: 30}).toISOString().split('T')[0],
@@ -67,21 +69,21 @@ export function ManualPurchaseForm() {
 
 
   const onSubmit = (data: PurchaseFormValues) => {
-    // Lógica para criar as movimentações financeiras (parcelas)
     const financialMovements = [];
     const installmentValue = totalAmount / data.installments;
 
     for (let i = 0; i < data.installments; i++) {
-        const dueDate = add(new Date(data.firstDueDate), { months: i });
+        // Correctly calculate due date for each installment
+        const dueDate = addDays(new Date(data.firstDueDate), i * 30);
         financialMovements.push({
             id: `FM-${Date.now()}-${i}`,
             dueDate: dueDate.toISOString().split('T')[0],
             amount: installmentValue,
             status: 'pending',
+            sourceAccount: data.sourceAccount, // Add source account
         });
     }
 
-    // Aqui você salvaria a 'compra' e as 'movimentações financeiras' no seu estado ou banco de dados
     console.log({
         purchaseData: data,
         calculatedTotal: totalAmount,
@@ -230,6 +232,27 @@ export function ManualPurchaseForm() {
                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-4 border-t">
                     <FormField
                         control={form.control}
+                        name="sourceAccount"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Pagar com</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione a conta" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="bank">Conta Corrente</SelectItem>
+                                        <SelectItem value="cash">Caixa Físico</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
                         name="paymentMethod"
                         render={({ field }) => (
                             <FormItem>
@@ -278,11 +301,11 @@ export function ManualPurchaseForm() {
                             </FormItem>
                         )}
                     />
-                    <div className="md:col-start-4 flex items-end justify-end">
-                        <div className="text-right">
-                             <p className="text-muted-foreground">Valor Total da Compra</p>
-                             <p className="text-2xl font-bold text-primary">{totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                        </div>
+                 </div>
+                 <div className='flex justify-end'>
+                    <div className="text-right">
+                        <p className="text-muted-foreground">Valor Total da Compra</p>
+                        <p className="text-2xl font-bold text-primary">{totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                     </div>
                  </div>
 

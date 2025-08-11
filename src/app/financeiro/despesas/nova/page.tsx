@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { expenseCategories } from '@/lib/categories';
-import type { ExpenseCategory } from '@/lib/types';
+import type { ExpenseCategory, SourceAccount } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
@@ -43,6 +43,7 @@ const formSchema = z.object({
   description: z.string().min(3, 'A descrição deve ter pelo menos 3 caracteres.'),
   category: z.string().min(1, 'Selecione uma categoria.'),
   amount: z.coerce.number().min(0.01, 'O valor deve ser maior que zero.'),
+  sourceAccount: z.enum(['cash', 'bank'], { required_error: 'Selecione a conta de origem.'}),
   installments: z.coerce.number().int().min(1).default(1),
   dueDate: z.string().min(1, 'A data de vencimento é obrigatória.'),
 });
@@ -57,6 +58,7 @@ export default function NewExpensePage() {
       description: '',
       category: '',
       amount: 0,
+      sourceAccount: 'bank',
       installments: 1,
       dueDate: add(new Date(), { days: 7 }).toISOString().split('T')[0],
     },
@@ -137,13 +139,13 @@ export default function NewExpensePage() {
                     )}
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  <FormField
                     control={form.control}
                     name="dueDate"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Data de Vencimento</FormLabel>
+                        <FormLabel>Vencimento</FormLabel>
                         <FormControl>
                             <Input type="date" {...field} />
                         </FormControl>
@@ -161,6 +163,27 @@ export default function NewExpensePage() {
                             <Input type="number" min="1" step="1" {...field} />
                         </FormControl>
                         <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="sourceAccount"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Pagar com</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione a conta" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="bank">Conta Corrente</SelectItem>
+                                    <SelectItem value="cash">Caixa Físico</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
                         </FormItem>
                     )}
                 />

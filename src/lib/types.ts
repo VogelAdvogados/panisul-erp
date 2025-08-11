@@ -91,6 +91,7 @@ export interface Supplier {
 }
 
 export type PaymentMethod = 'pix' | 'boleto' | 'dinheiro' | 'cartao_credito' | 'cartao_debito';
+export type SourceAccount = 'cash' | 'bank';
 
 export interface FinancialMovement {
     id: string;
@@ -101,6 +102,7 @@ export interface FinancialMovement {
     paymentDate?: string;
     category: ExpenseCategory;
     referenceId?: string; // e.g., purchaseId or expenseId
+    sourceAccount: SourceAccount;
 }
 
 export interface Purchase {
