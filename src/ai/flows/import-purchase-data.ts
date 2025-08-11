@@ -112,7 +112,7 @@ const importPurchaseDataFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await prompt(input);
-    const extractedData = llmResponse.output();
+    const extractedData = llmResponse.output;
 
     if (!extractedData) {
         throw new Error("Failed to extract data from the document.");
@@ -154,6 +154,7 @@ const importPurchaseDataFlow = ai.defineFlow(
             status: 'pending',
             category: 'insumos',
             sourceAccount: 'bank', // Defaulting, could be extracted
+            type: 'expense',
         };
         await addDoc(collection(db, 'financialMovements'), financialMovement);
 
