@@ -1,3 +1,4 @@
+
 export interface Sale {
     name: string;
     total: number;
@@ -15,6 +16,9 @@ export interface Product {
     id: string;
     name: string;
     stock: number;
+    produced: number;
+    sold: number;
+    price: number;
     imageUrl: string;
     'data-ai-hint': string;
 }
