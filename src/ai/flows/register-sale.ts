@@ -3,24 +3,26 @@
 
 /**
  * @fileOverview Registers a new sale, updating product stock and creating a financial revenue entry.
+ * It also handles accounts receivable for sales on credit.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, doc, runTransaction, addDoc } from 'firebase/firestore';
-import type { Product, FinancialMovement } from '@/lib/types';
+import { collection, doc, runTransaction, addDoc, increment } from 'firebase/firestore';
+import type { Product, FinancialMovement, Customer } from '@/lib/types';
 import { format } from 'date-fns';
 
-const RegisterSaleInputSchema = z.object({
+export const RegisterSaleInputSchema = z.object({
   productId: z.string().describe('The ID of the product being sold.'),
   quantity: z.number().int().positive().describe('The quantity of the product being sold.'),
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
   sourceAccount: z.enum(['cash', 'bank']),
+  customerId: z.string().optional().describe('The ID of the customer, if applicable.'),
 });
 export type RegisterSaleInput = z.infer<typeof RegisterSaleInputSchema>;
 
-const RegisterSaleOutputSchema = z.object({
+export const RegisterSaleOutputSchema = z.object({
   message: z.string(),
   saleId: z.string(),
 });
@@ -38,7 +40,7 @@ const registerSaleFlow = ai.defineFlow(
     inputSchema: RegisterSaleInputSchema,
     outputSchema: RegisterSaleOutputSchema,
   },
-  async ({ productId, quantity, paymentMethod, sourceAccount }) => {
+  async ({ productId, quantity, paymentMethod, sourceAccount, customerId }) => {
     
     const saleId = await runTransaction(db, async (transaction) => {
       const productRef = doc(db, 'products', productId);
@@ -66,26 +68,43 @@ const registerSaleFlow = ai.defineFlow(
       // 2. Create the Financial Movement (revenue)
       const saleAmount = product.price * quantity;
       const today = new Date();
+      const isSaleOnCredit = paymentMethod === 'boleto';
+      const status = isSaleOnCredit ? 'pending' : 'paid';
 
       const financialMovement: Omit<FinancialMovement, 'id'> = {
         description: `Venda de ${quantity}x ${product.name}`,
-        referenceId: productId, 
+        referenceId: customerId || productId, 
         dueDate: format(today, 'yyyy-MM-dd'),
-        paymentDate: format(today, 'yyyy-MM-dd'),
+        paymentDate: status === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
         amount: saleAmount,
-        status: 'paid', // Sales are considered paid immediately
+        status: status,
         type: 'revenue',
         category: 'vendas',
-        sourceAccount, // cash or bank
+        sourceAccount,
       };
       const movementRef = await addDoc(collection(db, 'financialMovements'), financialMovement);
+
+      // 3. If it's a sale on credit to a specific customer, update their pending amount
+      if (customerId && isSaleOnCredit) {
+        const customerRef = doc(db, 'customers', customerId);
+        const customerDoc = await transaction.get(customerRef);
+        if(!customerDoc.exists()){
+            throw new Error(`Cliente ${customerId} não encontrado.`);
+        }
+        transaction.update(customerRef, {
+            pendingAmount: increment(saleAmount),
+            lastPurchaseDate: format(today, 'dd/MM/yyyy')
+        });
+      }
 
       return movementRef.id;
     });
 
     return {
-      message: `Venda de ${quantity} unidade(s) do produto ${productId} registrada com sucesso.`,
+      message: `Venda de ${quantity} unidade(s) do produto ${product.name} registrada com sucesso.`,
       saleId: saleId,
     };
   }
 );
+
+    

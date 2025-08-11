@@ -9,27 +9,21 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import type { Product } from '@/lib/types';
-import { registerSale, type RegisterSaleInput } from '@/ai/flows/register-sale';
+import type { Product, Customer } from '@/lib/types';
+import { registerSale, RegisterSaleInputSchema } from '@/ai/flows/register-sale';
 import { useState } from 'react';
 import { Loader2, ShoppingCart } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 
+
 interface RegisterSaleFormProps {
     product: Product;
+    customers: Customer[];
     onSaleRegistered: () => void;
 }
 
-const RegisterSaleInputSchema = z.object({
-  productId: z.string().min(1, 'Selecione um produto.'),
-  quantity: z.coerce.number().int().positive('A quantidade deve ser um número positivo.'),
-  paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
-  sourceAccount: z.enum(['cash', 'bank']),
-});
-
-
-export function RegisterSaleForm({ product, onSaleRegistered }: RegisterSaleFormProps) {
+export function RegisterSaleForm({ product, customers, onSaleRegistered }: RegisterSaleFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -40,6 +34,7 @@ export function RegisterSaleForm({ product, onSaleRegistered }: RegisterSaleForm
       quantity: 1,
       paymentMethod: 'dinheiro',
       sourceAccount: 'cash',
+      customerId: '',
     },
   });
 
@@ -65,6 +60,7 @@ export function RegisterSaleForm({ product, onSaleRegistered }: RegisterSaleForm
   };
   
   const quantity = form.watch('quantity');
+  const paymentMethod = form.watch('paymentMethod');
   const total = (quantity * product.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 
@@ -90,6 +86,30 @@ export function RegisterSaleForm({ product, onSaleRegistered }: RegisterSaleForm
             </FormItem>
           )}
         />
+        
+        <FormField
+          control={form.control}
+          name="customerId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Cliente (Opcional)</FormLabel>
+               <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente (para vendas a prazo)" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                   <SelectItem value="">Venda Avulsa / Consumidor Final</SelectItem>
+                   {customers.map(customer => (
+                    <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className='grid grid-cols-2 gap-4'>
             <FormField
@@ -109,6 +129,7 @@ export function RegisterSaleForm({ product, onSaleRegistered }: RegisterSaleForm
                         <SelectItem value="pix">PIX</SelectItem>
                         <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
                         <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                        <SelectItem value="boleto">Boleto (A Prazo)</SelectItem>
                     </SelectContent>
                 </Select>
                 <FormMessage />
@@ -162,3 +183,5 @@ export function RegisterSaleForm({ product, onSaleRegistered }: RegisterSaleForm
     </Form>
   );
 }
+
+    

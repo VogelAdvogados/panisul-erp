@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import type { Product } from '@/lib/types';
+import type { Product, Customer } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { RegisterProductionForm } from './components/register-production-form';
@@ -55,33 +55,46 @@ function ProductImage({ product }: { product: Product }) {
 
 export default function OperacoesPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [isProductionFormOpen, setIsProductionFormOpen] = useState(false);
   const [isSaleFormOpen, setIsSaleFormOpen] = useState(false);
   const [selectedProductForSale, setSelectedProductForSale] = useState<Product | null>(null);
   const { toast } = useToast();
 
-  const fetchProducts = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
         const productsCollection = collection(db, 'products');
         const productSnapshot = await getDocs(productsCollection);
         const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
         setProducts(productList);
+
+        const customersCollection = collection(db, 'customers');
+        const customersSnapshot = await getDocs(customersCollection);
+        const customersList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
+        setCustomers(customersList);
+
     } catch (error) {
         toast({
-            title: "Erro ao buscar produtos",
-            description: "Não foi possível carregar os produtos do banco de dados.",
+            title: "Erro ao buscar dados",
+            description: "Não foi possível carregar os produtos ou clientes do banco de dados.",
             variant: "destructive"
         });
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchData();
+  }, [fetchData]);
   
   const handleOpenSaleForm = (product: Product) => {
     setSelectedProductForSale(product);
     setIsSaleFormOpen(true);
+  }
+
+  const handleFormSuccess = () => {
+    fetchData();
+    setIsProductionFormOpen(false);
+    setIsSaleFormOpen(false);
   }
 
   return (
@@ -192,10 +205,7 @@ export default function OperacoesPage() {
                     Selecione o produto e a quantidade produzida. O sistema dará baixa automática nos insumos do estoque.
                 </DialogDescription>
             </DialogHeader>
-            <RegisterProductionForm products={products} onProductionRegistered={() => {
-                fetchProducts();
-                setIsProductionFormOpen(false);
-            }} />
+            <RegisterProductionForm products={products} onProductionRegistered={handleFormSuccess} />
         </DialogContent>
       </Dialog>
       
@@ -208,13 +218,16 @@ export default function OperacoesPage() {
                 </DialogDescription>
             </DialogHeader>
             {selectedProductForSale && (
-                <RegisterSaleForm product={selectedProductForSale} onSaleRegistered={() => {
-                    fetchProducts();
-                    setIsSaleFormOpen(false);
-                }} />
+                <RegisterSaleForm 
+                    product={selectedProductForSale} 
+                    customers={customers}
+                    onSaleRegistered={handleFormSuccess}
+                />
             )}
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
+    
