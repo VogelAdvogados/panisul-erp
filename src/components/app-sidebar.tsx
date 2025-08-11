@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ChefHat,
   Settings,
+  Repeat,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,8 +32,9 @@ const menuItems = [
     { href: '/compras', label: 'Compras', icon: ShoppingCart, description: "Importar XML/PDF" },
     { href: '/cadastros', label: 'Cadastros', icon: Archive, description: "Produtos e insumos" },
     { href: '/clientes', label: 'Clientes', icon: Users, description: "Cadastro e histórico" },
+    { href: '/trocas', label: 'Trocas', icon: Repeat, description: "Registro de trocas" },
     { href: '/relatorios', label: 'Relatórios', icon: BarChart3, description: "Análises gerenciais" },
-    { href: '/configuracoes', label: 'Configurações', icon: Settings, description: "Sistema e cadastros" },
+    
 ];
 
 export function AppSidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
@@ -46,7 +48,6 @@ export function AppSidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
           isCollapsed ? 'w-20' : 'w-72'
         )}
       >
-        {/* Botão de recolher */}
         <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="absolute -right-3 top-1/2 -translate-y-1/2 bg-background border rounded-full p-1.5 text-foreground shadow-md hover:shadow-lg transition-all z-10"
@@ -76,15 +77,15 @@ export function AppSidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
               <li key={item.href} className="list-none">
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Link href={item.href}>
-                            <span className={cn(
+                        <Link href={item.href} className={cn(
                                 'flex items-center p-3 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 group',
                                 isActive && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-inner',
                                 isCollapsed ? 'justify-center' : 'justify-start'
                             )}>
+                            
                                 <Icon className="h-5 w-5 shrink-0" />
                                 {!isCollapsed && <span className="ml-4 font-medium block">{item.label}</span>}
-                            </span>
+                            
                         </Link>
                     </TooltipTrigger>
                     {isCollapsed && (
