@@ -3,10 +3,31 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, ShoppingCart, Package, RefreshCw, Eye, ShoppingBag } from 'lucide-react';
-import { products } from '@/lib/data';
+import { products as initialProducts } from '@/lib/data';
 import Image from 'next/image';
+import { generateImage } from '@/ai/flows/generate-image';
+import { Skeleton } from '@/components/ui/skeleton';
+
+async function ProductImage({ product }: { product: typeof initialProducts[0] }) {
+  if (product.imageUrl && !product.imageUrl.startsWith('https://placehold.co')) {
+    return <Image src={product.imageUrl} alt={product.name} width={600} height={400} className="object-cover w-full h-full" />;
+  }
+
+  try {
+    const imageDataUri = await generateImage({ 
+      prompt: `a professional, appetizing photo of a single ${product['data-ai-hint']} on a rustic wooden bakery table, warm lighting` 
+    });
+    return <Image src={imageDataUri} alt={product.name} width={600} height={400} className="object-cover w-full h-full" />;
+  } catch (e) {
+    console.error(`Failed to generate image for ${product.name}`, e);
+    // Fallback to a placeholder if generation fails
+    return <Image src="https://placehold.co/600x400.png" alt="Placeholder" width={600} height={400} className="object-cover w-full h-full" />;
+  }
+}
 
 export default function OperacoesPage() {
+  const products = initialProducts;
+
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader title="Painel do Dia">
@@ -25,8 +46,10 @@ export default function OperacoesPage() {
         {products.map((product) => (
           <Card key={product.id} className="shadow-md hover:shadow-lg transition-shadow flex flex-col">
             <CardHeader className="p-0 bg-muted/30">
-              <div className="aspect-[3/2] w-full flex items-center justify-center bg-amber-50 rounded-t-lg">
-                <Package className="w-16 h-16 text-amber-300" />
+              <div className="aspect-[3/2] w-full flex items-center justify-center bg-amber-50 rounded-t-lg overflow-hidden">
+                <React.Suspense fallback={<Skeleton className="w-full h-full" />}>
+                  <ProductImage product={product} />
+                </React.Suspense>
               </div>
             </CardHeader>
             <CardContent className="p-4 space-y-3 flex-grow">

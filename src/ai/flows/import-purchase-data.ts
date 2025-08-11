@@ -61,9 +61,9 @@ const prompt = ai.definePrompt({
 You will receive a purchase file (XML or PDF). Your tasks are:
 1.  **Extract**: Meticulously extract supplier name, invoice number, invoice date, all line items (name, quantity, unit price), and the total amount.
 2.  **Analyze & Summarize**: After extraction, provide three concise summary sentences in Portuguese for the result fields, following these rules:
-    -   `validationResult`: Simulate checking if the supplier and products are already registered. Respond like "Fornecedor e todos os [X] produtos já cadastrados." or "Fornecedor novo. 1 de [X] produtos é novo."
-    -   `stockUpdateResult`: Describe the stock update action. Respond like "Estoque de [X] insumos será atualizado."
-    -   `accountsPayableUpdateResult`: Describe the financial entry. Respond like "Conta a pagar de R$ [Total] será lançada para o fornecedor."
+    -   \`validationResult\`: Simulate checking if the supplier and products are already registered. Respond like "Fornecedor e todos os [X] produtos já cadastrados." or "Fornecedor novo. 1 de [X] produtos é novo."
+    -   \`stockUpdateResult\`: Describe the stock update action. Respond like "Estoque de [X] insumos será atualizado."
+    -   \`accountsPayableUpdateResult\`: Describe the financial entry. Respond like "Conta a pagar de R$ [Total] será lançada para o fornecedor."
 
 File Type: {{{fileType}}}
 File Content: {{media url=fileDataUri}}
