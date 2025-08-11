@@ -38,11 +38,11 @@ const ImportPurchaseDataOutputSchema = z.object({
       .describe('The list of items in the purchase.'),
     totalAmount: z.number().describe('The total amount of the purchase.'),
   }),
-  validationResult: z.string().describe('The result of the data validation.'),
-  stockUpdateResult: z.string().describe('The result of the stock update.'),
+  validationResult: z.string().describe('The result of the data validation. Example: "Fornecedor e todos os 3 produtos já cadastrados."'),
+  stockUpdateResult: z.string().describe('The result of the stock update. Example: "Estoque de 3 insumos será atualizado."'),
   accountsPayableUpdateResult: z
     .string()
-    .describe('The result of the accounts payable update.'),
+    .describe('The result of the accounts payable update. Example: "Conta a pagar de R$ 1.500,00 será lançada para o fornecedor."'),
 });
 export type ImportPurchaseDataOutput = z.infer<typeof ImportPurchaseDataOutputSchema>;
 
@@ -56,19 +56,19 @@ const prompt = ai.definePrompt({
   name: 'importPurchaseDataPrompt',
   input: {schema: ImportPurchaseDataInputSchema},
   output: {schema: ImportPurchaseDataOutputSchema},
-  prompt: `You are an expert data extractor and validator for purchase data.
+  prompt: `You are an expert data processor for a bakery management system.
 
-You will receive a file (either XML or PDF) containing purchase information.
-Your task is to extract the relevant details such as supplier, invoice number, invoice date, item details (name, quantity, unit price), and total amount.
-After extracting the data, you will perform a basic validation to ensure the data is consistent and reasonable.
-Finally, you will provide a summary of the data extraction, validation, and the steps required to update the stock and accounts payable.
+You will receive a purchase file (XML or PDF). Your tasks are:
+1.  **Extract**: Meticulously extract supplier name, invoice number, invoice date, all line items (name, quantity, unit price), and the total amount.
+2.  **Analyze & Summarize**: After extraction, provide three concise summary sentences in Portuguese for the result fields, following these rules:
+    -   `validationResult`: Simulate checking if the supplier and products are already registered. Respond like "Fornecedor e todos os [X] produtos já cadastrados." or "Fornecedor novo. 1 de [X] produtos é novo."
+    -   `stockUpdateResult`: Describe the stock update action. Respond like "Estoque de [X] insumos será atualizado."
+    -   `accountsPayableUpdateResult`: Describe the financial entry. Respond like "Conta a pagar de R$ [Total] será lançada para o fornecedor."
 
 File Type: {{{fileType}}}
 File Content: {{media url=fileDataUri}}
 
-Ensure that the extracted data is accurate and complete. Pay attention to details and handle potential inconsistencies or errors gracefully.
-
-Output the data in JSON format according to the schema.`,
+Produce the final output in JSON format according to the schema.`,
 });
 
 const importPurchaseDataFlow = ai.defineFlow(
@@ -79,8 +79,9 @@ const importPurchaseDataFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    // Assuming data validation, stock update, and accounts payable update are
-    // handled outside the Genkit flow for now.
+    // In a real scenario, this is where you would add logic to interact with
+    // a database to perform the actual validation and data persistence.
+    // For now, the prompt simulates these actions.
     return output!;
   }
 );
