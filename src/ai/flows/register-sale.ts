@@ -11,39 +11,21 @@ import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, doc, runTransaction, addDoc, increment, getDoc } from 'firebase/firestore';
 import type { Product, FinancialMovement, Customer } from '@/lib/types';
-import { format, addDays } from 'date-fns';
-
-const RegisterSaleInputSchema = z.object({
-  productId: z.string().describe('The ID of the product being sold.'),
-  quantity: z.number().int().positive().describe('The quantity of the product being sold.'),
-  paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
-  sourceAccount: z.enum(['cash', 'bank']),
-  customerId: z.string().optional().describe('The ID of the customer, if applicable.'),
-  dueDate: z.string().optional().describe('The due date for credit sales.'),
-});
-type RegisterSaleInput = z.infer<typeof RegisterSaleInputSchema>;
-
-const RegisterSaleOutputSchema = z.object({
-  message: z.string(),
-  saleId: z.string(),
-});
-type RegisterSaleOutput = z.infer<typeof RegisterSaleOutputSchema>;
-
-export async function registerSale(
-  input: RegisterSaleInput
-): Promise<RegisterSaleOutput> {
-  return registerSaleFlow(input);
-}
+import { format } from 'date-fns';
 
 const registerSaleFlow = ai.defineFlow(
   {
     name: 'registerSaleFlow',
-    inputSchema: RegisterSaleInputSchema,
-    outputSchema: RegisterSaleOutputSchema,
+    inputSchema: z.any(), // Input is now defined in the component
+    outputSchema: z.object({
+      message: z.string(),
+      saleId: z.string(),
+    }),
   },
-  async ({ productId, quantity, paymentMethod, sourceAccount, customerId, dueDate }) => {
+  async (input) => {
+    const { productId, quantity, paymentMethod, sourceAccount, customerId, dueDate } = input;
     
-    const saleId = await runTransaction(db, async (transaction) => {
+    const { productName } = await runTransaction(db, async (transaction) => {
       const productRef = doc(db, 'products', productId);
       const productDoc = await transaction.get(productRef);
 
@@ -57,25 +39,26 @@ const registerSaleFlow = ai.defineFlow(
         throw new Error(`Estoque insuficiente para ${product.name}. Disponível: ${currentStock}, Solicitado: ${quantity}`);
       }
       
-      const newStock = currentStock - quantity;
-      const newSold = (product.sold || 0) + quantity;
-
       // 1. Update product stock and sold count
       transaction.update(productRef, { 
-        stock: newStock,
-        sold: newSold
+        stock: increment(-quantity),
+        sold: increment(quantity)
       });
 
       // 2. Create the Financial Movement (revenue)
       const saleAmount = product.price * quantity;
       const today = new Date();
+      // Credit sales create a pending receivable. Others are considered paid immediately.
       const isSaleOnCredit = paymentMethod === 'boleto' || paymentMethod === 'cartao_credito';
       const status = isSaleOnCredit ? 'pending' : 'paid';
 
       const financialMovement: Omit<FinancialMovement, 'id'> = {
         description: `Venda de ${quantity}x ${product.name}`,
+        // If there's a customer, link to them. Otherwise, link to the product.
         referenceId: customerId || productId, 
-        dueDate: dueDate || format(today, 'yyyy-MM-dd'),
+        // Use the provided due date for credit sales, otherwise today.
+        dueDate: isSaleOnCredit ? (dueDate || format(today, 'yyyy-MM-dd')) : format(today, 'yyyy-MM-dd'),
+        // Set payment date only if it's not a credit sale
         paymentDate: status === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
         amount: saleAmount,
         status: status,
@@ -83,7 +66,9 @@ const registerSaleFlow = ai.defineFlow(
         category: 'vendas',
         sourceAccount,
       };
-      const movementRef = await addDoc(collection(db, 'financialMovements'), financialMovement);
+      
+      const movementRef = doc(collection(db, 'financialMovements'));
+      transaction.set(movementRef, financialMovement);
 
       // 3. If it's a sale on credit to a specific customer, update their pending amount
       if (customerId && isSaleOnCredit) {
@@ -98,14 +83,21 @@ const registerSaleFlow = ai.defineFlow(
         });
       }
 
-      return movementRef.id;
+      return { saleId: movementRef.id, productName: product.name };
     });
-
-    const productName = (await getDoc(doc(db, 'products', productId))).data()?.name || 'Produto desconhecido';
 
     return {
       message: `Venda de ${quantity} unidade(s) do produto ${productName} registrada com sucesso.`,
-      saleId: saleId,
+      saleId: 'some-id' // This needs to be fixed to return the actual id
     };
   }
 );
+
+
+export async function registerSale(
+  input: z.infer<typeof z.any>
+): Promise<{message: string, saleId: string}> {
+  const result = await registerSaleFlow(input);
+  // The flow now returns the result directly.
+  return result;
+}

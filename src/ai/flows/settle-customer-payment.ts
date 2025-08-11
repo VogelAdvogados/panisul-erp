@@ -45,7 +45,7 @@ const settleCustomerPaymentFlow = ai.defineFlow(
         throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
       }
        if (movementDoc.data()?.status === 'paid') {
-        throw new Error(`Esta conta já foi paga.`);
+        throw new Error(`Esta conta já foi liquidada anteriormente.`);
       }
 
       // 1. Update Financial Movement status and payment date

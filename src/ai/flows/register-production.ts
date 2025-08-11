@@ -9,8 +9,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, doc, runTransaction, getDoc } from 'firebase/firestore';
-import type { Recipe, Ingredient } from '@/lib/types';
+import { collection, doc, runTransaction, getDoc, increment } from 'firebase/firestore';
+import type { Recipe, Ingredient, Product } from '@/lib/types';
 
 const RegisterProductionInputSchema = z.object({
   productId: z.string().describe('The ID of the product being produced.'),
@@ -39,53 +39,58 @@ const registerProductionFlow = ai.defineFlow(
   },
   async ({ productId, quantity }) => {
     
-    await runTransaction(db, async (transaction) => {
-        // 1. Get the recipe for the product
+    const productName = await runTransaction(db, async (transaction) => {
+        // 1. Get the product and its recipe
+        const productRef = doc(db, 'products', productId);
         const recipeRef = doc(db, 'recipes', productId); // Assuming recipe ID is same as product ID
-        const recipeDoc = await transaction.get(recipeRef);
         
-        if (!recipeDoc.exists()) {
-            throw new Error(`Ficha técnica para o produto ${productId} não encontrada.`);
+        const [productDoc, recipeDoc] = await Promise.all([
+            transaction.get(productRef),
+            transaction.get(recipeRef)
+        ]);
+        
+        if (!productDoc.exists()) {
+            throw new Error(`Produto com ID ${productId} não encontrado.`);
         }
+        if (!recipeDoc.exists()) {
+            throw new Error(`Ficha técnica para o produto ${productDoc.data().name} não encontrada.`);
+        }
+        
+        const product = productDoc.data() as Product;
         const recipe = recipeDoc.data() as Recipe;
 
-        // 2. Decrement ingredient stock
+        // 2. Check and decrement ingredient stock
         for (const item of recipe.items) {
             const ingredientRef = doc(db, 'ingredients', item.ingredientId);
             const ingredientDoc = await transaction.get(ingredientRef);
             
             if (!ingredientDoc.exists()) {
-                throw new Error(`Insumo ${item.ingredientId} não encontrado.`);
+                throw new Error(`Insumo com ID ${item.ingredientId} da receita não foi encontrado.`);
             }
 
-            const currentStock = ingredientDoc.data()?.stock || 0;
+            const ingredient = ingredientDoc.data() as Ingredient;
+            const currentStock = ingredient.stock || 0;
             const requiredStock = item.quantity * quantity;
 
             if (currentStock < requiredStock) {
-                throw new Error(`Estoque insuficiente para ${ingredientDoc.data()?.name}. Necessário: ${requiredStock}, Disponível: ${currentStock}`);
+                throw new Error(`Estoque insuficiente para o insumo "${ingredient.name}". Necessário: ${requiredStock}${ingredient.unitOfMeasure}, Disponível: ${currentStock}${ingredient.unitOfMeasure}`);
             }
 
-            transaction.update(ingredientRef, { stock: currentStock - requiredStock });
+            transaction.update(ingredientRef, { stock: increment(-requiredStock) });
         }
 
-        // 3. Increment product stock
-        const productRef = doc(db, 'products', productId);
-        const productDoc = await transaction.get(productRef);
-        if (!productDoc.exists()) {
-            throw new Error(`Produto ${productId} não encontrado.`);
-        }
-        const currentProductStock = productDoc.data()?.stock || 0;
-        const currentProduced = productDoc.data()?.produced || 0;
-
+        // 3. Increment product stock and produced count
         transaction.update(productRef, { 
-            stock: currentProductStock + quantity,
-            produced: currentProduced + quantity,
+            stock: increment(quantity),
+            produced: increment(quantity),
         });
 
+        return product.name;
     });
 
     return {
-        message: `${quantity} unidade(s) do produto ${productId} registradas. Estoque de produtos e insumos atualizado.`,
+        message: `${quantity} unidade(s) de ${productName} registradas com sucesso. Estoques de produtos e insumos foram atualizados.`,
     };
   }
 );
+
