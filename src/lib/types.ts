@@ -88,6 +88,8 @@ export interface Supplier {
     contact: string;
 }
 
+export type PaymentMethod = 'pix' | 'boleto' | 'dinheiro' | 'cartao_credito' | 'cartao_debito';
+
 export interface Purchase {
     id: string;
     invoiceNumber: string;
@@ -95,6 +97,8 @@ export interface Purchase {
     date: string;
     totalAmount: number;
     status: 'pending' | 'paid' | 'overdue';
+    paymentMethod: PaymentMethod;
+    paymentInstallments?: number;
     items: Array<{
         name: string;
         quantity: number;

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { suppliers as initialSuppliers, ingredients as initialIngredients } from '@/lib/data';
 import { FilePlus2, Trash, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import type { PaymentMethod } from '@/lib/types';
 
 const purchaseItemSchema = z.object({
   ingredientId: z.string().min(1, 'Selecione um insumo.'),
@@ -25,7 +26,17 @@ const formSchema = z.object({
   invoiceNumber: z.string().optional(),
   date: z.string().min(1, 'A data é obrigatória.'),
   status: z.enum(['pending', 'paid', 'overdue']),
+  paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
+  paymentInstallments: z.coerce.number().optional(),
   items: z.array(purchaseItemSchema).min(1, 'Adicione pelo menos um item à compra.'),
+}).refine(data => {
+    if (data.paymentMethod === 'cartao_credito' && (!data.paymentInstallments || data.paymentInstallments <= 0)) {
+        return false;
+    }
+    return true;
+}, {
+    message: 'Número de parcelas é obrigatório para cartão de crédito.',
+    path: ['paymentInstallments'],
 });
 
 type PurchaseFormValues = z.infer<typeof formSchema>;
@@ -42,6 +53,7 @@ export function ManualPurchaseForm() {
       invoiceNumber: '',
       date: new Date().toISOString().split('T')[0],
       status: 'pending',
+      paymentMethod: 'boleto',
       items: [{ ingredientId: '', quantity: 1, unitPrice: 0 }],
     },
   });
@@ -52,6 +64,7 @@ export function ManualPurchaseForm() {
   });
   
   const watchedItems = form.watch('items');
+  const paymentMethod = form.watch('paymentMethod');
   const totalAmount = watchedItems.reduce((acc, item) => {
     const quantity = Number(item.quantity) || 0;
     const unitPrice = Number(item.unitPrice) || 0;
@@ -200,13 +213,13 @@ export function ManualPurchaseForm() {
                     </Button>
                 </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <FormField
                     control={form.control}
                     name="status"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Status do Pagamento</FormLabel>
+                        <FormLabel>Status Pagamento</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
@@ -223,7 +236,46 @@ export function ManualPurchaseForm() {
                         </FormItem>
                     )}
                     />
-                    <div className="md:col-span-2 flex items-end justify-end">
+                    <FormField
+                        control={form.control}
+                        name="paymentMethod"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Forma de Pagamento</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a forma" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="pix">PIX</SelectItem>
+                                    <SelectItem value="boleto">Boleto</SelectItem>
+                                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                                    <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                                    <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    {paymentMethod === 'cartao_credito' && (
+                         <FormField
+                            control={form.control}
+                            name="paymentInstallments"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Parcelas</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="Nº de parcelas" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+                    <div className="md:col-start-4 flex items-end justify-end">
                         <div className="text-right">
                              <p className="text-muted-foreground">Valor Total da Compra</p>
                              <p className="text-2xl font-bold text-primary">{totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>

@@ -25,9 +25,9 @@ export const operationalSummaryData: OperationalSummaryItem[] = [
 ];
 
 export const products: Product[] = [
-  { id: '1', name: 'Pão Francês', stock: 45, produced: 120, sold: 75, price: 0.75, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'french bread' },
-  { id: '2', name: 'Croissant', stock: 8, produced: 20, sold: 12, price: 3.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'croissant' },
-  { id: '3', name: 'Baguete', stock: 6, produced: 15, sold: 9, price: 4.00, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'baguette' },
+  { id: 'PROD-001', name: 'Pão Francês', stock: 45, produced: 120, sold: 75, price: 0.75, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'french bread' },
+  { id: 'PROD-002', name: 'Croissant', stock: 8, produced: 20, sold: 12, price: 3.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'croissant' },
+  { id: 'PROD-003', name: 'Baguete', stock: 6, produced: 15, sold: 9, price: 4.00, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'baguette' },
 ];
 
 export const customers: Customer[] = [
@@ -145,6 +145,7 @@ export const purchases: Purchase[] = [
         date: '2024-05-15',
         totalAmount: 1500.00,
         status: 'paid',
+        paymentMethod: 'boleto',
         items: [
             { name: 'Farinha de Trigo', quantity: 50, unitPrice: 5.50 },
             { name: 'Fermento Biológico', quantity: 10, unitPrice: 12.00 },
@@ -157,6 +158,7 @@ export const purchases: Purchase[] = [
         date: '2024-05-20',
         totalAmount: 850.50,
         status: 'pending',
+        paymentMethod: 'pix',
         items: [
             { name: 'Ovos', quantity: 360, unitPrice: 0.80 },
             { name: 'Manteiga', quantity: 20, unitPrice: 20.00 },
@@ -175,7 +177,7 @@ export const ingredients: Ingredient[] = [
 export const recipes: Recipe[] = [
     {
         id: 'REC-001',
-        productId: '1', // Pão Francês
+        productId: 'PROD-001', // Pão Francês
         items: [
             { ingredientId: 'ING-001', quantity: 100 }, // 100g de Farinha
             { ingredientId: 'ING-003', quantity: 2 }, // 2g de Fermento
@@ -184,7 +186,7 @@ export const recipes: Recipe[] = [
     },
      {
         id: 'REC-002',
-        productId: '2', // Croissant
+        productId: 'PROD-002', // Croissant
         items: [
             { ingredientId: 'ING-001', quantity: 80 }, // 80g de Farinha
             { ingredientId: 'ING-005', quantity: 40 }, // 40g de Manteiga

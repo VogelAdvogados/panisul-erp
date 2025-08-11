@@ -12,12 +12,13 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { MoreHorizontal, FileText, Search } from 'lucide-react';
+import { MoreHorizontal, FileText, Search, CreditCard } from 'lucide-react';
 import { purchases as initialPurchases, suppliers as initialSuppliers } from '@/lib/data';
-import type { Purchase, Supplier } from '@/lib/types';
+import type { Purchase, Supplier, PaymentMethod } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export function PurchaseHistoryList() {
   const [purchases] = useState<Purchase[]>(initialPurchases);
@@ -49,6 +50,18 @@ export function PurchaseHistoryList() {
         case 'overdue': return 'Vencida';
     }
   }
+  
+  const getPaymentMethodText = (method: PaymentMethod, installments?: number) => {
+    const texts = {
+        pix: 'PIX',
+        boleto: 'Boleto',
+        dinheiro: 'Dinheiro',
+        cartao_credito: `Crédito ${installments ? `(${installments}x)` : ''}`,
+        cartao_debito: 'Débito'
+    }
+    return texts[method];
+  }
+
 
   return (
     <Card>
@@ -65,46 +78,62 @@ export function PurchaseHistoryList() {
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Data</TableHead>
-              <TableHead>Fornecedor</TableHead>
-              <TableHead>Nº da Nota</TableHead>
-              <TableHead className="text-right">Valor Total</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {purchases.map((purchase) => (
-              <TableRow key={purchase.id}>
-                <TableCell>{new Date(purchase.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
-                <TableCell className="font-medium">{getSupplierName(purchase.supplierId)}</TableCell>
-                <TableCell>{purchase.invoiceNumber}</TableCell>
-                <TableCell className="text-right">{purchase.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant={getStatusVariant(purchase.status)}>{getStatusText(purchase.status)}</Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                   <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                                <FileText className='mr-2 h-4 w-4' />
-                                Ver Detalhes
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <TooltipProvider>
+            <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Fornecedor</TableHead>
+                <TableHead>Nº da Nota</TableHead>
+                <TableHead>Pagamento</TableHead>
+                <TableHead className="text-right">Valor Total</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {purchases.map((purchase) => (
+                <TableRow key={purchase.id}>
+                    <TableCell>{new Date(purchase.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
+                    <TableCell className="font-medium">{getSupplierName(purchase.supplierId)}</TableCell>
+                    <TableCell>{purchase.invoiceNumber}</TableCell>
+                    <TableCell>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="flex items-center gap-2 cursor-default">
+                                    <CreditCard className="h-4 w-4 text-muted-foreground"/>
+                                    <span>{getPaymentMethodText(purchase.paymentMethod, purchase.paymentInstallments)}</span>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Pago com {getPaymentMethodText(purchase.paymentMethod, purchase.paymentInstallments)}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TableCell>
+                    <TableCell className="text-right">{purchase.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
+                    <TableCell className="text-center">
+                    <Badge variant={getStatusVariant(purchase.status)}>{getStatusText(purchase.status)}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                    <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem>
+                                    <FileText className='mr-2 h-4 w-4' />
+                                    Ver Detalhes
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                </TableRow>
+                ))}
+            </TableBody>
+            </Table>
+        </TooltipProvider>
       </CardContent>
     </Card>
   );
