@@ -1,4 +1,4 @@
-import type { Product, Sale, OperationalSummaryItem } from './types';
+import type { Product, Sale, OperationalSummaryItem, Customer } from './types';
 
 export const salesData: Sale[] = [
   { name: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
@@ -29,4 +29,15 @@ export const products: Product[] = [
   { id: '4', name: 'Bolo de Chocolate', stock: 15, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'chocolate cake' },
   { id: '5', name: 'Sonho de Creme', stock: 45, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'cream pastry' },
   { id: '6', name: 'Baguete', stock: 60, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'baguette bread' },
+];
+
+export const customers: Customer[] = [
+    { id: 'CUST-001', name: 'Padaria Pão Quente', email: 'contato@paoquente.com', phone: '(11) 98765-4321', status: 'ativo', registeredAt: '2023-01-15' },
+    { id: 'CUST-002', name: 'Mercado Central', email: 'compras@mercadocentral.com', phone: '(21) 99999-8888', status: 'ativo', registeredAt: '2023-02-20' },
+    { id: 'CUST-003', name: 'Supermercado Bom Preço', email: 'adm@bompreco.com.br', phone: '(31) 91234-5678', status: 'ativo', registeredAt: '2023-03-10' },
+    { id: 'CUST-004', name: 'Cafeteria Aroma', email: 'cafe@aroma.com', phone: '(41) 98877-6655', status: 'inativo', registeredAt: '2023-04-05' },
+    { id: 'CUST-005', name: 'Restaurante Sabor Divino', email: 'gerencia@sabordivino.com', phone: '(51) 99654-3210', status: 'ativo', registeredAt: '2023-05-25' },
+    { id: 'CUST-006', name: 'Lanchonete do Zé', email: 'ze@lanchonete.com', phone: '(61) 98111-2233', status: 'pendente', registeredAt: '2023-06-30' },
+    { id: 'CUST-007', name: 'Hotel Beira Mar', email: 'reservas@hotelbeiramar.com', phone: '(71) 99900-1122', status: 'ativo', registeredAt: '2023-07-12' },
+    { id: 'CUST-008', name: 'Dona Benta Doces', email: 'encomendas@donabenta.com', phone: '(81) 98765-1234', status: 'ativo', registeredAt: '2023-08-19' },
 ];

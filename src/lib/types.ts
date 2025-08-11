@@ -18,3 +18,12 @@ export interface Product {
     imageUrl: string;
     'data-ai-hint': string;
 }
+
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: 'ativo' | 'inativo' | 'pendente';
+  registeredAt: string;
+}
