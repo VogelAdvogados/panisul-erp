@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { suppliers as initialSuppliers, ingredients as initialIngredients } from '@/lib/data';
+import { initialSuppliers, initialIngredients } from '@/lib/data';
 import { FilePlus2, Trash, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { PaymentMethod, SourceAccount } from '@/lib/types';

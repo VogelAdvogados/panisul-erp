@@ -4,6 +4,15 @@ import type { Product, Sale, Customer, ExpenseChartItem, BillingData, Operationa
 import { ShoppingCart, ChefHat, RefreshCw } from 'lucide-react';
 import { expenseCategories } from './categories';
 
+// Helper to add IDs to initial data for seeding
+function withIds<T extends {id?: string}>(items: Omit<T, 'id'>[], prefix: string): T[] {
+  return items.map((item, index) => ({
+    ...item,
+    id: `${prefix}-${String(index + 1).padStart(3, '0')}`,
+  } as T & { id: string })) as T[];
+}
+
+
 export const salesData: Sale[] = [
   { name: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
   { name: 'Fev', total: Math.floor(Math.random() * 5000) + 1000 },
@@ -25,7 +34,7 @@ export const operationalSummaryData: OperationalSummaryItem[] = [
     { id: '3', label: 'Trocas Realizadas', value: '3 trocas', change: '-2%', icon: RefreshCw },
 ];
 
-export const products: Omit<Product, 'id'>[] = [
+const productsData: Omit<Product, 'id'>[] = [
   { name: 'Pão Francês', stock: 45, produced: 120, sold: 75, price: 0.75, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'french bread' },
   { name: 'Croissant', stock: 8, produced: 20, sold: 12, price: 3.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'croissant' },
   { name: 'Baguete', stock: 6, produced: 15, sold: 9, price: 4.00, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'baguette' },
@@ -33,7 +42,7 @@ export const products: Omit<Product, 'id'>[] = [
   { name: 'Sonho', stock: 12, produced: 24, sold: 12, price: 4.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'cream donut' },
 ];
 
-export const customers: Omit<Customer, 'id'>[] = [
+const customersData: Omit<Customer, 'id'>[] = [
     { 
         name: 'Padaria Central', 
         email: 'contato@padariacentral.com.br', 
@@ -95,20 +104,12 @@ export const billingData: BillingData[] = [
   { day: 'Dom', total: 700 },
 ];
 
-export const suppliers: Supplier[] = [
-    { id: 'SUP-001', name: 'Farinhas & Cia', cnpj: '11.111.111/0001-11', contact: 'João' },
-    { id: 'SUP-002', name: 'Ovos de Ouro', cnpj: '22.222.222/0001-22', contact: 'Maria' },
+const suppliersData: Omit<Supplier, 'id'>[] = [
+    { name: 'Farinhas & Cia', cnpj: '11.111.111/0001-11', contact: 'João' },
+    { name: 'Ovos de Ouro', cnpj: '22.222.222/0001-22', contact: 'Maria' },
 ];
 
-export const initialFinancialMovements: Omit<FinancialMovement, 'id'>[] = [
-    { description: 'Compra de Insumos NFE-12345', referenceId: 'PUR-001', dueDate: '2024-06-15', amount: 1500, status: 'paid', paymentDate: '2024-06-14', category: 'insumos', sourceAccount: 'bank' },
-    { description: 'Compra de Insumos NFE-12360', referenceId: 'PUR-002', dueDate: '2024-05-20', amount: 850.50, status: 'pending', category: 'insumos', sourceAccount: 'bank' },
-    { description: 'Conta de Energia', dueDate: '2024-06-10', amount: 450.80, status: 'paid', paymentDate: '2024-06-10', category: 'infraestrutura', sourceAccount: 'bank' },
-    { description: 'Salários Funcionários', dueDate: '2024-06-05', amount: 4800, status: 'paid', paymentDate: '2024-06-05', category: 'salarios', sourceAccount: 'bank' },
-    { description: 'Aluguel', dueDate: '2024-06-10', amount: 1200, status: 'pending', category: 'infraestrutura', sourceAccount: 'bank' },
-];
-
-export const purchases: Omit<Purchase, 'id'>[] = [
+const purchasesData: Omit<Purchase, 'id' | 'financialMovements'>[] = [
     {
         invoiceNumber: 'NFE-12345',
         supplierId: 'SUP-001',
@@ -119,7 +120,6 @@ export const purchases: Omit<Purchase, 'id'>[] = [
             { name: 'Farinha de Trigo', quantity: 50, unitPrice: 5.50 },
             { name: 'Fermento Biológico', quantity: 10, unitPrice: 12.00 },
         ],
-        financialMovements: [] // This will be populated dynamically or linked via referenceId
     },
     {
         invoiceNumber: 'NFE-12360',
@@ -131,11 +131,10 @@ export const purchases: Omit<Purchase, 'id'>[] = [
             { name: 'Ovos', quantity: 360, unitPrice: 0.80 },
             { name: 'Manteiga', quantity: 20, unitPrice: 20.00 },
         ],
-        financialMovements: []
     }
 ];
 
-export const ingredients: Omit<Ingredient, 'id'>[] = [
+const ingredientsData: Omit<Ingredient, 'id'>[] = [
     { name: 'Farinha de Trigo', stock: 25000, unitOfMeasure: 'g', cost: 0.0055 }, // R$ 5,50/kg
     { name: 'Açúcar Refinado', stock: 10000, unitOfMeasure: 'g', cost: 0.004 }, // R$ 4,00/kg
     { name: 'Fermento Biológico Seco', stock: 500, unitOfMeasure: 'g', cost: 0.03 }, // R$ 30,00/kg
@@ -143,7 +142,7 @@ export const ingredients: Omit<Ingredient, 'id'>[] = [
     { name: 'Manteiga', stock: 2000, unitOfMeasure: 'g', cost: 0.04 }, // R$ 40,00/kg
 ];
 
-export const recipes: Omit<Recipe, 'id'>[] = [
+const recipesData: Omit<Recipe, 'id'>[] = [
     {
         productId: 'PROD-001', // Pão Francês
         items: [
@@ -164,19 +163,21 @@ export const recipes: Omit<Recipe, 'id'>[] = [
     }
 ];
 
-// Helper to add IDs to initial data for seeding
-function withIds<T>(items: T[], prefix: string): (T & { id: string })[] {
-  return items.map((item, index) => ({
-    ...item,
-    id: `${prefix}-${String(index + 1).padStart(3, '0')}`,
-  }));
-}
+export const initialFinancialMovements: Omit<FinancialMovement, 'id'>[] = [
+    { description: 'Compra de Insumos NFE-12345', referenceId: 'PUR-001', dueDate: '2024-06-15', amount: 1500, status: 'paid', paymentDate: '2024-06-14', category: 'insumos', sourceAccount: 'bank' },
+    { description: 'Compra de Insumos NFE-12360', referenceId: 'PUR-002', dueDate: '2024-05-20', amount: 850.50, status: 'pending', category: 'insumos', sourceAccount: 'bank' },
+    { description: 'Conta de Energia', dueDate: '2024-06-10', amount: 450.80, status: 'paid', paymentDate: '2024-06-10', category: 'infraestrutura', sourceAccount: 'bank' },
+    { description: 'Salários Funcionários', dueDate: '2024-06-05', amount: 4800, status: 'paid', paymentDate: '2024-06-05', category: 'salarios', sourceAccount: 'bank' },
+    { description: 'Aluguel', dueDate: '2024-06-10', amount: 1200, status: 'pending', category: 'infraestrutura', sourceAccount: 'bank' },
+];
+
 
 // Re-exporting with IDs for seeding process
-export const initialProducts = withIds(products, 'PROD');
-export const initialIngredients = withIds(ingredients, 'ING');
-export const initialRecipes = withIds(recipes, 'REC');
-export const initialCustomers = withIds(customers, 'CUST');
-// Other exports can be created as needed if they also need to be seeded with consistent IDs.
-
-    
+export const initialProducts = withIds<Product>(productsData, 'PROD');
+export const initialIngredients = withIds<Ingredient>(ingredientsData, 'ING');
+export const initialRecipes = withIds<Recipe>(recipesData, 'REC');
+export const initialCustomers = withIds<Customer>(customersData, 'CUST');
+export const initialSuppliers = withIds<Supplier>(suppliersData, 'SUP');
+export const initialPurchases = withIds<Purchase>(purchasesData, 'PUR');
+// Note: FinancialMovements does not have stable IDs as they represent transactions
+// and are better generated dynamically in a real app. For seeding, we omit IDs.

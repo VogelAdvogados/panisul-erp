@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch, getCountFromServer, query, collectionGroup } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch, getCountFromServer } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -43,7 +43,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MoreHorizontal, Edit, Trash2, PlusCircle, Loader2, Database } from 'lucide-react';
 import type { Product } from '@/lib/types';
-import { products as initialProducts, ingredients as initialIngredients, suppliers as initialSuppliers, recipes as initialRecipes, customers as initialCustomers, initialFinancialMovements } from '@/lib/data';
+import { initialProducts, initialIngredients, initialSuppliers, initialRecipes, initialCustomers, initialFinancialMovements } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,7 +77,7 @@ export function ProductList() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [toast]);
 
   const handleOpenForm = (product: Product | null) => {
     setEditingProduct(product);
@@ -140,53 +140,49 @@ export function ProductList() {
   const seedDatabase = async () => {
       setIsSeeding(true);
       try {
+        // Check a single collection to see if data exists
         const productsCollection = collection(db, 'products');
         const snapshot = await getCountFromServer(productsCollection);
         
         if (snapshot.data().count > 0) {
             toast({
                 title: 'Banco de dados já populado',
-                description: 'Os produtos iniciais já existem no Firestore.',
+                description: 'Os dados iniciais já existem no Firestore.',
                 variant: 'destructive',
             });
+            setIsSeeding(false);
             return;
         }
 
         const batch = writeBatch(db);
         
-        // Seed Products
         initialProducts.forEach(product => {
             const docRef = doc(db, 'products', product.id);
             batch.set(docRef, product);
         });
 
-        // Seed Ingredients
         initialIngredients.forEach(ingredient => {
             const docRef = doc(db, 'ingredients', ingredient.id);
             batch.set(docRef, ingredient);
         });
 
-        // Seed Suppliers
         initialSuppliers.forEach(supplier => {
             const docRef = doc(db, 'suppliers', supplier.id);
             batch.set(docRef, supplier);
         });
 
-        // Seed Recipes
         initialRecipes.forEach(recipe => {
             const docRef = doc(db, 'recipes', recipe.id);
             batch.set(docRef, recipe);
         });
 
-        // Seed Customers
         initialCustomers.forEach(customer => {
             const docRef = doc(db, 'customers', customer.id);
             batch.set(docRef, customer);
         });
-
-        // Seed Financial Movements
+        
         initialFinancialMovements.forEach(movement => {
-            const docRef = doc(db, 'financialMovements', movement.id);
+            const docRef = doc(collection(db, 'financialMovements'));
             batch.set(docRef, movement);
         });
 
@@ -196,7 +192,9 @@ export function ProductList() {
             title: 'Sucesso!',
             description: 'Todo o sistema foi populado com dados iniciais.'
         });
-        fetchProducts(); // Refresh list
+        // Fetch all data again after seeding
+        fetchProducts(); 
+
       } catch (error) {
         console.error("Error seeding database: ", error);
         toast({
@@ -298,7 +296,7 @@ export function ProductList() {
                         </TableCell>
                     </TableRow>
                     ))}
-                    {products.length === 0 && (
+                    {products.length === 0 && !isLoading && (
                         <TableRow>
                             <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                                 Nenhum produto encontrado. Clique em "Popular Dados Iniciais" para começar.
@@ -345,5 +343,3 @@ export function ProductList() {
     </Card>
   );
 }
-
-    
