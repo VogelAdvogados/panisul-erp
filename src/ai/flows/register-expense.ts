@@ -1,0 +1,63 @@
+
+'use server';
+
+/**
+ * @fileOverview Registers a new miscellaneous expense.
+ */
+
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+import { db } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import type { FinancialMovement, ExpenseCategory, SourceAccount } from '@/lib/types';
+import { format } from 'date-fns';
+
+const RegisterExpenseInputSchema = z.object({
+  description: z.string(),
+  category: z.string(),
+  amount: z.number(),
+  sourceAccount: z.enum(['cash', 'bank']),
+  dueDate: z.string(),
+  paymentStatus: z.enum(['pending', 'paid']),
+});
+
+const RegisterExpenseOutputSchema = z.object({
+  movementId: z.string(),
+  message: z.string(),
+});
+
+export async function registerExpense(
+  input: z.infer<typeof RegisterExpenseInputSchema>
+): Promise<z.infer<typeof RegisterExpenseOutputSchema>> {
+  return registerExpenseFlow(input);
+}
+
+const registerExpenseFlow = ai.defineFlow(
+  {
+    name: 'registerExpenseFlow',
+    inputSchema: RegisterExpenseInputSchema,
+    outputSchema: RegisterExpenseOutputSchema,
+  },
+  async (input) => {
+    
+    const financialMovement: Omit<FinancialMovement, 'id'> = {
+      description: input.description,
+      dueDate: input.dueDate,
+      amount: -input.amount, // Expenses are negative
+      status: input.paymentStatus,
+      paymentDate: input.paymentStatus === 'paid' ? format(new Date(input.dueDate), 'yyyy-MM-dd') : undefined,
+      category: input.category as ExpenseCategory,
+      sourceAccount: input.sourceAccount,
+      type: 'expense',
+    };
+
+    const movementRef = await addDoc(collection(db, 'financialMovements'), financialMovement);
+
+    return {
+      movementId: movementRef.id,
+      message: `Despesa "${input.description}" registrada com sucesso.`,
+    };
+  }
+);
+
+    

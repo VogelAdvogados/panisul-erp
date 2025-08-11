@@ -10,11 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { initialSuppliers, initialIngredients } from '@/lib/data';
-import { FilePlus2, Trash, CheckCircle2 } from 'lucide-react';
+import { FilePlus2, Trash, CheckCircle2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { PaymentMethod, SourceAccount } from '@/lib/types';
-import { add, addDays } from 'date-fns';
+import type { PaymentMethod, SourceAccount, Supplier, Ingredient } from '@/lib/types';
+import { add, addDays, format } from 'date-fns';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { registerManualPurchase } from '@/ai/flows/register-manual-purchase';
 
 const purchaseItemSchema = z.object({
   ingredientId: z.string().min(1, 'Selecione um insumo.'),
@@ -25,7 +27,7 @@ const purchaseItemSchema = z.object({
 const formSchema = z.object({
   supplierId: z.string().min(1, 'Selecione um fornecedor.'),
   invoiceNumber: z.string().optional(),
-  purchaseDate: z.string().min(1, 'A data da compra é obrigatória.'),
+  date: z.string().min(1, 'A data da compra é obrigatória.'),
   sourceAccount: z.enum(['cash', 'bank'], { required_error: 'Selecione a conta de origem.'}),
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
   installments: z.coerce.number().int().min(1, 'Pelo menos uma parcela é necessária.').default(1),
@@ -33,19 +35,39 @@ const formSchema = z.object({
   items: z.array(purchaseItemSchema).min(1, 'Adicione pelo menos um item à compra.'),
 });
 
-type PurchaseFormValues = z.infer<typeof formSchema>;
+export type ManualPurchaseFormInput = z.infer<typeof formSchema>;
 
 export function ManualPurchaseForm() {
-  const [suppliers] = useState(initialSuppliers);
-  const [ingredients] = useState(initialIngredients);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<PurchaseFormValues>({
+  useState(() => {
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            const [suppliersSnapshot, ingredientsSnapshot] = await Promise.all([
+                getDocs(collection(db, 'suppliers')),
+                getDocs(collection(db, 'ingredients'))
+            ]);
+            setSuppliers(suppliersSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Supplier)));
+            setIngredients(ingredientsSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Ingredient)));
+        } catch (error) {
+            toast({ title: "Erro ao carregar dados", description: "Não foi possível buscar fornecedores e insumos."})
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchData();
+  });
+
+  const form = useForm<ManualPurchaseFormInput>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       supplierId: '',
       invoiceNumber: '',
-      purchaseDate: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString().split('T')[0],
       sourceAccount: 'bank',
       paymentMethod: 'boleto',
       installments: 1,
@@ -68,33 +90,25 @@ export function ManualPurchaseForm() {
   }, 0);
 
 
-  const onSubmit = (data: PurchaseFormValues) => {
-    const financialMovements = [];
-    const installmentValue = totalAmount / data.installments;
-
-    for (let i = 0; i < data.installments; i++) {
-        // Correctly calculate due date for each installment
-        const dueDate = addDays(new Date(data.firstDueDate), i * 30);
-        financialMovements.push({
-            id: `FM-${Date.now()}-${i}`,
-            dueDate: dueDate.toISOString().split('T')[0],
-            amount: installmentValue,
-            status: 'pending',
-            sourceAccount: data.sourceAccount, // Add source account
+  const onSubmit = async (data: ManualPurchaseFormInput) => {
+    setIsLoading(true);
+    try {
+        const result = await registerManualPurchase({...data, totalAmount });
+        toast({
+            title: "Compra Lançada com Sucesso!",
+            description: result.message,
         });
+        form.reset();
+    } catch(e) {
+        const error = e as Error;
+        toast({
+            title: "Erro ao lançar compra",
+            description: error.message,
+            variant: 'destructive',
+        })
+    } finally {
+        setIsLoading(false);
     }
-
-    console.log({
-        purchaseData: data,
-        calculatedTotal: totalAmount,
-        generatedFinancialMovements: financialMovements,
-    });
-    
-    toast({
-        title: "Compra Lançada com Sucesso!",
-        description: `Compra de ${totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} registrada com ${data.installments} parcela(s). As contas a pagar foram geradas.`,
-    });
-    form.reset();
   };
 
   return (
@@ -113,7 +127,7 @@ export function ManualPurchaseForm() {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Fornecedor</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecione um fornecedor" />
@@ -131,12 +145,12 @@ export function ManualPurchaseForm() {
                     />
                      <FormField
                         control={form.control}
-                        name="purchaseDate"
+                        name="date"
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Data da Compra</FormLabel>
                             <FormControl>
-                                <Input type="date" {...field} />
+                                <Input type="date" {...field} disabled={isLoading}/>
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -149,7 +163,7 @@ export function ManualPurchaseForm() {
                             <FormItem>
                             <FormLabel>Nº da Nota Fiscal (Opcional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="Ex: NFE-12345" {...field} />
+                                <Input placeholder="Ex: NFE-12345" {...field} disabled={isLoading}/>
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -168,7 +182,7 @@ export function ManualPurchaseForm() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="sr-only">Insumo</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                                              <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Selecione um insumo" />
@@ -192,7 +206,7 @@ export function ManualPurchaseForm() {
                                 render={({ field }) => (
                                      <FormItem>
                                         <FormLabel className="sr-only">Quantidade</FormLabel>
-                                        <FormControl><Input type="number" placeholder="Qtd." {...field} /></FormControl>
+                                        <FormControl><Input type="number" placeholder="Qtd." {...field} disabled={isLoading}/></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -205,7 +219,7 @@ export function ManualPurchaseForm() {
                                 render={({ field }) => (
                                      <FormItem>
                                         <FormLabel className="sr-only">Preço Unitário</FormLabel>
-                                        <FormControl><Input type="number" step="0.01" placeholder="Preço" {...field} /></FormControl>
+                                        <FormControl><Input type="number" step="0.01" placeholder="Preço" {...field} disabled={isLoading}/></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -217,13 +231,13 @@ export function ManualPurchaseForm() {
                              </p>
                         </div>
                         <div className="col-span-12 md:col-span-1 flex items-end justify-end">
-                            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
+                            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={isLoading}>
                                 <Trash className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>
                     ))}
-                    <Button type="button" variant="outline" size="sm" onClick={() => append({ ingredientId: '', quantity: 1, unitPrice: 0 })}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => append({ ingredientId: '', quantity: 1, unitPrice: 0 })} disabled={isLoading}>
                         <FilePlus2 className="mr-2 h-4 w-4" />
                         Adicionar Item
                     </Button>
@@ -236,7 +250,7 @@ export function ManualPurchaseForm() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Pagar com</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Selecione a conta" />
@@ -257,7 +271,7 @@ export function ManualPurchaseForm() {
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Forma de Pagamento</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                                 <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione a forma" />
@@ -282,7 +296,7 @@ export function ManualPurchaseForm() {
                             <FormItem>
                             <FormLabel>Parcelas</FormLabel>
                             <FormControl>
-                                <Input type="number" min="1" step="1" placeholder="Nº de parcelas" {...field} />
+                                <Input type="number" min="1" step="1" placeholder="Nº de parcelas" {...field} disabled={isLoading}/>
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -295,7 +309,7 @@ export function ManualPurchaseForm() {
                             <FormItem>
                             <FormLabel>Venc. da 1ª Parcela</FormLabel>
                             <FormControl>
-                                <Input type="date" {...field} />
+                                <Input type="date" {...field} disabled={isLoading}/>
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -311,9 +325,10 @@ export function ManualPurchaseForm() {
 
             </CardContent>
             <CardFooter>
-                 <Button type="submit">
+                 <Button type="submit" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Lançar Compra
+                    {isLoading ? 'Lançando...' : 'Lançar Compra'}
                 </Button>
             </CardFooter>
         </form>
@@ -321,3 +336,5 @@ export function ManualPurchaseForm() {
     </Card>
   );
 }
+
+    

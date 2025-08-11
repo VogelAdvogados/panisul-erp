@@ -4,7 +4,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { add } from 'date-fns';
+import { add, format } from 'date-fns';
 
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -34,24 +34,27 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { expenseCategories } from '@/lib/categories';
-import type { ExpenseCategory, SourceAccount } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { registerExpense } from '@/ai/flows/register-expense';
 
 const formSchema = z.object({
   description: z.string().min(3, 'A descrição deve ter pelo menos 3 caracteres.'),
   category: z.string().min(1, 'Selecione uma categoria.'),
   amount: z.coerce.number().min(0.01, 'O valor deve ser maior que zero.'),
   sourceAccount: z.enum(['cash', 'bank'], { required_error: 'Selecione a conta de origem.'}),
-  installments: z.coerce.number().int().min(1).default(1),
   dueDate: z.string().min(1, 'A data de vencimento é obrigatória.'),
+  paymentStatus: z.enum(['pending', 'paid']),
 });
 
-type ExpenseFormValues = z.infer<typeof formSchema>;
+export type ExpenseFormValues = z.infer<typeof formSchema>;
 
 export default function NewExpensePage() {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -59,19 +62,30 @@ export default function NewExpensePage() {
       category: '',
       amount: 0,
       sourceAccount: 'bank',
-      installments: 1,
-      dueDate: add(new Date(), { days: 7 }).toISOString().split('T')[0],
+      dueDate: format(new Date(), 'yyyy-MM-dd'),
+      paymentStatus: 'paid',
     },
   });
 
-  const onSubmit = (data: ExpenseFormValues) => {
-    // Here you would typically send the data to your backend to save it
-    console.log(data);
-
-    toast({
-      title: 'Despesa Lançada!',
-      description: `${data.description} no valor de ${data.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} foi registrada com sucesso.`,
-    });
+  const onSubmit = async (data: ExpenseFormValues) => {
+    setIsLoading(true);
+    try {
+      const result = await registerExpense(data);
+      toast({
+        title: 'Despesa Lançada!',
+        description: result.message,
+      });
+      form.reset();
+    } catch (e) {
+      const error = e as Error;
+      toast({
+        title: 'Erro ao lançar despesa',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -83,7 +97,7 @@ export default function NewExpensePage() {
             <CardHeader>
               <CardTitle>Detalhes da Despesa</CardTitle>
               <CardDescription>
-                Preencha os campos abaixo para registrar uma nova despesa avulsa.
+                Preencha os campos abaixo para registrar uma nova despesa avulsa (Ex: aluguel, luz, salários).
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -94,7 +108,7 @@ export default function NewExpensePage() {
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Ex: Conta de luz, Salário do padeiro..." {...field} />
+                      <Textarea placeholder="Ex: Conta de luz, Salário do padeiro..." {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -107,18 +121,21 @@ export default function NewExpensePage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Categoria</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a categoria" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {Object.entries(expenseCategories).map(([key, value]) => (
-                            <SelectItem key={key} value={key}>
-                              {value.label}
-                            </SelectItem>
-                          ))}
+                          {Object.entries(expenseCategories).map(([key, value]) => {
+                             if (key === 'vendas') return null; // Hide 'vendas' from expense form
+                             return (
+                                <SelectItem key={key} value={key}>
+                                {value.label}
+                                </SelectItem>
+                            )
+                          })}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -132,7 +149,7 @@ export default function NewExpensePage() {
                         <FormItem>
                         <FormLabel>Valor Total</FormLabel>
                         <FormControl>
-                            <Input type="number" step="0.01" placeholder="0,00" {...field} />
+                            <Input type="number" step="0.01" placeholder="0,00" {...field} disabled={isLoading}/>
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -145,24 +162,32 @@ export default function NewExpensePage() {
                     name="dueDate"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Vencimento</FormLabel>
+                        <FormLabel>Data de Vencimento/Pag.</FormLabel>
                         <FormControl>
-                            <Input type="date" {...field} />
+                            <Input type="date" {...field} disabled={isLoading}/>
                         </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
                 />
-                <FormField
+                 <FormField
                     control={form.control}
-                    name="installments"
+                    name="paymentStatus"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Parcelas</FormLabel>
-                        <FormControl>
-                            <Input type="number" min="1" step="1" {...field} />
-                        </FormControl>
-                        <FormMessage />
+                            <FormLabel>Status</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o status" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="paid">Já Paga</SelectItem>
+                                    <SelectItem value="pending">Pendente (Lançar no Contas a Pagar)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -172,7 +197,7 @@ export default function NewExpensePage() {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Pagar com</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                                 <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione a conta" />
@@ -193,9 +218,10 @@ export default function NewExpensePage() {
                 <Button variant="ghost" asChild>
                     <Link href="/financeiro?tab=payable">Cancelar</Link>
                 </Button>
-                <Button type="submit">
+                <Button type="submit" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Lançar Despesa
+                    {isLoading ? 'Lançando...' : 'Lançar Despesa'}
                 </Button>
             </CardFooter>
           </form>
@@ -204,3 +230,5 @@ export default function NewExpensePage() {
     </div>
   );
 }
+
+    
