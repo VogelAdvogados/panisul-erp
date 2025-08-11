@@ -1,5 +1,6 @@
 
-import type { Product, Sale, Customer, ExpenseData, BillingData, OperationalSummaryItem } from './types';
+
+import type { Product, Sale, Customer, ExpenseData, BillingData, OperationalSummaryItem, Purchase, Supplier } from './types';
 import { ShoppingCart, ChefHat, RefreshCw } from 'lucide-react';
 
 export const salesData: Sale[] = [
@@ -130,4 +131,36 @@ export const billingData: BillingData[] = [
   { day: 'Sex', total: 2200 },
   { day: 'Sáb', total: 950 },
   { day: 'Dom', total: 700 },
+];
+
+export const suppliers: Supplier[] = [
+    { id: 'SUP-001', name: 'Farinhas & Cia', cnpj: '11.111.111/0001-11', contact: 'João' },
+    { id: 'SUP-002', name: 'Ovos de Ouro', cnpj: '22.222.222/0001-22', contact: 'Maria' },
+];
+
+export const purchases: Purchase[] = [
+    {
+        id: 'PUR-001',
+        invoiceNumber: 'NFE-12345',
+        supplierId: 'SUP-001',
+        date: '2024-05-15',
+        totalAmount: 1500.00,
+        status: 'paid',
+        items: [
+            { name: 'Farinha de Trigo', quantity: 50, unitPrice: 5.50 },
+            { name: 'Fermento Biológico', quantity: 10, unitPrice: 12.00 },
+        ]
+    },
+    {
+        id: 'PUR-002',
+        invoiceNumber: 'NFE-12360',
+        supplierId: 'SUP-002',
+        date: '2024-05-20',
+        totalAmount: 850.50,
+        status: 'pending',
+        items: [
+            { name: 'Ovos', quantity: 360, unitPrice: 0.80 },
+            { name: 'Manteiga', quantity: 20, unitPrice: 20.00 },
+        ]
+    }
 ];

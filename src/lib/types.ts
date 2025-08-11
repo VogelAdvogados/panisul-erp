@@ -1,4 +1,5 @@
 
+
 export interface Sale {
     name: string;
     total: number;
@@ -78,4 +79,25 @@ export interface ExpenseData {
 export interface BillingData {
   day: string;
   total: number;
+}
+
+export interface Supplier {
+    id: string;
+    name: string;
+    cnpj: string;
+    contact: string;
+}
+
+export interface Purchase {
+    id: string;
+    invoiceNumber: string;
+    supplierId: string;
+    date: string;
+    totalAmount: number;
+    status: 'pending' | 'paid' | 'overdue';
+    items: Array<{
+        name: string;
+        quantity: number;
+        unitPrice: number;
+    }>;
 }
