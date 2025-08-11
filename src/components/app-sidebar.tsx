@@ -17,6 +17,7 @@ import {
   ChefHat,
   Settings,
   Repeat,
+  ShoppingBag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -29,6 +30,7 @@ interface SidebarProps {
 const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, description: "Visão geral do negócio" },
     { href: '/operacoes', label: 'Painel do Dia', icon: ClipboardList, description: "Operações diárias" },
+    { href: '/vendas', label: 'Vendas', icon: ShoppingBag, description: "Registrar vendas e ver histórico" },
     { href: '/financeiro', label: 'Financeiro', icon: Wallet, description: "Contas e fluxo de caixa" },
     { href: '/compras', label: 'Compras', icon: ShoppingCart, description: "Importar XML/PDF" },
     { href: '/cadastros', label: 'Cadastros', icon: Archive, description: "Produtos e insumos" },

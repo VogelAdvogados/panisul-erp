@@ -7,10 +7,11 @@ interface CategoryDetails {
 }
 
 export const expenseCategories: Record<ExpenseCategory, CategoryDetails> = {
-    insumos: { label: 'Insumos', color: 'hsl(var(--chart-1))' },
-    salarios: { label: 'Salários', color: 'hsl(var(--chart-2))' },
-    infraestrutura: { label: 'Infraestrutura', color: 'hsl(var(--chart-3))' },
-    marketing: { label: 'Marketing', color: 'hsl(var(--chart-4))' },
-    impostos: { label: 'Impostos', color: 'hsl(var(--chart-5))' },
+    vendas: { label: 'Vendas', color: 'hsl(var(--chart-1))' },
+    insumos: { label: 'Insumos', color: 'hsl(var(--chart-2))' },
+    salarios: { label: 'Salários', color: 'hsl(var(--chart-3))' },
+    infraestrutura: { label: 'Infraestrutura', color: 'hsl(var(--chart-4))' },
+    marketing: { label: 'Marketing', color: 'hsl(var(--chart-5))' },
+    impostos: { label: 'Impostos', color: 'hsl(var(--muted-foreground))' },
     outros: { label: 'Outros', color: 'hsl(var(--muted-foreground))' },
 }

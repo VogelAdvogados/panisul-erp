@@ -1,5 +1,6 @@
 
 
+
 export interface Sale {
     name: string;
     total: number;
