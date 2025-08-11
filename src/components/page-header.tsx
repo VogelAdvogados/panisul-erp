@@ -9,7 +9,6 @@ interface PageHeaderProps {
 
 const PageHeader: FC<PageHeaderProps> = ({ title, children }) => {
   const currentDate = format(new Date(), "eeee, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-  const currentTime = format(new Date(), "HH:mm:ss");
 
   return (
     <div className="flex items-center justify-between space-y-2 mb-6">
@@ -18,7 +17,7 @@ const PageHeader: FC<PageHeaderProps> = ({ title, children }) => {
           {title}
         </h1>
         <p className="text-sm text-muted-foreground capitalize">
-          {currentDate} {currentTime}
+          {currentDate}
         </p>
       </div>
       <div className="flex items-center space-x-2">{children}</div>
