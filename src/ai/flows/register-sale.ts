@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, doc, runTransaction, addDoc, increment, getDoc } from 'firebase/firestore';
 import type { Product, FinancialMovement, Customer } from '@/lib/types';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 
 const RegisterSaleInputSchema = z.object({
   productId: z.string().describe('The ID of the product being sold.'),
@@ -19,6 +19,7 @@ const RegisterSaleInputSchema = z.object({
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
   sourceAccount: z.enum(['cash', 'bank']),
   customerId: z.string().optional().describe('The ID of the customer, if applicable.'),
+  dueDate: z.string().optional().describe('The due date for credit sales.'),
 });
 type RegisterSaleInput = z.infer<typeof RegisterSaleInputSchema>;
 
@@ -40,7 +41,7 @@ const registerSaleFlow = ai.defineFlow(
     inputSchema: RegisterSaleInputSchema,
     outputSchema: RegisterSaleOutputSchema,
   },
-  async ({ productId, quantity, paymentMethod, sourceAccount, customerId }) => {
+  async ({ productId, quantity, paymentMethod, sourceAccount, customerId, dueDate }) => {
     
     const saleId = await runTransaction(db, async (transaction) => {
       const productRef = doc(db, 'products', productId);
@@ -74,7 +75,7 @@ const registerSaleFlow = ai.defineFlow(
       const financialMovement: Omit<FinancialMovement, 'id'> = {
         description: `Venda de ${quantity}x ${product.name}`,
         referenceId: customerId || productId, 
-        dueDate: format(today, 'yyyy-MM-dd'),
+        dueDate: dueDate || format(today, 'yyyy-MM-dd'),
         paymentDate: status === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
         amount: saleAmount,
         status: status,
@@ -100,8 +101,10 @@ const registerSaleFlow = ai.defineFlow(
       return movementRef.id;
     });
 
+    const productName = (await getDoc(doc(db, 'products', productId))).data()?.name || 'Produto desconhecido';
+
     return {
-      message: `Venda de ${quantity} unidade(s) do produto ${(await getDoc(doc(db, 'products', productId))).data()?.name} registrada com sucesso.`,
+      message: `Venda de ${quantity} unidade(s) do produto ${productName} registrada com sucesso.`,
       saleId: saleId,
     };
   }

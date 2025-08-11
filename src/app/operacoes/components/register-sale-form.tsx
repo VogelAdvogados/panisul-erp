@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Customer } from '@/lib/types';
 import { registerSale } from '@/ai/flows/register-sale';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2, ShoppingCart } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { format, addDays } from 'date-fns';
 
 const RegisterSaleInputSchema = z.object({
   productId: z.string().describe('The ID of the product being sold.'),
@@ -22,6 +23,7 @@ const RegisterSaleInputSchema = z.object({
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
   sourceAccount: z.enum(['cash', 'bank']),
   customerId: z.string().optional().describe('The ID of the customer, if applicable.'),
+  dueDate: z.string().optional().describe('The due date for credit sales.'),
 });
 
 
@@ -42,7 +44,8 @@ export function RegisterSaleForm({ product, customers, onSaleRegistered }: Regis
       quantity: 1,
       paymentMethod: 'dinheiro',
       sourceAccount: 'cash',
-      customerId: undefined,
+      customerId: 'none',
+      dueDate: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
     },
   });
 
@@ -59,11 +62,12 @@ export function RegisterSaleForm({ product, customers, onSaleRegistered }: Regis
             description: result.message,
         });
         form.reset({
-             productId: product.id,
+            productId: product.id,
             quantity: 1,
             paymentMethod: 'dinheiro',
             sourceAccount: 'cash',
-            customerId: undefined,
+            customerId: 'none',
+            dueDate: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
         });
         onSaleRegistered();
     } catch(error) {
@@ -79,6 +83,7 @@ export function RegisterSaleForm({ product, customers, onSaleRegistered }: Regis
   
   const quantity = form.watch('quantity');
   const paymentMethod = form.watch('paymentMethod');
+  const isCreditSale = paymentMethod === 'boleto' || paymentMethod === 'cartao_credito';
   const total = (quantity * product.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 
@@ -110,7 +115,7 @@ export function RegisterSaleForm({ product, customers, onSaleRegistered }: Regis
           name="customerId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Cliente (Opcional)</FormLabel>
+              <FormLabel>Cliente</FormLabel>
                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                 <FormControl>
                   <SelectTrigger>
@@ -164,7 +169,7 @@ export function RegisterSaleForm({ product, customers, onSaleRegistered }: Regis
                         <RadioGroup
                         onValueChange={field.onChange}
                         defaultValue={field.value}
-                        className="flex items-center space-x-4"
+                        className="flex items-center space-x-4 pt-2"
                         disabled={isLoading}
                         >
                         <FormItem className="flex items-center space-x-2 space-y-0">
@@ -186,6 +191,22 @@ export function RegisterSaleForm({ product, customers, onSaleRegistered }: Regis
                 )}
                 />
         </div>
+        
+        {isCreditSale && (
+            <FormField
+              control={form.control}
+              name="dueDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Data de Vencimento</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} disabled={isLoading} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+        )}
         
         <div className='text-right'>
             <p className='text-muted-foreground'>Valor Total da Venda</p>
