@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle } from 'lucide-react';
+import { SupplierList } from './components/supplier-list';
 
 export default function CadastrosPage() {
   return (
@@ -17,6 +18,7 @@ export default function CadastrosPage() {
           <TabsList>
               <TabsTrigger value="products">Produtos</TabsTrigger>
               <TabsTrigger value="ingredients">Insumos</TabsTrigger>
+              <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
               <TabsTrigger value="recipes">Fichas Técnicas</TabsTrigger>
           </TabsList>
           <TabsContent value="products">
@@ -38,6 +40,17 @@ export default function CadastrosPage() {
                 </CardHeader>
                 <CardContent>
                     <p>Tabela de insumos aqui...</p>
+                </CardContent>
+            </Card>
+          </TabsContent>
+           <TabsContent value="suppliers">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Fornecedores</CardTitle>
+                    <CardDescription>Gerencie os fornecedores dos seus insumos.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <SupplierList />
                 </CardContent>
             </Card>
           </TabsContent>
