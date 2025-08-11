@@ -6,6 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Wallet, CreditCard, ArrowUpRight, ArrowDownLeft, Clock, CalendarDays } from 'lucide-react';
 import { FinancialAnalysis } from './components/financial-analysis';
+import { AccountsPayable } from './components/accounts-payable';
+import { AccountsReceivable } from './components/accounts-receivable';
+import { TransactionsList } from './components/transactions-list';
+import { LatestTransactions } from './components/latest-transactions';
 
 export default function FinanceiroPage() {
   return (
@@ -109,48 +113,16 @@ export default function FinanceiroPage() {
                 </Card>
             </div>
             <FinancialAnalysis />
-            <Card>
-                <CardHeader>
-                    <CardTitle>Últimas Movimentações</CardTitle>
-                    <CardDescription>Visualize as últimas transações realizadas.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p>Tabela de últimas movimentações aqui...</p>
-                </CardContent>
-            </Card>
+            <LatestTransactions />
           </TabsContent>
           <TabsContent value="payable">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Contas a Pagar</CardTitle>
-                    <CardDescription>Gerencie suas despesas e pagamentos pendentes.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p>Tabela de contas a pagar aqui...</p>
-                </CardContent>
-            </Card>
+            <AccountsPayable />
           </TabsContent>
           <TabsContent value="receivable">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Contas a Receber</CardTitle>
-                    <CardDescription>Acompanhe seus recebimentos e clientes devedores.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p>Tabela de contas a receber aqui...</p>
-                </CardContent>
-            </Card>
+            <AccountsReceivable />
           </TabsContent>
           <TabsContent value="movements">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Movimentações</CardTitle>
-                    <CardDescription>Visualize o fluxo de entradas e saídas por conta.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p>Relatório de fluxo de caixa aqui...</p>
-                </CardContent>
-            </Card>
+            <TransactionsList />
           </TabsContent>
       </Tabs>
     </div>
