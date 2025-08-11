@@ -7,19 +7,26 @@ interface StatCardProps {
   value: string;
   icon: LucideIcon;
   change: string;
-  color?: string;
+  changeColor?: string;
+  iconColor?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, change, color }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, change, changeColor = "text-muted-foreground", iconColor = "text-primary" }: StatCardProps) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className={cn('h-5 w-5 text-muted-foreground', color?.replace('bg-', 'text-'))} />
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+            <div className="mt-2 text-2xl font-bold">{value}</div>
+          </div>
+          <div className={cn("p-2 rounded-lg bg-primary/10", iconColor === 'text-destructive' && 'bg-destructive/10')}>
+            <Icon className={cn("h-6 w-6", iconColor, iconColor === 'text-destructive' && 'text-destructive')} />
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{change}</p>
+        <p className={cn("text-xs", changeColor)}>{change}</p>
       </CardContent>
     </Card>
   );

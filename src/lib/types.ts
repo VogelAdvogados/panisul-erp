@@ -5,10 +5,10 @@ export interface Sale {
 
 export interface OperationalSummaryItem {
     id: string;
-    customer: string;
-    description: string;
-    type: 'Venda' | 'Recebimento' | 'Pagamento';
-    amount: string;
+    label: string;
+    value: string;
+    change: string;
+    icon: React.ElementType;
 }
 
 export interface Product {
@@ -63,4 +63,15 @@ export interface Customer {
   purchaseHistory: PurchaseHistoryItem[];
   exchangeHistory: ExchangeHistoryItem[];
   financialHistory: FinancialHistoryItem[];
+}
+
+export interface ExpenseData {
+  category: string;
+  value: number;
+  fill: string;
+}
+
+export interface BillingData {
+  day: string;
+  total: number;
 }

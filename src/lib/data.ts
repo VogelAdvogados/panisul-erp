@@ -1,4 +1,5 @@
-import type { Product, Sale, OperationalSummaryItem, Customer } from './types';
+import type { Product, Sale, Customer, ExpenseData, BillingData, OperationalSummaryItem } from './types';
+import { ShoppingCart, ChefHat, RefreshCw } from 'lucide-react';
 
 export const salesData: Sale[] = [
   { name: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
@@ -16,10 +17,9 @@ export const salesData: Sale[] = [
 ];
 
 export const operationalSummaryData: OperationalSummaryItem[] = [
-    { id: '1', customer: 'Padaria Pão Quente', description: 'Pagamento de Fatura #1023', type: 'Recebimento', amount: '+ R$ 1.200,00' },
-    { id: '2', customer: 'Mercado Central', description: 'Venda de 100 pães franceses', type: 'Venda', amount: '+ R$ 85,00' },
-    { id: '3', customer: 'Fornecedor Farinita', description: 'Pagamento de NF #589', type: 'Pagamento', amount: '- R$ 2.500,00' },
-    { id: '4', customer: 'Supermercado Bom Preço', description: 'Venda de 50 pães de queijo', type: 'Venda', amount: '+ R$ 75,00' },
+    { id: '1', label: 'Vendas do Dia', value: 'R$ 1.247,50', change: '+12%', icon: ShoppingCart },
+    { id: '2', label: 'Produção do Dia', value: '156 unidades', change: '+5%', icon: ChefHat },
+    { id: '3', label: 'Trocas Realizadas', value: '3 trocas', change: '-2%', icon: RefreshCw },
 ];
 
 export const products: Product[] = [
@@ -113,4 +113,22 @@ export const customers: Customer[] = [
         exchangeHistory: [],
         financialHistory: [],
     },
+];
+
+export const expenseData: ExpenseData[] = [
+  { category: 'Insumos', value: 2450, fill: 'var(--color-insumos)' },
+  { category: 'Salários', value: 1800, fill: 'var(--color-salarios)' },
+  { category: 'Energia', value: 420, fill: 'var(--color-energia)' },
+  { category: 'Aluguel', value: 500, fill: 'var(--color-aluguel)' },
+  { category: 'Outros', value: 280, fill: 'var(--color-outros)' },
+];
+
+export const billingData: BillingData[] = [
+  { day: 'Seg', total: 1250 },
+  { day: 'Ter', total: 1500 },
+  { day: 'Qua', total: 1100 },
+  { day: 'Qui', total: 1800 },
+  { day: 'Sex', total: 2200 },
+  { day: 'Sáb', total: 950 },
+  { day: 'Dom', total: 700 },
 ];

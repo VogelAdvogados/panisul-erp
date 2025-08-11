@@ -1,32 +1,55 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AlertCircle, Archive } from 'lucide-react';
+import { AlertTriangle, Clock, Package } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+const alertItems = [
+    {
+        icon: AlertTriangle,
+        iconColor: 'text-red-500 bg-red-100',
+        title: 'Estoque Baixo',
+        description: 'Farinha de Trigo: 2kg restantes (mín: 10kg)',
+        time: '5 min atrás'
+    },
+    {
+        icon: Clock,
+        iconColor: 'text-orange-500 bg-orange-100',
+        title: 'Contas a Receber',
+        description: '3 contas vencidas - Total: R$ 245,00',
+        time: '1 hora atrás'
+    },
+    {
+        icon: Package,
+        iconColor: 'text-blue-500 bg-blue-100',
+        title: 'Estoque Mínimo',
+        description: 'Fermento Biológico: 500g restantes (mín: 1kg)',
+        time: '2 horas atrás'
+    }
+]
 
 export function Alerts() {
     return (
         <Card>
-          <CardHeader>
-            <CardTitle>Alertas Importantes</CardTitle>
-            <CardDescription>Ações que requerem sua atenção.</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Alertas e Notificações</CardTitle>
+              <CardDescription>1 crítico</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm">Ver todos</Button>
           </CardHeader>
           <CardContent className='space-y-4'>
-            <div className="flex items-start space-x-4 rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900/50 dark:bg-yellow-900/20">
-              <Archive className="h-6 w-6 text-yellow-600 mt-1" />
-              <div className="flex-1 space-y-1">
-                <p className="font-semibold">Estoque Baixo</p>
-                <p className="text-sm text-muted-foreground">
-                  Farinha de Trigo e Fermento Biológico estão abaixo do nível mínimo.
-                </p>
-              </div>
-            </div>
-             <div className="flex items-start space-x-4 rounded-md border-destructive/50 bg-destructive/10 p-4">
-              <AlertCircle className="h-6 w-6 text-destructive mt-1" />
-              <div className="flex-1 space-y-1">
-                <p className="font-semibold">Contas Vencidas</p>
-                <p className="text-sm text-muted-foreground">
-                  Existem 3 contas a receber vencidas. Total: R$ 1.850,00.
-                </p>
-              </div>
-            </div>
+            {alertItems.map((item, index) => (
+                <div key={index} className="flex items-start gap-4">
+                    <div className={`p-2 rounded-full ${item.iconColor}`}>
+                        <item.icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-semibold">{item.title}</p>
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{item.time}</p>
+                    </div>
+                    <Button variant="link" size="sm" className="text-primary self-center">Resolver</Button>
+                </div>
+            ))}
           </CardContent>
         </Card>
     )
