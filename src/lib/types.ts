@@ -90,20 +90,27 @@ export interface Supplier {
 
 export type PaymentMethod = 'pix' | 'boleto' | 'dinheiro' | 'cartao_credito' | 'cartao_debito';
 
+export interface FinancialMovement {
+    id: string;
+    dueDate: string;
+    amount: number;
+    status: 'pending' | 'paid' | 'overdue';
+    paymentDate?: string;
+}
+
 export interface Purchase {
     id: string;
     invoiceNumber: string;
     supplierId: string;
     date: string;
     totalAmount: number;
-    status: 'pending' | 'paid' | 'overdue';
     paymentMethod: PaymentMethod;
-    paymentInstallments?: number;
     items: Array<{
         name: string;
         quantity: number;
         unitPrice: number;
     }>;
+    financialMovements: FinancialMovement[];
 }
 
 export interface Ingredient {

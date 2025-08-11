@@ -144,11 +144,13 @@ export const purchases: Purchase[] = [
         supplierId: 'SUP-001',
         date: '2024-05-15',
         totalAmount: 1500.00,
-        status: 'paid',
         paymentMethod: 'boleto',
         items: [
             { name: 'Farinha de Trigo', quantity: 50, unitPrice: 5.50 },
             { name: 'Fermento Biológico', quantity: 10, unitPrice: 12.00 },
+        ],
+        financialMovements: [
+            { id: 'FM-001', dueDate: '2024-06-15', amount: 1500, status: 'paid', paymentDate: '2024-06-14' }
         ]
     },
     {
@@ -157,11 +159,13 @@ export const purchases: Purchase[] = [
         supplierId: 'SUP-002',
         date: '2024-05-20',
         totalAmount: 850.50,
-        status: 'pending',
         paymentMethod: 'pix',
         items: [
             { name: 'Ovos', quantity: 360, unitPrice: 0.80 },
             { name: 'Manteiga', quantity: 20, unitPrice: 20.00 },
+        ],
+        financialMovements: [
+             { id: 'FM-002', dueDate: '2024-05-20', amount: 850.50, status: 'pending' }
         ]
     }
 ];

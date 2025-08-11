@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { MoreHorizontal, FileText, Search, CreditCard } from 'lucide-react';
 import { purchases as initialPurchases, suppliers as initialSuppliers } from '@/lib/data';
-import type { Purchase, Supplier, PaymentMethod } from '@/lib/types';
+import type { Purchase, Supplier, PaymentMethod, FinancialMovement } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -29,37 +29,28 @@ export function PurchaseHistoryList() {
   const getSupplierName = (supplierId: string) => {
     return suppliers[supplierId]?.name || 'Fornecedor Desconhecido';
   };
+  
+  const getOverallStatus = (movements: FinancialMovement[]): {variant: 'default' | 'secondary' | 'destructive' | 'outline', text: string} => {
+    const total = movements.length;
+    if (total === 0) return { variant: 'outline', text: 'N/A' };
+    const paidCount = movements.filter(m => m.status === 'paid').length;
+    const overdueCount = movements.filter(m => m.status === 'overdue').length;
 
-  const getStatusVariant = (status: Purchase['status']) => {
-    switch (status) {
-      case 'paid':
-        return 'default';
-      case 'pending':
-        return 'secondary';
-      case 'overdue':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  };
-
-  const getStatusText = (status: Purchase['status']) => {
-    switch (status) {
-        case 'paid': return 'Paga';
-        case 'pending': return 'Pendente';
-        case 'overdue': return 'Vencida';
-    }
+    if(overdueCount > 0) return { variant: 'destructive', text: 'Vencida' };
+    if(paidCount === total) return { variant: 'default', text: 'Paga' };
+    if(paidCount > 0 && paidCount < total) return { variant: 'outline', text: 'Parcialmente Paga' };
+    return { variant: 'secondary', text: 'Pendente' };
   }
   
-  const getPaymentMethodText = (method: PaymentMethod, installments?: number) => {
+  const getPaymentMethodText = (method: PaymentMethod, installments: number) => {
     const texts = {
         pix: 'PIX',
         boleto: 'Boleto',
         dinheiro: 'Dinheiro',
-        cartao_credito: `Crédito ${installments ? `(${installments}x)` : ''}`,
+        cartao_credito: 'Crédito',
         cartao_debito: 'Débito'
     }
-    return texts[method];
+    return `${texts[method]} (${installments}x)`;
   }
 
 
@@ -92,45 +83,48 @@ export function PurchaseHistoryList() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {purchases.map((purchase) => (
-                <TableRow key={purchase.id}>
-                    <TableCell>{new Date(purchase.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
-                    <TableCell className="font-medium">{getSupplierName(purchase.supplierId)}</TableCell>
-                    <TableCell>{purchase.invoiceNumber}</TableCell>
-                    <TableCell>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="flex items-center gap-2 cursor-default">
-                                    <CreditCard className="h-4 w-4 text-muted-foreground"/>
-                                    <span>{getPaymentMethodText(purchase.paymentMethod, purchase.paymentInstallments)}</span>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Pago com {getPaymentMethodText(purchase.paymentMethod, purchase.paymentInstallments)}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TableCell>
-                    <TableCell className="text-right">{purchase.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
-                    <TableCell className="text-center">
-                    <Badge variant={getStatusVariant(purchase.status)}>{getStatusText(purchase.status)}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                    <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem>
-                                    <FileText className='mr-2 h-4 w-4' />
-                                    Ver Detalhes
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </TableCell>
-                </TableRow>
-                ))}
+                {purchases.map((purchase) => {
+                    const status = getOverallStatus(purchase.financialMovements);
+                    return (
+                        <TableRow key={purchase.id}>
+                            <TableCell>{new Date(purchase.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
+                            <TableCell className="font-medium">{getSupplierName(purchase.supplierId)}</TableCell>
+                            <TableCell>{purchase.invoiceNumber}</TableCell>
+                            <TableCell>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="flex items-center gap-2 cursor-default">
+                                            <CreditCard className="h-4 w-4 text-muted-foreground"/>
+                                            <span>{getPaymentMethodText(purchase.paymentMethod, purchase.financialMovements.length)}</span>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Pago com {getPaymentMethodText(purchase.paymentMethod, purchase.financialMovements.length)}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TableCell>
+                            <TableCell className="text-right">{purchase.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
+                            <TableCell className="text-center">
+                                <Badge variant={status.variant}>{status.text}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                            <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem>
+                                            <FileText className='mr-2 h-4 w-4' />
+                                            Ver Detalhes
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    )
+                })}
             </TableBody>
             </Table>
         </TooltipProvider>

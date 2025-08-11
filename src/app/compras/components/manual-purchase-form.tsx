@@ -14,6 +14,7 @@ import { suppliers as initialSuppliers, ingredients as initialIngredients } from
 import { FilePlus2, Trash, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { PaymentMethod } from '@/lib/types';
+import { add } from 'date-fns';
 
 const purchaseItemSchema = z.object({
   ingredientId: z.string().min(1, 'Selecione um insumo.'),
@@ -24,19 +25,11 @@ const purchaseItemSchema = z.object({
 const formSchema = z.object({
   supplierId: z.string().min(1, 'Selecione um fornecedor.'),
   invoiceNumber: z.string().optional(),
-  date: z.string().min(1, 'A data é obrigatória.'),
-  status: z.enum(['pending', 'paid', 'overdue']),
+  purchaseDate: z.string().min(1, 'A data da compra é obrigatória.'),
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
-  paymentInstallments: z.coerce.number().optional(),
+  installments: z.coerce.number().min(1, 'Pelo menos uma parcela é necessária.').default(1),
+  firstDueDate: z.string().min(1, 'A data de vencimento é obrigatória.'),
   items: z.array(purchaseItemSchema).min(1, 'Adicione pelo menos um item à compra.'),
-}).refine(data => {
-    if (data.paymentMethod === 'cartao_credito' && (!data.paymentInstallments || data.paymentInstallments <= 0)) {
-        return false;
-    }
-    return true;
-}, {
-    message: 'Número de parcelas é obrigatório para cartão de crédito.',
-    path: ['paymentInstallments'],
 });
 
 type PurchaseFormValues = z.infer<typeof formSchema>;
@@ -51,9 +44,10 @@ export function ManualPurchaseForm() {
     defaultValues: {
       supplierId: '',
       invoiceNumber: '',
-      date: new Date().toISOString().split('T')[0],
-      status: 'pending',
+      purchaseDate: new Date().toISOString().split('T')[0],
       paymentMethod: 'boleto',
+      installments: 1,
+      firstDueDate: add(new Date(), {days: 30}).toISOString().split('T')[0],
       items: [{ ingredientId: '', quantity: 1, unitPrice: 0 }],
     },
   });
@@ -76,7 +70,7 @@ export function ManualPurchaseForm() {
     console.log(data);
     toast({
         title: "Compra Lançada com Sucesso!",
-        description: `Compra do fornecedor ${suppliers.find(s => s.id === data.supplierId)?.name} no valor de ${totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} foi registrada.`
+        description: `Compra do fornecedor ${suppliers.find(s => s.id === data.supplierId)?.name} no valor de ${totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} foi registrada com ${data.installments} parcela(s).`
     });
     form.reset();
   };
@@ -85,7 +79,7 @@ export function ManualPurchaseForm() {
     <Card className="max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle>Lançamento Manual de Compra</CardTitle>
-        <CardDescription>Registre uma nova compra de insumos preenchendo os dados abaixo.</CardDescription>
+        <CardDescription>Registre uma nova compra de insumos e suas condições de pagamento.</CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -115,7 +109,7 @@ export function ManualPurchaseForm() {
                     />
                      <FormField
                         control={form.control}
-                        name="date"
+                        name="purchaseDate"
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Data da Compra</FormLabel>
@@ -141,7 +135,7 @@ export function ManualPurchaseForm() {
                     />
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 pt-4 border-t">
                     <FormLabel>Itens da Compra</FormLabel>
                     {fields.map((field, index) => (
                     <div key={field.id} className="grid grid-cols-12 gap-x-4 gap-y-2 p-3 border rounded-md relative">
@@ -213,29 +207,7 @@ export function ManualPurchaseForm() {
                     </Button>
                 </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Status Pagamento</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecione o status" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="pending">Pendente</SelectItem>
-                                <SelectItem value="paid">Pago</SelectItem>
-                                <SelectItem value="overdue">Vencida</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-4 border-t">
                     <FormField
                         control={form.control}
                         name="paymentMethod"
@@ -260,21 +232,32 @@ export function ManualPurchaseForm() {
                             </FormItem>
                         )}
                         />
-                    {paymentMethod === 'cartao_credito' && (
-                         <FormField
-                            control={form.control}
-                            name="paymentInstallments"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Parcelas</FormLabel>
-                                <FormControl>
-                                    <Input type="number" placeholder="Nº de parcelas" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
+                     <FormField
+                        control={form.control}
+                        name="installments"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Parcelas</FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="Nº de parcelas" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="firstDueDate"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Venc. da 1ª Parcela</FormLabel>
+                            <FormControl>
+                                <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                     <div className="md:col-start-4 flex items-end justify-end">
                         <div className="text-right">
                              <p className="text-muted-foreground">Valor Total da Compra</p>
