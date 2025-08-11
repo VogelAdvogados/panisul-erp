@@ -1,4 +1,3 @@
-
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +6,10 @@ import { products as initialProducts } from '@/lib/data';
 import Image from 'next/image';
 import { generateImage } from '@/ai/flows/generate-image';
 import { Skeleton } from '@/components/ui/skeleton';
+import React from 'react';
 
 async function ProductImage({ product }: { product: typeof initialProducts[0] }) {
+  // If we already have a real URL, use it.
   if (product.imageUrl && !product.imageUrl.startsWith('https://placehold.co')) {
     return <Image src={product.imageUrl} alt={product.name} width={600} height={400} className="object-cover w-full h-full" />;
   }
@@ -21,7 +22,7 @@ async function ProductImage({ product }: { product: typeof initialProducts[0] })
   } catch (e) {
     console.error(`Failed to generate image for ${product.name}`, e);
     // Fallback to a placeholder if generation fails
-    return <Image src="https://placehold.co/600x400.png" alt="Placeholder" width={600} height={400} className="object-cover w-full h-full" />;
+    return <Image src="https://placehold.co/600x400.png" alt="Placeholder" width={600} height={400} className="object-cover w-full h-full" data-ai-hint={product['data-ai-hint']} />;
   }
 }
 
@@ -48,6 +49,7 @@ export default function OperacoesPage() {
             <CardHeader className="p-0 bg-muted/30">
               <div className="aspect-[3/2] w-full flex items-center justify-center bg-amber-50 rounded-t-lg overflow-hidden">
                 <React.Suspense fallback={<Skeleton className="w-full h-full" />}>
+                  {/* @ts-expect-error Server Component */}
                   <ProductImage product={product} />
                 </React.Suspense>
               </div>

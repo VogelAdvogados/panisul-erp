@@ -28,6 +28,8 @@ export const products: Product[] = [
   { id: 'PROD-001', name: 'Pão Francês', stock: 45, produced: 120, sold: 75, price: 0.75, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'french bread' },
   { id: 'PROD-002', name: 'Croissant', stock: 8, produced: 20, sold: 12, price: 3.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'croissant' },
   { id: 'PROD-003', name: 'Baguete', stock: 6, produced: 15, sold: 9, price: 4.00, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'baguette' },
+  { id: 'PROD-004', name: 'Pão de Queijo', stock: 25, produced: 60, sold: 35, price: 2.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'cheese bread' },
+  { id: 'PROD-005', name: 'Sonho', stock: 12, produced: 24, sold: 12, price: 4.50, imageUrl: 'https://placehold.co/600x400.png', 'data-ai-hint': 'cream donut' },
 ];
 
 export const customers: Customer[] = [
