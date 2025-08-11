@@ -24,7 +24,7 @@ export default function FinanceiroPage() {
                     <SelectItem value="this_month">Este Mês</SelectItem>
                 </SelectContent>
             </Select>
-            <Button className='bg-accent text-accent-foreground hover:bg-accent/90'>
+            <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Nova Transação
             </Button>
