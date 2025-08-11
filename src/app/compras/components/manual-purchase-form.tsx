@@ -17,6 +17,8 @@ import { add, addDays, format } from 'date-fns';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { registerManualPurchase } from '@/ai/flows/register-manual-purchase';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 const purchaseItemSchema = z.object({
   ingredientId: z.string().min(1, 'Selecione um insumo.'),
@@ -36,12 +38,14 @@ const formSchema = z.object({
 });
 
 export type ManualPurchaseFormInput = z.infer<typeof formSchema>;
+type PaymentType = 'a_vista' | 'a_prazo';
 
 export function ManualPurchaseForm() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentType, setPaymentType] = useState<PaymentType>('a_prazo');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,11 +94,24 @@ export function ManualPurchaseForm() {
     return acc + quantity * unitPrice;
   }, 0);
 
+  // Effect to automatically set source account based on payment method
   useEffect(() => {
-    if (['pix', 'dinheiro', 'cartao_debito'].includes(paymentMethod)) {
-      form.setValue('installments', 1);
+    if (paymentMethod === 'dinheiro') {
+      form.setValue('sourceAccount', 'cash');
+    } else {
+      form.setValue('sourceAccount', 'bank');
     }
   }, [paymentMethod, form]);
+
+  // Effect to manage installments and payment method when payment type changes
+  useEffect(() => {
+    if (paymentType === 'a_vista') {
+      form.setValue('installments', 1);
+      form.setValue('paymentMethod', 'dinheiro');
+    } else {
+      form.setValue('paymentMethod', 'boleto');
+    }
+  }, [paymentType, form]);
 
 
   const onSubmit = async (data: ManualPurchaseFormInput) => {
@@ -251,45 +268,53 @@ export function ManualPurchaseForm() {
                 </div>
 
                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-4 border-t">
-                    <FormField
-                        control={form.control}
-                        name="sourceAccount"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Pagar com</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione a conta" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="bank">Conta Corrente</SelectItem>
-                                        <SelectItem value="cash">Caixa Físico</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
+                    <FormItem>
+                        <FormLabel>Tipo de Pagamento</FormLabel>
+                        <RadioGroup
+                            value={paymentType}
+                            onValueChange={(value) => setPaymentType(value as PaymentType)}
+                            className="flex items-center space-x-4 pt-2"
+                            disabled={isSubmitting}
+                            >
+                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                <RadioGroupItem value="a_vista" id="a_vista_compra" />
+                                </FormControl>
+                                <Label htmlFor="a_vista_compra">À Vista</Label>
                             </FormItem>
-                        )}
-                    />
+                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                <RadioGroupItem value="a_prazo" id="a_prazo_compra" />
+                                </FormControl>
+                                <Label htmlFor="a_prazo_compra">À Prazo</Label>
+                            </FormItem>
+                        </RadioGroup>
+                    </FormItem>
                     <FormField
                         control={form.control}
                         name="paymentMethod"
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Forma de Pagamento</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                                 <FormControl>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Selecione a forma" />
+                                    <SelectValue />
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="pix">PIX</SelectItem>
-                                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                                    <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
-                                    <SelectItem value="boleto">Boleto</SelectItem>
-                                    <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                                    {paymentType === 'a_vista' ? (
+                                        <>
+                                            <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                                            <SelectItem value="pix">PIX</SelectItem>
+                                            <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <SelectItem value="boleto">Boleto</SelectItem>
+                                            <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                                        </>
+                                    )}
                                 </SelectContent>
                             </Select>
                             <FormMessage />
@@ -303,7 +328,7 @@ export function ManualPurchaseForm() {
                             <FormItem>
                             <FormLabel>Parcelas</FormLabel>
                             <FormControl>
-                                <Input type="number" min="1" step="1" placeholder="Nº de parcelas" {...field} disabled={isSubmitting || ['pix', 'dinheiro', 'cartao_debito'].includes(paymentMethod)} />
+                                <Input type="number" min="1" step="1" placeholder="Nº de parcelas" {...field} disabled={isSubmitting || paymentType === 'a_vista'} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>

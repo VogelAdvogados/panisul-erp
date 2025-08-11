@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { Customer } from '@/lib/types';
 import { registerSale } from '@/ai/flows/register-sale';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2, ShoppingCart } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -33,8 +33,11 @@ interface RegisterSaleFormProps {
     onSaleRegistered: () => void;
 }
 
+type PaymentType = 'a_vista' | 'a_prazo';
+
 export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: RegisterSaleFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [paymentType, setPaymentType] = useState<PaymentType>('a_vista');
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof RegisterSaleInputSchema>>({
@@ -46,6 +49,27 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
       dueDate: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
     },
   });
+
+  const paymentMethod = form.watch('paymentMethod');
+
+  // Effect to automatically set source account based on payment method
+  useEffect(() => {
+    if (paymentMethod === 'dinheiro') {
+      form.setValue('sourceAccount', 'cash');
+    } else {
+      form.setValue('sourceAccount', 'bank');
+    }
+  }, [paymentMethod, form]);
+
+  // Effect to reset payment method when payment type changes
+  useEffect(() => {
+    if (paymentType === 'a_vista') {
+      form.setValue('paymentMethod', 'dinheiro');
+    } else {
+      form.setValue('paymentMethod', 'boleto');
+    }
+  }, [paymentType, form]);
+
 
   const onSubmit = async (data: z.infer<typeof RegisterSaleInputSchema>) => {
     setIsLoading(true);
@@ -80,8 +104,7 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
     }
   };
   
-  const paymentMethod = form.watch('paymentMethod');
-  const isCreditSale = paymentMethod === 'boleto' || paymentMethod === 'cartao_credito';
+  const isCreditSale = paymentType === 'a_prazo';
 
   return (
     <Form {...form}>
@@ -111,62 +134,60 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
           )}
         />
 
-        <div className='grid grid-cols-2 gap-4'>
-            <FormField
-            control={form.control}
-            name="paymentMethod"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Forma de Pagamento</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                        <SelectItem value="pix">PIX</SelectItem>
-                        <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
-                        <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
-                        <SelectItem value="boleto">Boleto (A Prazo)</SelectItem>
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
+        <div className="grid grid-cols-2 gap-4">
+            <FormItem>
+                <FormLabel>Tipo de Pagamento</FormLabel>
+                 <RadioGroup
+                    value={paymentType}
+                    onValueChange={(value) => setPaymentType(value as PaymentType)}
+                    className="flex items-center space-x-4 pt-2"
+                    disabled={isLoading}
+                    >
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                        <RadioGroupItem value="a_vista" id="a_vista" />
+                        </FormControl>
+                        <Label htmlFor="a_vista">À Vista</Label>
+                    </FormItem>
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                        <RadioGroupItem value="a_prazo" id="a_prazo" />
+                        </FormControl>
+                        <Label htmlFor="a_prazo">À Prazo</Label>
+                    </FormItem>
+                </RadioGroup>
+            </FormItem>
+             <FormField
                 control={form.control}
-                name="sourceAccount"
+                name="paymentMethod"
                 render={({ field }) => (
-                    <FormItem className="space-y-3">
-                    <FormLabel>Destino do Pagamento</FormLabel>
-                    <FormControl>
-                        <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex items-center space-x-4 pt-2"
-                        disabled={isLoading}
-                        >
-                        <FormItem className="flex items-center space-x-2 space-y-0">
+                    <FormItem>
+                        <FormLabel>Forma de Pagamento</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                             <FormControl>
-                            <RadioGroupItem value="cash" id="cash" />
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
                             </FormControl>
-                            <Label htmlFor="cash">Caixa Físico</Label>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl>
-                            <RadioGroupItem value="bank" id="bank" />
-                            </FormControl>
-                            <Label htmlFor="bank">Conta Corrente</Label>
-                        </FormItem>
-                        </RadioGroup>
-                    </FormControl>
+                            <SelectContent>
+                                {paymentType === 'a_vista' ? (
+                                    <>
+                                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                                        <SelectItem value="pix">PIX</SelectItem>
+                                        <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                                    </>
+                                ) : (
+                                    <>
+                                        <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                                        <SelectItem value="boleto">Boleto</SelectItem>
+                                    </>
+                                )}
+                            </SelectContent>
+                        </Select>
                     <FormMessage />
                     </FormItem>
                 )}
-                />
+            />
         </div>
         
         {isCreditSale && (
