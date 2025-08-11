@@ -1,7 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -12,14 +14,54 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { MoreHorizontal, Search, CheckCircle, Clock } from 'lucide-react';
-import { customers } from '@/lib/data';
+import { MoreHorizontal, Search, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import type { Customer } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 export function AccountsReceivable() {
-  const accounts = customers.filter(c => c.pendingAmount > 0);
+  const [accounts, setAccounts] = useState<Customer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchReceivables = async () => {
+      try {
+        const customersCollection = collection(db, 'customers');
+        const q = query(customersCollection, where('pendingAmount', '>', 0));
+        const snapshot = await getDocs(q);
+        const accountsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
+        setAccounts(accountsList);
+      } catch (error) {
+        toast({
+            title: "Erro ao buscar contas a receber",
+            description: "Não foi possível carregar os dados.",
+            variant: "destructive"
+        });
+        console.error("Error fetching receivables: ", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchReceivables();
+  }, [toast]);
+  
+  if (isLoading) {
+    return (
+        <Card>
+             <CardHeader>
+                <CardTitle>Contas a Receber</CardTitle>
+                <CardDescription>Acompanhe seus recebimentos e clientes devedores.</CardDescription>
+             </CardHeader>
+             <CardContent className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </CardContent>
+        </Card>
+    )
+  }
+
 
   return (
     <Card>
@@ -65,7 +107,7 @@ export function AccountsReceivable() {
             ))}
              {accounts.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">Nenhuma conta a receber pendente.</TableCell>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground h-24">Nenhuma conta a receber pendente.</TableCell>
                 </TableRow>
             )}
         </TableBody>
@@ -79,3 +121,5 @@ export function AccountsReceivable() {
     </Card>
   );
 }
+
+    

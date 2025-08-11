@@ -1,7 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -12,22 +14,60 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { MoreHorizontal, Search, CheckCircle, Clock } from 'lucide-react';
-import { initialFinancialMovements } from '@/lib/data';
+import { MoreHorizontal, Search, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import type { FinancialMovement } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { expenseCategories } from '@/lib/categories';
+import { useToast } from '@/hooks/use-toast';
 
 export function AccountsPayable() {
-    const [allMovements] = useState<FinancialMovement[]>(
-        initialFinancialMovements.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-    );
+    const [movements, setMovements] = useState<FinancialMovement[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchMovements = async () => {
+            try {
+                const movementsCollection = collection(db, 'financialMovements');
+                const q = query(movementsCollection, orderBy('dueDate', 'asc'));
+                const snapshot = await getDocs(q);
+                const movementList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement));
+                setMovements(movementList);
+            } catch (error) {
+                toast({
+                    title: "Erro ao buscar contas a pagar",
+                    description: "Não foi possível carregar os dados.",
+                    variant: "destructive"
+                });
+                console.error("Error fetching financial movements: ", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchMovements();
+    }, [toast]);
+
 
     const getStatus = (movement: FinancialMovement) => {
         if (movement.status === 'paid') return { variant: 'default', text: 'Pago', icon: CheckCircle };
         if (new Date(movement.dueDate) < new Date() && movement.status === 'pending') return { variant: 'destructive', text: 'Vencido', icon: Clock };
         return { variant: 'secondary', text: 'Pendente', icon: Clock };
+    }
+    
+    if (isLoading) {
+        return (
+            <Card>
+                 <CardHeader>
+                    <CardTitle>Contas a Pagar</CardTitle>
+                    <CardDescription>Gerencie suas despesas e pagamentos pendentes.</CardDescription>
+                 </CardHeader>
+                 <CardContent className="flex items-center justify-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </CardContent>
+            </Card>
+        )
     }
 
   return (
@@ -57,13 +97,14 @@ export function AccountsPayable() {
             </TableRow>
         </TableHeader>
         <TableBody>
-            {allMovements.map((movement) => {
+            {movements.map((movement) => {
                 const statusInfo = getStatus(movement);
+                const category = movement.category ? expenseCategories[movement.category] : { label: 'N/A' };
                 return (
                     <TableRow key={movement.id}>
                         <TableCell className="font-medium">{movement.description}</TableCell>
                         <TableCell>
-                            <Badge variant="outline">{expenseCategories[movement.category].label}</Badge>
+                            <Badge variant="outline">{category.label}</Badge>
                         </TableCell>
                         <TableCell>{new Date(movement.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                         <TableCell className="text-right">{movement.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
@@ -79,14 +120,23 @@ export function AccountsPayable() {
                     </TableRow>
                 )
             })}
+             {movements.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                            Nenhuma conta a pagar encontrada.
+                        </TableCell>
+                    </TableRow>
+                )}
         </TableBody>
         </Table>
       </CardContent>
        <CardFooter>
             <div className="text-xs text-muted-foreground">
-                Exibindo <strong>{allMovements.length}</strong> contas.
+                Exibindo <strong>{movements.length}</strong> contas.
             </div>
         </CardFooter>
     </Card>
   );
 }
+
+    

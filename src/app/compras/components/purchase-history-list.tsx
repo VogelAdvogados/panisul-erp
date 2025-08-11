@@ -1,7 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -12,33 +14,66 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { MoreHorizontal, FileText, Search, CreditCard } from 'lucide-react';
-import { purchases as initialPurchases, suppliers as initialSuppliers } from '@/lib/data';
+import { MoreHorizontal, FileText, Search, CreditCard, Loader2 } from 'lucide-react';
 import type { Purchase, Supplier, PaymentMethod, FinancialMovement } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
 
 export function PurchaseHistoryList() {
-  const [purchases] = useState<Purchase[]>(initialPurchases);
-  const [suppliers] = useState<Record<string, Supplier>>(
-    initialSuppliers.reduce((acc, s) => ({ ...acc, [s.id]: s }), {})
-  );
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [suppliers, setSuppliers] = useState<Record<string, Supplier>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [purchasesSnapshot, suppliersSnapshot] = await Promise.all([
+          getDocs(collection(db, 'purchases')),
+          getDocs(collection(db, 'suppliers'))
+        ]);
+        
+        const purchasesList = purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+        const suppliersMap = suppliersSnapshot.docs.reduce((acc, doc) => {
+            acc[doc.id] = { id: doc.id, ...doc.data() } as Supplier;
+            return acc;
+        }, {} as Record<string, Supplier>);
+
+        setPurchases(purchasesList);
+        setSuppliers(suppliersMap);
+
+      } catch (error) {
+        toast({
+            title: "Erro ao buscar histórico",
+            description: "Não foi possível carregar os dados de compras.",
+            variant: "destructive"
+        });
+        console.error("Error fetching data: ", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [toast]);
+
 
   const getSupplierName = (supplierId: string) => {
     return suppliers[supplierId]?.name || 'Fornecedor Desconhecido';
   };
   
   const getOverallStatus = (movements: FinancialMovement[]): {variant: 'default' | 'secondary' | 'destructive' | 'outline', text: string} => {
-    const total = movements.length;
+    const total = movements?.length || 0;
     if (total === 0) return { variant: 'outline', text: 'N/A' };
+    
     const paidCount = movements.filter(m => m.status === 'paid').length;
-    const overdueCount = movements.filter(m => m.status === 'overdue').length;
+    const overdueCount = movements.filter(m => m.status === 'overdue' || (m.status === 'pending' && new Date(m.dueDate) < new Date())).length;
 
     if(overdueCount > 0) return { variant: 'destructive', text: 'Vencida' };
     if(paidCount === total) return { variant: 'default', text: 'Paga' };
-    if(paidCount > 0 && paidCount < total) return { variant: 'outline', text: 'Parcialmente Paga' };
+    if(paidCount > 0 && paidCount < total) return { variant: 'outline', text: 'Parcial' };
     return { variant: 'secondary', text: 'Pendente' };
   }
   
@@ -52,7 +87,14 @@ export function PurchaseHistoryList() {
     }
     return `${texts[method]} (${installments}x)`;
   }
-
+  
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
+  }
 
   return (
     <Card>
@@ -95,11 +137,11 @@ export function PurchaseHistoryList() {
                                     <TooltipTrigger asChild>
                                         <div className="flex items-center gap-2 cursor-default">
                                             <CreditCard className="h-4 w-4 text-muted-foreground"/>
-                                            <span>{getPaymentMethodText(purchase.paymentMethod, purchase.financialMovements.length)}</span>
+                                            <span>{getPaymentMethodText(purchase.paymentMethod, purchase.financialMovements?.length || 1)}</span>
                                         </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>Pago com {getPaymentMethodText(purchase.paymentMethod, purchase.financialMovements.length)}</p>
+                                        <p>Pago com {getPaymentMethodText(purchase.paymentMethod, purchase.financialMovements?.length || 1)}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TableCell>
@@ -125,6 +167,13 @@ export function PurchaseHistoryList() {
                         </TableRow>
                     )
                 })}
+                {purchases.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                            Nenhuma compra encontrada.
+                        </TableCell>
+                    </TableRow>
+                )}
             </TableBody>
             </Table>
         </TooltipProvider>
@@ -132,3 +181,5 @@ export function PurchaseHistoryList() {
     </Card>
   );
 }
+
+    

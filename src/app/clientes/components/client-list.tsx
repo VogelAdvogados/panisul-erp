@@ -1,7 +1,9 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -31,8 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, XCircle, FileText, ShoppingBag, Repeat, DollarSign, User, Building, Mail, Phone, MapPin, CreditCard, Package, RefreshCw, Calendar, Eye } from 'lucide-react';
-import { customers as initialCustomers } from '@/lib/data';
+import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, XCircle, FileText, ShoppingBag, Repeat, DollarSign, User, Building, Mail, Phone, MapPin, CreditCard, Package, RefreshCw, Calendar, Eye, Loader2 } from 'lucide-react';
 import type { Customer } from '@/lib/types';
 import PageHeader from '@/components/page-header';
 import { useToast } from '@/hooks/use-toast';
@@ -44,7 +45,8 @@ import { Separator } from '@/components/ui/separator';
 type FilterTab = 'all' | 'pessoa-juridica' | 'pessoa-fisica' | 'com-pendencias';
 
 export function ClientList() {
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
@@ -56,12 +58,34 @@ export function ClientList() {
   
   const { toast } = useToast();
 
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const customersCollection = collection(db, 'customers');
+        const customersSnapshot = await getDocs(customersCollection);
+        const customersList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
+        setCustomers(customersList);
+      } catch (error) {
+         toast({
+            title: "Erro ao buscar clientes",
+            description: "Não foi possível carregar os clientes do banco de dados.",
+            variant: "destructive"
+        });
+        console.error("Error fetching customers: ", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCustomers();
+  }, [toast]);
+
   const filteredCustomers = useMemo(() => {
     return customers
       .filter((customer) => {
         const searchLower = searchTerm.toLowerCase();
         return customer.name.toLowerCase().includes(searchLower) ||
-               customer.doc.toLowerCase().includes(searchLower) ||
+               (customer.doc && customer.doc.toLowerCase().includes(searchLower)) ||
                customer.email.toLowerCase().includes(searchLower);
       })
       .filter((customer) => statusFilter === 'all' ? true : customer.status === statusFilter)
@@ -97,7 +121,7 @@ export function ClientList() {
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Form submission logic remains the same
+    // Form submission logic would be implemented here to add/update in Firestore
   }
 
   const handleViewDetails = (customer: Customer) => {
@@ -117,13 +141,22 @@ export function ClientList() {
         return 'outline';
     }
   };
+  
+  if (isLoading) {
+    return (
+        <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        </div>
+    )
+  }
 
 
   return (
     <>
       <PageHeader title="Gestão de Clientes">
          <div className='flex items-center gap-2'>
-            <Button variant="outline">Grid</Button>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Filtrar por status" />
@@ -227,7 +260,7 @@ export function ClientList() {
                 </Card>
             ))}
         </div>
-        {filteredCustomers.length === 0 && (
+        {filteredCustomers.length === 0 && !isLoading && (
             <div className='text-center py-12 text-muted-foreground'>
                 <XCircle className='mx-auto h-12 w-12' />
                 <p className='mt-4'>Nenhum cliente encontrado.</p>
@@ -348,3 +381,5 @@ export function ClientList() {
     </>
   );
 }
+
+    

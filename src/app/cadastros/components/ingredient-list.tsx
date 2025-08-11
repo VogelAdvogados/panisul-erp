@@ -1,7 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -18,13 +20,38 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MoreHorizontal, Edit, Trash2, Package } from 'lucide-react';
-import { ingredients as initialIngredients } from '@/lib/data';
+import { MoreHorizontal, Edit, Trash2, Package, Loader2 } from 'lucide-react';
 import type { Ingredient } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 export function IngredientList() {
-  const [ingredients] = useState<Ingredient[]>(initialIngredients);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchIngredients = async () => {
+      try {
+        const ingredientsCollection = collection(db, 'ingredients');
+        const ingredientSnapshot = await getDocs(ingredientsCollection);
+        const ingredientList = ingredientSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ingredient));
+        setIngredients(ingredientList);
+      } catch (error) {
+        toast({
+            title: "Erro ao buscar insumos",
+            description: "Não foi possível carregar os insumos do banco de dados.",
+            variant: "destructive"
+        });
+        console.error("Error fetching ingredients: ", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchIngredients();
+  }, [toast]);
+
 
   const formatUnit = (quantity: number, unit: string) => {
     if (unit === 'g' && quantity >= 1000) {
@@ -34,6 +61,14 @@ export function IngredientList() {
         return `${(quantity/1000).toFixed(2)} l`
     }
     return `${quantity} ${unit}`;
+  }
+  
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
   }
 
   return (
@@ -87,9 +122,18 @@ export function IngredientList() {
                     </TableCell>
                 </TableRow>
                 ))}
+                 {ingredients.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                            Nenhum insumo encontrado.
+                        </TableCell>
+                    </TableRow>
+                )}
             </TableBody>
             </Table>
         </div>
     </div>
   );
 }
+
+    

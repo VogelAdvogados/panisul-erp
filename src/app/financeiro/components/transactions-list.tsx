@@ -1,7 +1,9 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -12,13 +14,14 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Search, ArrowUpCircle, ArrowDownCircle, Wallet, CreditCard } from 'lucide-react';
-import { initialFinancialMovements } from '@/lib/data';
+import { Search, ArrowUpCircle, ArrowDownCircle, Wallet, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { expenseCategories } from '@/lib/categories';
-import type { SourceAccount } from '@/lib/types';
+import type { SourceAccount, FinancialMovement } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface Transaction {
   id: string;
@@ -35,32 +38,78 @@ interface TransactionsListProps {
 }
 
 export function TransactionsList({ accountFilter }: TransactionsListProps) {
-    const expenses: Transaction[] = initialFinancialMovements
-        .filter(fm => fm.status === 'paid' && fm.paymentDate)
-        .map(fm => ({
-            id: fm.id,
-            date: fm.paymentDate!,
-            description: fm.description,
-            type: 'expense',
-            amount: fm.amount,
-            category: expenseCategories[fm.category].label,
-            sourceAccount: fm.sourceAccount,
-        }));
-    
-    // This is a mock for revenues. In a real app, this would come from sales orders.
-    const revenues: Transaction[] = [
-        { id: 'REV-001', date: '2024-06-20', description: 'Recebimento Cliente: Padaria Central', type: 'revenue', amount: 1200, category: 'Vendas', sourceAccount: 'bank' },
-        { id: 'REV-002', date: '2024-06-19', description: 'Recebimento Cliente: Mercado São João', type: 'revenue', amount: 2500, category: 'Vendas', sourceAccount: 'bank' },
-        { id: 'REV-003', date: '2024-06-20', description: 'Venda Balcão', type: 'revenue', amount: 500, category: 'Vendas', sourceAccount: 'cash' },
-    ];
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
 
-    const allTransactions = useMemo(() => {
-        const combined = [...expenses, ...revenues].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            setIsLoading(true);
+            try {
+                // Fetch paid expenses
+                const movementsQuery = query(
+                    collection(db, 'financialMovements'), 
+                    where('status', '==', 'paid'), 
+                    orderBy('paymentDate', 'desc')
+                );
+                const movementsSnapshot = await getDocs(movementsQuery);
+                const expenses = movementsSnapshot.docs.map(doc => {
+                    const data = doc.data() as FinancialMovement;
+                    return {
+                        id: doc.id,
+                        date: data.paymentDate!,
+                        description: data.description,
+                        type: 'expense' as const,
+                        amount: data.amount,
+                        category: data.category ? expenseCategories[data.category].label : 'N/A',
+                        sourceAccount: data.sourceAccount,
+                    };
+                });
+
+                // This is a mock for revenues. In a real app, this would come from a 'revenues' collection.
+                const revenues: Transaction[] = [
+                    { id: 'REV-001', date: '2024-06-20', description: 'Recebimento Cliente: Padaria Central', type: 'revenue', amount: 1200, category: 'Vendas', sourceAccount: 'bank' },
+                    { id: 'REV-002', date: '2024-06-19', description: 'Recebimento Cliente: Mercado São João', type: 'revenue', amount: 2500, category: 'Vendas', sourceAccount: 'bank' },
+                    { id: 'REV-003', date: '2024-06-20', description: 'Venda Balcão', type: 'revenue', amount: 500, category: 'Vendas', sourceAccount: 'cash' },
+                ];
+                
+                const all = [...expenses, ...revenues].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setTransactions(all);
+
+            } catch (error) {
+                toast({
+                    title: "Erro ao buscar movimentações",
+                    description: "Não foi possível carregar os dados.",
+                    variant: "destructive"
+                });
+                console.error("Error fetching transactions: ", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchTransactions();
+    }, [toast]);
+
+    const filteredTransactions = useMemo(() => {
         if (!accountFilter) {
-            return combined;
+            return transactions;
         }
-        return combined.filter(t => t.sourceAccount === accountFilter);
-    }, [accountFilter]);
+        return transactions.filter(t => t.sourceAccount === accountFilter);
+    }, [transactions, accountFilter]);
+    
+    if (isLoading) {
+        return (
+            <Card>
+                 <CardHeader>
+                    <CardTitle>Extrato de Movimentações</CardTitle>
+                 </CardHeader>
+                 <CardContent className="flex items-center justify-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </CardContent>
+            </Card>
+        )
+    }
 
   return (
     <Card>
@@ -103,7 +152,7 @@ export function TransactionsList({ accountFilter }: TransactionsListProps) {
             </TableRow>
         </TableHeader>
         <TableBody>
-            {allTransactions.map((transaction) => (
+            {filteredTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                     <TableCell>{new Date(transaction.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                     <TableCell className="font-medium">{transaction.description}</TableCell>
@@ -128,7 +177,7 @@ export function TransactionsList({ accountFilter }: TransactionsListProps) {
                     </TableCell>
                 </TableRow>
             ))}
-             {allTransactions.length === 0 && (
+             {filteredTransactions.length === 0 && (
                 <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground h-24">Nenhuma transação encontrada para esta conta.</TableCell>
                 </TableRow>
@@ -138,9 +187,11 @@ export function TransactionsList({ accountFilter }: TransactionsListProps) {
       </CardContent>
        <CardFooter>
             <div className="text-xs text-muted-foreground">
-                Exibindo <strong>{allTransactions.length}</strong> transações.
+                Exibindo <strong>{filteredTransactions.length}</strong> transações.
             </div>
         </CardFooter>
     </Card>
   );
 }
+
+    

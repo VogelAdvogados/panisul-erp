@@ -1,5 +1,6 @@
 
 
+
 export interface Sale {
     name: string;
     total: number;
@@ -139,3 +140,5 @@ export interface Recipe {
     items: RecipeItem[];
     // totalCost is calculated on the fly
 }
+
+    

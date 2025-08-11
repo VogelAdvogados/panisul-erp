@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch, getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch, getCountFromServer, query, collectionGroup } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -43,7 +43,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MoreHorizontal, Edit, Trash2, PlusCircle, Loader2, Database } from 'lucide-react';
 import type { Product } from '@/lib/types';
-import { products as initialProducts } from '@/lib/data';
+import { products as initialProducts, ingredients as initialIngredients, suppliers as initialSuppliers, recipes as initialRecipes, customers as initialCustomers, initialFinancialMovements } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +57,7 @@ export function ProductList() {
   const { toast } = useToast();
 
   const fetchProducts = async () => {
+    setIsLoading(true);
     try {
         const productsCollection = collection(db, 'products');
         const productSnapshot = await getDocs(productsCollection);
@@ -76,7 +77,7 @@ export function ProductList() {
 
   useEffect(() => {
     fetchProducts();
-  }, [toast]);
+  }, []);
 
   const handleOpenForm = (product: Product | null) => {
     setEditingProduct(product);
@@ -112,13 +113,11 @@ export function ProductList() {
 
     try {
         if (editingProduct) {
-          // Edit existing product
           const productDoc = doc(db, "products", editingProduct.id);
           await updateDoc(productDoc, newProductData);
           setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...newProductData } : p));
           toast({ title: "Produto Atualizado!", description: "Os dados do produto foram atualizados." });
         } else {
-          // Add new product
           const newProduct: Omit<Product, 'id'> = {
             ...newProductData,
             produced: 0,
@@ -154,16 +153,48 @@ export function ProductList() {
         }
 
         const batch = writeBatch(db);
+        
+        // Seed Products
         initialProducts.forEach(product => {
-            const { id, ...productData } = product; // Firestore generates its own ID
-            const docRef = doc(productsCollection);
-            batch.set(docRef, productData);
+            const docRef = doc(db, 'products', product.id);
+            batch.set(docRef, product);
         });
+
+        // Seed Ingredients
+        initialIngredients.forEach(ingredient => {
+            const docRef = doc(db, 'ingredients', ingredient.id);
+            batch.set(docRef, ingredient);
+        });
+
+        // Seed Suppliers
+        initialSuppliers.forEach(supplier => {
+            const docRef = doc(db, 'suppliers', supplier.id);
+            batch.set(docRef, supplier);
+        });
+
+        // Seed Recipes
+        initialRecipes.forEach(recipe => {
+            const docRef = doc(db, 'recipes', recipe.id);
+            batch.set(docRef, recipe);
+        });
+
+        // Seed Customers
+        initialCustomers.forEach(customer => {
+            const docRef = doc(db, 'customers', customer.id);
+            batch.set(docRef, customer);
+        });
+
+        // Seed Financial Movements
+        initialFinancialMovements.forEach(movement => {
+            const docRef = doc(db, 'financialMovements', movement.id);
+            batch.set(docRef, movement);
+        });
+
 
         await batch.commit();
         toast({
             title: 'Sucesso!',
-            description: 'Os produtos iniciais foram adicionados ao banco de dados.'
+            description: 'Todo o sistema foi populado com dados iniciais.'
         });
         fetchProducts(); // Refresh list
       } catch (error) {
@@ -314,3 +345,5 @@ export function ProductList() {
     </Card>
   );
 }
+
+    

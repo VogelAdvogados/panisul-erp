@@ -1,6 +1,9 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -10,9 +13,8 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { initialFinancialMovements } from '@/lib/data';
-import { Badge } from '@/components/ui/badge';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Transaction {
   id: string;
@@ -23,26 +25,47 @@ interface Transaction {
 }
 
 export function LatestTransactions() {
+  const [latestTransactions, setLatestTransactions] = useState<Transaction[]>([]);
+  const { toast } = useToast();
 
-  const expenses: Transaction[] = initialFinancialMovements
-      .filter(fm => fm.status === 'paid' && fm.paymentDate)
-      .map(fm => ({
-        id: fm.id,
-        date: fm.paymentDate!,
-        description: fm.description,
-        type: 'expense',
-        amount: fm.amount,
-      }));
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const movementsRef = collection(db, 'financialMovements');
+        const q = query(movementsRef, where('status', '==', 'paid'), orderBy('paymentDate', 'desc'), limit(5));
+        const snapshot = await getDocs(q);
+        
+        const transactions: Transaction[] = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                date: data.paymentDate,
+                description: data.description,
+                type: data.amount > 0 ? 'revenue' : 'expense', // This logic needs adjustment based on your data model
+                amount: data.amount,
+            }
+        });
+        
+        // This is a placeholder as we don't have a revenues collection yet.
+        // A real implementation would fetch from both expenses and revenues collections.
+        const revenues: Transaction[] = [
+            { id: 'REV-001', date: '2024-06-20', description: 'Recebimento Cliente: Padaria Central', type: 'revenue', amount: 1200 },
+            { id: 'REV-002', date: '2024-06-19', description: 'Venda Balcão', type: 'revenue', amount: 450.75 },
+        ];
+        
+        const combined = [...transactions, ...revenues]
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 5);
 
-  const revenues: Transaction[] = [
-    { id: 'REV-001', date: '2024-06-20', description: 'Recebimento Cliente: Padaria Central', type: 'revenue', amount: 1200 },
-    { id: 'REV-002', date: '2024-06-19', description: 'Venda Balcão', type: 'revenue', amount: 450.75 },
-    { id: 'REV-003', date: '2024-06-18', description: 'Recebimento Cliente: Mercado São João', type: 'revenue', amount: 2500 },
-  ];
-  
-  const latestTransactions = [...expenses, ...revenues]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
+        setLatestTransactions(combined);
+      } catch (error) {
+        console.error("Error fetching latest transactions: ", error);
+      }
+    };
+    
+    fetchTransactions();
+  }, [toast]);
+
 
   return (
     <Card>
@@ -75,9 +98,18 @@ export function LatestTransactions() {
                         </TableCell>
                     </TableRow>
                 ))}
+                 {latestTransactions.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                            Nenhuma transação recente encontrada.
+                        </TableCell>
+                    </TableRow>
+                )}
             </TableBody>
         </Table>
       </CardContent>
     </Card>
   );
 }
+
+    

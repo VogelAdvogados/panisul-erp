@@ -1,7 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -18,21 +20,50 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MoreHorizontal, Edit, Trash2, Atom } from 'lucide-react';
-import { 
-    recipes as initialRecipes,
-    products as initialProducts,
-    ingredients as initialIngredients
-} from '@/lib/data';
+import { MoreHorizontal, Edit, Trash2, Atom, Loader2 } from 'lucide-react';
 import type { Recipe, Product, Ingredient } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
-// Helper to create maps for quick lookups
-const productsMap = new Map(initialProducts.map(p => [p.id, p]));
-const ingredientsMap = new Map(initialIngredients.map(i => [i.id, i]));
 
 export function RecipeList() {
-  const [recipes] = useState<Recipe[]>(initialRecipes);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [productsMap, setProductsMap] = useState<Map<string, Product>>(new Map());
+  const [ingredientsMap, setIngredientsMap] = useState<Map<string, Ingredient>>(new Map());
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [productsSnapshot, ingredientsSnapshot, recipesSnapshot] = await Promise.all([
+          getDocs(collection(db, 'products')),
+          getDocs(collection(db, 'ingredients')),
+          getDocs(collection(db, 'recipes')),
+        ]);
+
+        const products = new Map(productsSnapshot.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() } as Product]));
+        const ingredients = new Map(ingredientsSnapshot.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() } as Ingredient]));
+        const recipeList = recipesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recipe));
+
+        setProductsMap(products);
+        setIngredientsMap(ingredients);
+        setRecipes(recipeList);
+
+      } catch (error) {
+        toast({
+            title: "Erro ao buscar dados",
+            description: "Não foi possível carregar os dados para as fichas técnicas.",
+            variant: "destructive"
+        });
+        console.error("Error fetching data: ", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [toast]);
 
   const calculateCost = (recipe: Recipe) => {
     return recipe.items.reduce((total, item) => {
@@ -48,6 +79,15 @@ export function RecipeList() {
         return ingredient ? `${item.quantity}${ingredient.unitOfMeasure} ${ingredient.name}` : 'Insumo não encontrado';
     }).join(', ');
   }
+  
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
+  }
+
 
   return (
     <div className="space-y-4">
@@ -102,9 +142,18 @@ export function RecipeList() {
                     </TableCell>
                 </TableRow>
                 ))}
+                 {recipes.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                           Nenhuma ficha técnica encontrada.
+                        </TableCell>
+                    </TableRow>
+                )}
             </TableBody>
             </Table>
         </div>
     </div>
   );
 }
+
+    
