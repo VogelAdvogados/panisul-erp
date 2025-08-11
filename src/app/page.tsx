@@ -1,9 +1,10 @@
-import { StatCard } from '@/components/stat-card';
+
 import {
   Wallet,
   Landmark,
   Clock,
   AlertOctagon,
+  Package,
 } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import { QuickActions } from '@/components/dashboard/quick-actions';
@@ -11,37 +12,109 @@ import { OperationalSummary } from '@/components/dashboard/operational-summary';
 import { Alerts } from '@/components/dashboard/alerts';
 import { BillingChart } from '@/components/dashboard/billing-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, limit, query, where, orderBy } from 'firebase/firestore';
+import type { FinancialMovement, Ingredient } from '@/lib/types';
+import { StatCard } from '@/components/stat-card';
+import { LatestTransactions } from '@/components/dashboard/latest-transactions';
 
-export default function Dashboard() {
+async function getDashboardData() {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    today.setHours(0, 0, 0, 0);
+
+    const movementsRef = collection(db, 'financialMovements');
+    const ingredientsRef = collection(db, 'ingredients');
+
+    // Payables and receivables for today
+    const payablesQuery = query(movementsRef, where('dueDate', '==', todayStr), where('status', '==', 'pending'), where('type', '==', 'expense'));
+    const receivablesQuery = query(movementsRef, where('dueDate', '==', todayStr), where('status', '==', 'pending'), where('type', '==', 'revenue'));
+
+    // Today's paid expenses and revenues
+    const paidExpensesQuery = query(movementsRef, where('paymentDate', '==', todayStr), where('status', '==', 'paid'), where('type', '==', 'expense'));
+    const paidRevenuesQuery = query(movementsRef, where('paymentDate', '==', todayStr), where('status', '==', 'paid'), where('type', '==', 'revenue'));
+    
+    // Low stock ingredients (simplified: checking stock < 1000)
+    const lowStockQuery = query(ingredientsRef, where('stock', '<', 1000), limit(5));
+
+    // Latest transactions
+    const latestTransactionsQuery = query(collection(db, "financialMovements"), where("status", "==", "paid"), orderBy("paymentDate", "desc"), limit(5));
+
+
+    const [
+        payablesSnapshot, 
+        receivablesSnapshot,
+        paidExpensesSnapshot,
+        paidRevenuesSnapshot,
+        lowStockSnapshot,
+        latestTransactionsSnapshot
+    ] = await Promise.all([
+        getDocs(payablesQuery),
+        getDocs(receivablesQuery),
+        getDocs(paidExpensesQuery),
+        getDocs(paidRevenuesQuery),
+        getDocs(lowStockQuery),
+        getDocs(latestTransactionsQuery),
+    ]);
+
+    const calculateTotal = (snapshot: any) => snapshot.docs.reduce((acc: number, doc: any) => acc + doc.data().amount, 0);
+
+    const totalPayableToday = calculateTotal(payablesSnapshot);
+    const totalReceivableToday = calculateTotal(receivablesSnapshot);
+    const totalRevenueToday = calculateTotal(paidRevenuesSnapshot);
+    const totalExpenseToday = calculateTotal(paidExpensesSnapshot);
+    const lowStockItems = lowStockSnapshot.docs.map(doc => doc.data() as Ingredient);
+    const latestTransactions = latestTransactionsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
+
+
+    // Note: Cash and Bank balances would typically come from a separate 'accounts' collection
+    // or be calculated based on all historical transactions. For simplicity, we use mock data here.
+    const cashBalance = 1247.50;
+    const bankBalance = 8456.30;
+
+    return {
+        cashBalance,
+        bankBalance,
+        totalPayableToday,
+        totalReceivableToday,
+        totalRevenueToday,
+        totalExpenseToday,
+        lowStockItems,
+        latestTransactions,
+    };
+}
+
+
+export default async function Dashboard() {
+  const data = await getDashboardData();
+  
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
       <PageHeader title="Dashboard Gerencial" />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Saldo em Caixa (Espécie)"
-          value="R$ 1.247,50"
+          title="Receitas do Dia"
+          value={data.totalRevenueToday.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
           icon={Wallet}
-          change="+ R$ 180,00 vs. ontem"
-          changeColor="text-green-500"
+          change={data.totalExpenseToday.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}) + " em despesas"}
         />
         <StatCard
-          title="Saldo Conta Corrente"
-          value="R$ 8.456,30"
+          title="Saldo em Contas"
+          value={(data.bankBalance + data.cashBalance).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
           icon={Landmark}
-          change="+ R$ 1.200,00 vs. ontem"
-          changeColor="text-green-500"
+           change={`Caixa: ${data.cashBalance.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}`}
         />
         <StatCard
           title="Contas a Receber (Hoje)"
-          value="R$ 245,00"
+          value={data.totalReceivableToday.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
           icon={Clock}
-          change="3 contas vs. ontem"
+          change={`${data.lowStockItems.length} alertas de estoque`}
         />
         <StatCard
           title="Contas a Pagar (Hoje)"
-          value="R$ 180,00"
+          value={Math.abs(data.totalPayableToday).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
           icon={AlertOctagon}
-          change="1 conta vs. ontem"
+          change="Vencendo hoje"
           iconColor="text-destructive"
         />
       </div>
@@ -49,10 +122,10 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-6">
           <QuickActions />
           <BillingChart />
+           <LatestTransactions transactions={data.latestTransactions} />
         </div>
         <div className="space-y-6">
-          <OperationalSummary />
-          <Alerts />
+          <Alerts lowStockItems={data.lowStockItems} />
           <ExpenseChart />
         </div>
       </div>

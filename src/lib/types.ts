@@ -2,17 +2,10 @@
 
 
 
+
 export interface Sale {
     name: string;
     total: number;
-}
-
-export interface OperationalSummaryItem {
-    id: string;
-    label: string;
-    value: string;
-    change: string;
-    icon: React.ElementType;
 }
 
 export interface Product {

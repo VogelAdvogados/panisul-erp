@@ -1,7 +1,8 @@
 
 
 
-import type { Product, Sale, Customer, ExpenseChartItem, BillingData, OperationalSummaryItem, Purchase, Supplier, Ingredient, Recipe, FinancialMovement } from './types';
+
+import type { Product, Sale, Customer, ExpenseChartItem, BillingData, Purchase, Supplier, Ingredient, Recipe, FinancialMovement } from './types';
 import { ShoppingCart, ChefHat, RefreshCw } from 'lucide-react';
 import { expenseCategories } from './categories';
 
@@ -27,12 +28,6 @@ export const salesData: Sale[] = [
   { name: 'Out', total: Math.floor(Math.random() * 5000) + 1000 },
   { name: 'Nov', total: Math.floor(Math.random() * 5000) + 1000 },
   { name: 'Dez', total: Math.floor(Math.random() * 5000) + 1000 },
-];
-
-export const operationalSummaryData: OperationalSummaryItem[] = [
-    { id: '1', label: 'Vendas do Dia', value: 'R$ 1.247,50', change: '+12%', icon: ShoppingCart },
-    { id: '2', label: 'Produção do Dia', value: '156 unidades', change: '+5%', icon: ChefHat },
-    { id: '3', label: 'Trocas Realizadas', value: '3 trocas', change: '-2%', icon: RefreshCw },
 ];
 
 const productsData: Omit<Product, 'id'>[] = [
@@ -165,11 +160,11 @@ const recipesData: Omit<Recipe, 'id'>[] = [
 ];
 
 export const initialFinancialMovements: Omit<FinancialMovement, 'id'>[] = [
-    { description: 'Compra de Insumos NFE-12345', referenceId: 'PUR-001', dueDate: '2024-06-15', amount: 1500, status: 'paid', paymentDate: '2024-06-14', category: 'insumos', sourceAccount: 'bank' },
-    { description: 'Compra de Insumos NFE-12360', referenceId: 'PUR-002', dueDate: '2024-05-20', amount: 850.50, status: 'pending', category: 'insumos', sourceAccount: 'bank' },
-    { description: 'Conta de Energia', dueDate: '2024-06-10', amount: 450.80, status: 'paid', paymentDate: '2024-06-10', category: 'infraestrutura', sourceAccount: 'bank' },
-    { description: 'Salários Funcionários', dueDate: '2024-06-05', amount: 4800, status: 'paid', paymentDate: '2024-06-05', category: 'salarios', sourceAccount: 'bank' },
-    { description: 'Aluguel', dueDate: '2024-06-10', amount: 1200, status: 'pending', category: 'infraestrutura', sourceAccount: 'bank' },
+    { description: 'Compra de Insumos NFE-12345', referenceId: 'PUR-001', dueDate: '2024-06-15', amount: -1500, status: 'paid', paymentDate: '2024-06-14', category: 'insumos', sourceAccount: 'bank', type: 'expense' },
+    { description: 'Compra de Insumos NFE-12360', referenceId: 'PUR-002', dueDate: '2024-05-20', amount: -850.50, status: 'pending', category: 'insumos', sourceAccount: 'bank', type: 'expense' },
+    { description: 'Conta de Energia', dueDate: '2024-06-10', amount: -450.80, status: 'paid', paymentDate: '2024-06-10', category: 'infraestrutura', sourceAccount: 'bank', type: 'expense' },
+    { description: 'Salários Funcionários', dueDate: '2024-06-05', amount: -4800, status: 'paid', paymentDate: '2024-06-05', category: 'salarios', sourceAccount: 'bank', type: 'expense' },
+    { description: 'Aluguel', dueDate: '2024-06-10', amount: -1200, status: 'pending', category: 'infraestrutura', sourceAccount: 'bank', type: 'expense' },
 ];
 
 
