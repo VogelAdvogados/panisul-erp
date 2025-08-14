@@ -10,12 +10,12 @@ function withIds<T extends {id?: string}>(items: Omit<T, 'id'>[], prefix: string
   } as T & { id: string })) as T[];
 }
 
-const productsData: Omit<Product, 'id'>[] = [
-  { name: 'Pão Francês', stock: 45, produced: 120, sold: 75, price: 0.75 },
-  { name: 'Croissant', stock: 8, produced: 20, sold: 12, price: 3.50 },
-  { name: 'Baguete', stock: 6, produced: 15, sold: 9, price: 4.00 },
-  { name: 'Pão de Queijo', stock: 25, produced: 60, sold: 35, price: 2.50 },
-  { name: 'Sonho', stock: 12, produced: 24, sold: 12, price: 4.50 },
+const productsData: Omit<Product, 'id' | 'produced' | 'sold'>[] = [
+  { name: 'Pão Francês', stock: 45, price: 0.75 },
+  { name: 'Croissant', stock: 8, price: 3.50 },
+  { name: 'Baguete', stock: 6, price: 4.00 },
+  { name: 'Pão de Queijo', stock: 25, price: 2.50 },
+  { name: 'Sonho', stock: 12, price: 4.50 },
 ];
 
 const customersData: Omit<Customer, 'id'>[] = [
@@ -137,8 +137,11 @@ export const initialFinancialMovements: Omit<FinancialMovement, 'id'>[] = [
     { description: 'Aluguel', dueDate: '2024-06-10', amount: -1200, status: 'pending', category: 'infraestrutura', sourceAccount: 'bank', type: 'expense' },
 ];
 
-// Re-exporting with IDs for seeding process
-export const initialProducts = withIds<Product>(productsData, 'PROD');
+
+export const initialProducts = withIds<Product>(
+  productsData.map(p => ({ ...p, produced: 0, sold: 0 })),
+  'PROD'
+);
 export const initialIngredients = withIds<Ingredient>(ingredientsData, 'ING');
 export const initialRecipes = recipesData.map(r => ({ ...r, id: r.productId })); // Recipe ID is the same as Product ID
 export const initialCustomers = withIds<Customer>(customersData, 'CUST');
