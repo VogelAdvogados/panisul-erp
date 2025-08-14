@@ -165,13 +165,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
         
         // Refresh data
         await handleViewDetails(selectedCustomer); // Re-fetch financials
-        const customerDoc = await getDoc(doc(db, 'customers', selectedCustomer.id));
-        if(customerDoc.exists()){
-            const updatedCustomer = {id: customerDoc.id, ...customerDoc.data()} as Customer;
-             setCustomers(customers.map(c => c.id === updatedCustomer.id ? updatedCustomer : c));
-             setSelectedCustomer(updatedCustomer);
-        }
-
+        await fetchCustomers(); // Re-fetch all customers to update list view
     } catch (err) {
         const error = err as Error;
         toast({ title: "Erro ao dar baixa", description: error.message, variant: 'destructive' });

@@ -26,7 +26,7 @@ const RegisterSaleInputSchema = z.object({
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
   sourceAccount: z.custom<SourceAccount>(),
   customerId: z.string().optional(),
-  dueDate: z.string().optional(),
+  dueDate: z.string().optional(), // This indicates a credit sale if present
 });
 
 
@@ -42,6 +42,9 @@ const registerSaleFlow = ai.defineFlow(
   async (input) => {
     const { items, totalAmount, paymentMethod, sourceAccount, customerId, dueDate } = input;
     
+    // A sale is on credit if a due date is provided.
+    const isSaleOnCredit = !!dueDate;
+
     const { saleId, productNames } = await runTransaction(db, async (transaction) => {
       const productNames: string[] = [];
 
@@ -70,14 +73,12 @@ const registerSaleFlow = ai.defineFlow(
       
       // 2. Create the Financial Movement (revenue)
       const today = new Date();
-      // 'boleto' or 'cartao_credito' always imply a credit sale that will be settled later
-      const isSaleOnCredit = paymentMethod === 'boleto' || paymentMethod === 'cartao_credito';
       const status = isSaleOnCredit ? 'pending' : 'paid';
 
       const financialMovement: Omit<FinancialMovement, 'id'> = {
         description: `Venda de ${items.length} item(s): ${productNames.slice(0, 2).join(', ')}${productNames.length > 2 ? '...' : ''}`,
         referenceId: customerId || undefined, 
-        dueDate: isSaleOnCredit ? (dueDate || format(today, 'yyyy-MM-dd')) : format(today, 'yyyy-MM-dd'),
+        dueDate: isSaleOnCredit ? dueDate : format(today, 'yyyy-MM-dd'),
         paymentDate: status === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
         amount: totalAmount,
         status: status,

@@ -116,6 +116,8 @@ export function ProductList() {
       name: formData.get('name') as string,
       price: parseFloat(formData.get('price') as string),
       stock: parseInt(formData.get('stock') as string),
+      produced: editingProduct ? editingProduct.produced : 0,
+      sold: editingProduct ? editingProduct.sold : 0,
     };
 
     try {
@@ -124,12 +126,7 @@ export function ProductList() {
           await updateDoc(productDoc, newProductData);
           toast({ title: "Produto Atualizado!", description: "Os dados do produto foram atualizados." });
         } else {
-          const newProduct: Omit<Product, 'id'> = {
-            ...newProductData,
-            produced: 0,
-            sold: 0,
-          };
-          await addDoc(collection(db, "products"), newProduct);
+          await addDoc(collection(db, "products"), newProductData);
           toast({ title: "Produto Criado!", description: "Um novo produto foi adicionado ao sistema." });
         }
         await fetchProducts(); // Refetch data

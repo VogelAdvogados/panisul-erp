@@ -22,23 +22,12 @@ import { expenseCategories } from '@/lib/categories';
 import type { SourceAccount, FinancialMovement } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
-
-interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  type: 'revenue' | 'expense';
-  amount: number;
-  category: string;
-  sourceAccount: SourceAccount;
-}
-
 interface TransactionsListProps {
     accountFilter: string | null;
 }
 
 export function TransactionsList({ accountFilter }: TransactionsListProps) {
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [transactions, setTransactions] = useState<FinancialMovement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
 
@@ -49,32 +38,14 @@ export function TransactionsList({ accountFilter }: TransactionsListProps) {
                 // Fetch paid expenses
                 const movementsQuery = query(
                     collection(db, 'financialMovements'), 
-                    where('status', '==', 'paid'), 
                     orderBy('paymentDate', 'desc')
                 );
                 const movementsSnapshot = await getDocs(movementsQuery);
-                const expenses = movementsSnapshot.docs.map(doc => {
-                    const data = doc.data() as FinancialMovement;
-                    return {
-                        id: doc.id,
-                        date: data.paymentDate!,
-                        description: data.description,
-                        type: 'expense' as const,
-                        amount: data.amount,
-                        category: data.category ? expenseCategories[data.category].label : 'N/A',
-                        sourceAccount: data.sourceAccount,
-                    };
-                });
-
-                // This is a mock for revenues. In a real app, this would come from a 'revenues' collection.
-                const revenues: Transaction[] = [
-                    { id: 'REV-001', date: '2024-06-20', description: 'Recebimento Cliente: Padaria Central', type: 'revenue', amount: 1200, category: 'Vendas', sourceAccount: 'bank' },
-                    { id: 'REV-002', date: '2024-06-19', description: 'Recebimento Cliente: Mercado São João', type: 'revenue', amount: 2500, category: 'Vendas', sourceAccount: 'bank' },
-                    { id: 'REV-003', date: '2024-06-20', description: 'Venda Balcão', type: 'revenue', amount: 500, category: 'Vendas', sourceAccount: 'cash' },
-                ];
+                const allMovements = movementsSnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement))
+                    .filter(doc => doc.status === 'paid'); // Only show paid transactions in the statement
                 
-                const all = [...expenses, ...revenues].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                setTransactions(all);
+                setTransactions(allMovements);
 
             } catch (error) {
                 toast({
@@ -152,31 +123,35 @@ export function TransactionsList({ accountFilter }: TransactionsListProps) {
             </TableRow>
         </TableHeader>
         <TableBody>
-            {filteredTransactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                    <TableCell>{new Date(transaction.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
-                    <TableCell className="font-medium">{transaction.description}</TableCell>
-                    <TableCell>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            {transaction.sourceAccount === 'cash' ? <Wallet className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
-                            <span>{transaction.sourceAccount === 'cash' ? 'Caixa' : 'C/C'}</span>
-                        </div>
-                    </TableCell>
-                    <TableCell><Badge variant="outline">{transaction.category}</Badge></TableCell>
-                    <TableCell>
-                        <Badge variant={transaction.type === 'revenue' ? 'default' : 'destructive'} className={transaction.type === 'revenue' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                             {transaction.type === 'revenue' ? 
-                                <ArrowUpCircle className="mr-1 h-3 w-3"/> : 
-                                <ArrowDownCircle className="mr-1 h-3 w-3"/>
-                            }
-                            {transaction.type === 'revenue' ? 'Receita' : 'Despesa'}
-                        </Badge>
-                    </TableCell>
-                    <TableCell className={`text-right font-semibold ${transaction.type === 'revenue' ? 'text-green-600' : 'text-red-600'}`}>
-                        {transaction.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </TableCell>
-                </TableRow>
-            ))}
+            {filteredTransactions.map((transaction) => {
+                const categoryInfo = transaction.category ? expenseCategories[transaction.category] : { label: 'N/A' };
+                const isRevenue = transaction.amount > 0;
+                return (
+                    <TableRow key={transaction.id}>
+                        <TableCell>{new Date(transaction.paymentDate!).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
+                        <TableCell className="font-medium">{transaction.description}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                {transaction.sourceAccount === 'cash' ? <Wallet className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                                <span>{transaction.sourceAccount === 'cash' ? 'Caixa' : 'C/C'}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell><Badge variant="outline">{categoryInfo.label}</Badge></TableCell>
+                        <TableCell>
+                            <Badge variant={isRevenue ? 'default' : 'destructive'} className={isRevenue ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                                {isRevenue ? 
+                                    <ArrowUpCircle className="mr-1 h-3 w-3"/> : 
+                                    <ArrowDownCircle className="mr-1 h-3 w-3"/>
+                                }
+                                {isRevenue ? 'Receita' : 'Despesa'}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className={`text-right font-semibold ${isRevenue ? 'text-green-600' : 'text-red-600'}`}>
+                            {transaction.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </TableCell>
+                    </TableRow>
+                )
+            })}
              {filteredTransactions.length === 0 && (
                 <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground h-24">Nenhuma transação encontrada para esta conta.</TableCell>
@@ -193,5 +168,3 @@ export function TransactionsList({ accountFilter }: TransactionsListProps) {
     </Card>
   );
 }
-
-    

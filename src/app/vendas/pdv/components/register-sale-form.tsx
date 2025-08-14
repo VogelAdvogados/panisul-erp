@@ -80,9 +80,7 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
             totalAmount: total,
             sourceAccount: sourceAccount,
             customerId: data.customerId === 'none' ? undefined : data.customerId,
-            // Force paymentMethod to 'boleto' if it's a credit sale for logic purposes in the backend
-            // The actual combined method is known, but the financial movement type is what matters
-            paymentMethod: isCreditSale ? 'boleto' : data.paymentMethod,
+            dueDate: isCreditSale ? data.dueDate : undefined,
         };
         const result = await registerSale(payload);
         toast({
