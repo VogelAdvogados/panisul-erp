@@ -52,7 +52,7 @@ export function ExchangeHistory({ exchanges, isLoading }: ExchangeHistoryProps) 
           <TableBody>
             {exchanges.map((exchange) => (
               <TableRow key={exchange.id}>
-                <TableCell>{new Date(exchange.date).toLocaleDateString('pt-BR')}</TableCell>
+                <TableCell>{new Date(exchange.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</TableCell>
                 <TableCell className="font-medium flex items-center gap-2">
                     <span className="text-red-600">{exchange.returnedProduct?.name || 'Produto não encontrado'}</span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground"/>
@@ -74,5 +74,3 @@ export function ExchangeHistory({ exchanges, isLoading }: ExchangeHistoryProps) 
     </Card>
   );
 }
-
-    

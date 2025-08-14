@@ -1,8 +1,4 @@
 
-export interface Sale {
-    name: string;
-    total: number;
-}
 
 export interface Product {
     id: string;
@@ -12,32 +8,6 @@ export interface Product {
     sold: number;
     price: number;
 }
-
-export interface PurchaseHistoryItem {
-    id: string;
-    date: string;
-    product: string;
-    quantity: number;
-    totalValue: number;
-}
-
-export interface ExchangeHistoryItem {
-    id: string;
-    date: string;
-    productIn: string;
-    productOut: string;
-    reason: string;
-}
-
-export interface FinancialHistoryItem {
-    id: string;
-    date: string;
-    description: string;
-    type: 'payment' | 'charge';
-    value: number;
-    status: 'paid' | 'pending' | 'overdue';
-}
-
 
 export interface Customer {
   id: string;
@@ -136,5 +106,3 @@ export interface Exchange {
     reason: string;
     returnedProductStatus: 'restock' | 'discard';
 }
-
-    

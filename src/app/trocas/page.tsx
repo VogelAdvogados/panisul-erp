@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Exchange } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { ExchangeForm } from './components/exchange-form';
 import { ExchangeHistory } from './components/exchange-history';
 
@@ -24,9 +24,11 @@ export default function TrocasPage() {
    const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
+      const exchangesQuery = query(collection(db, 'exchanges'), orderBy('date', 'desc'));
+
       const [productsSnapshot, exchangesSnapshot] = await Promise.all([
         getDocs(collection(db, 'products')),
-        getDocs(collection(db, 'exchanges')),
+        getDocs(exchangesQuery),
       ]);
       
       const productList = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
@@ -99,5 +101,3 @@ export default function TrocasPage() {
     </>
   );
 }
-
-    
