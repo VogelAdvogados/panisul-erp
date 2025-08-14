@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import { QuickActions } from '@/components/dashboard/quick-actions';
-import { OperationalSummary } from '@/components/dashboard/operational-summary';
 import { Alerts } from '@/components/dashboard/alerts';
 import { BillingChart } from '@/components/dashboard/billing-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
