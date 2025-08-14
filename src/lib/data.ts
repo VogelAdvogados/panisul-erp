@@ -1,9 +1,5 @@
 
-
-
-
-import type { Product, Sale, Customer, ExpenseChartItem, BillingData, Purchase, Supplier, Ingredient, Recipe, FinancialMovement } from './types';
-import { ShoppingCart, ChefHat, RefreshCw } from 'lucide-react';
+import type { Product, Customer, ExpenseChartItem, BillingData, Purchase, Supplier, Ingredient, Recipe, FinancialMovement } from './types';
 import { expenseCategories } from './categories';
 
 // Helper to add IDs to initial data for seeding
@@ -14,22 +10,6 @@ function withIds<T extends {id?: string}>(items: Omit<T, 'id'>[], prefix: string
   } as T & { id: string })) as T[];
 }
 
-
-export const salesData: Sale[] = [
-  { name: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Fev', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Mar', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Abr', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Mai', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Jun', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Jul', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Ago', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Set', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Out', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Nov', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Dez', total: Math.floor(Math.random() * 5000) + 1000 },
-];
-
 const productsData: Omit<Product, 'id'>[] = [
   { name: 'Pão Francês', stock: 45, produced: 120, sold: 75, price: 0.75 },
   { name: 'Croissant', stock: 8, produced: 20, sold: 12, price: 3.50 },
@@ -39,11 +19,11 @@ const productsData: Omit<Product, 'id'>[] = [
 ];
 
 const customersData: Omit<Customer, 'id'>[] = [
-    { 
-        name: 'Padaria Central', 
-        email: 'contato@padariacentral.com.br', 
-        phone: '(11) 3456-7890', 
-        status: 'ativo', 
+    {
+        name: 'Padaria Central',
+        email: 'contato@padariacentral.com.br',
+        phone: '(11) 3456-7890',
+        status: 'ativo',
         registeredAt: '2023-03-14',
         type: 'pessoa-juridica',
         doc: '12.345.678/0001-90',
@@ -53,18 +33,12 @@ const customersData: Omit<Customer, 'id'>[] = [
         exchanges: 3,
         lastPurchaseDate: '13/01/2024',
         pendingAmount: 245.00,
-        purchaseHistory: [
-            { id: 'P001', date: '2024-05-01', product: 'Pão Francês', quantity: 200, totalValue: 180.00 },
-            { id: 'P002', date: '2024-05-08', product: 'Pão de Queijo', quantity: 150, totalValue: 225.00 },
-        ],
-        exchangeHistory: [],
-        financialHistory: [],
     },
-    { 
-        name: 'Mercado São João', 
-        email: 'compras@mercadosaojoao.com.br', 
-        phone: '(11) 2345-6789', 
-        status: 'ativo', 
+    {
+        name: 'Mercado São João',
+        email: 'compras@mercadosaojoao.com.br',
+        phone: '(11) 2345-6789',
+        status: 'ativo',
         registeredAt: '2022-11-19',
         type: 'pessoa-juridica',
         doc: '98.765.432/0001-10',
@@ -74,11 +48,6 @@ const customersData: Omit<Customer, 'id'>[] = [
         exchanges: 1,
         lastPurchaseDate: '14/01/2024',
         pendingAmount: 0,
-        purchaseHistory: [
-            { id: 'P004', date: '2024-05-03', product: 'Baguete', quantity: 50, totalValue: 250.00 },
-        ],
-        exchangeHistory: [],
-        financialHistory: [],
     },
 ];
 
@@ -105,7 +74,7 @@ const suppliersData: Omit<Supplier, 'id'>[] = [
     { name: 'Ovos de Ouro', cnpj: '22.222.222/0001-22', contact: 'Maria' },
 ];
 
-const purchasesData: Omit<Purchase, 'id' | 'financialMovements'>[] = [
+const purchasesData: Omit<Purchase, 'id'>[] = [
     {
         invoiceNumber: 'NFE-12345',
         supplierId: 'SUP-001',
@@ -160,6 +129,7 @@ const recipesData: Omit<Recipe, 'id'>[] = [
 ];
 
 export const initialFinancialMovements: Omit<FinancialMovement, 'id'>[] = [
+    { description: 'Venda para Padaria Central', referenceId: 'CUST-001', dueDate: '2024-06-20', amount: 245.00, status: 'pending', category: 'vendas', sourceAccount: 'bank', type: 'revenue' },
     { description: 'Compra de Insumos NFE-12345', referenceId: 'PUR-001', dueDate: '2024-06-15', amount: -1500, status: 'paid', paymentDate: '2024-06-14', category: 'insumos', sourceAccount: 'bank', type: 'expense' },
     { description: 'Compra de Insumos NFE-12360', referenceId: 'PUR-002', dueDate: '2024-05-20', amount: -850.50, status: 'pending', category: 'insumos', sourceAccount: 'bank', type: 'expense' },
     { description: 'Conta de Energia', dueDate: '2024-06-10', amount: -450.80, status: 'paid', paymentDate: '2024-06-10', category: 'infraestrutura', sourceAccount: 'bank', type: 'expense' },
@@ -167,13 +137,14 @@ export const initialFinancialMovements: Omit<FinancialMovement, 'id'>[] = [
     { description: 'Aluguel', dueDate: '2024-06-10', amount: -1200, status: 'pending', category: 'infraestrutura', sourceAccount: 'bank', type: 'expense' },
 ];
 
-
 // Re-exporting with IDs for seeding process
 export const initialProducts = withIds<Product>(productsData, 'PROD');
 export const initialIngredients = withIds<Ingredient>(ingredientsData, 'ING');
-export const initialRecipes = withIds<Recipe>(recipesData, 'REC');
+export const initialRecipes = recipesData.map(r => ({ ...r, id: r.productId })); // Recipe ID is the same as Product ID
 export const initialCustomers = withIds<Customer>(customersData, 'CUST');
 export const initialSuppliers = withIds<Supplier>(suppliersData, 'SUP');
 export const initialPurchases = withIds<Purchase>(purchasesData, 'PUR');
 // Note: FinancialMovements does not have stable IDs as they represent transactions
 // and are better generated dynamically in a real app. For seeding, we omit IDs.
+
+    
