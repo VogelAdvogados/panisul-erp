@@ -21,6 +21,7 @@ import type { CartItem } from '../page';
 const RegisterSaleInputSchema = z.object({
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
   customerId: z.string().optional().describe('The ID of the customer, if applicable.'),
+  installments: z.coerce.number().int().min(1).default(1),
   dueDate: z.string().optional().describe('The due date for credit sales.'),
 });
 
@@ -44,19 +45,19 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
     defaultValues: {
       paymentMethod: 'dinheiro',
       customerId: 'none',
+      installments: 1,
       dueDate: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
     },
   });
 
-  const paymentMethod = form.watch('paymentMethod');
   const isCreditSale = paymentType === 'a_prazo';
 
   // Effect to reset payment method when payment type changes
   useEffect(() => {
     if (paymentType === 'a_vista') {
       form.setValue('paymentMethod', 'dinheiro');
+      form.setValue('installments', 1);
     } else {
-      // Allow cash/pix for credit sales (fiado)
       form.setValue('paymentMethod', 'boleto');
     }
   }, [paymentType, form]);
@@ -186,19 +187,34 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
         </div>
         
         {isCreditSale && (
-            <FormField
-              control={form.control}
-              name="dueDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Data de Vencimento</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} disabled={isLoading} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className='grid grid-cols-2 gap-4'>
+                <FormField
+                control={form.control}
+                name="installments"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Parcelas</FormLabel>
+                    <FormControl>
+                        <Input type="number" min="1" step="1" placeholder="Nº de parcelas" {...field} disabled={isLoading || paymentType === 'a_vista'} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="dueDate"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Vencimento da 1ª</FormLabel>
+                        <FormControl>
+                            <Input type="date" {...field} disabled={isLoading}/>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
         )}
         
         <div className='text-right'>

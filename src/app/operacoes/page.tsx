@@ -5,22 +5,18 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, ShoppingCart, Package, RefreshCw, Eye, ShoppingBag } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import type { Product, Customer } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { RegisterProductionForm } from './components/register-production-form';
-import { RegisterSaleForm } from './components/register-sale-form';
+import Link from 'next/link';
 
 export default function OperacoesPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [isProductionFormOpen, setIsProductionFormOpen] = useState(false);
-  const [isSaleFormOpen, setIsSaleFormOpen] = useState(false);
-  const [selectedProductForSale, setSelectedProductForSale] = useState<Product | null>(null);
   const { toast } = useToast();
 
   const fetchData = useCallback(async () => {
@@ -30,15 +26,10 @@ export default function OperacoesPage() {
         const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
         setProducts(productList);
 
-        const customersCollection = collection(db, 'customers');
-        const customersSnapshot = await getDocs(customersCollection);
-        const customersList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
-        setCustomers(customersList);
-
     } catch (error) {
         toast({
             title: "Erro ao buscar dados",
-            description: "Não foi possível carregar os produtos ou clientes do banco de dados.",
+            description: "Não foi possível carregar os produtos do banco de dados.",
             variant: "destructive"
         });
     }
@@ -48,25 +39,28 @@ export default function OperacoesPage() {
     fetchData();
   }, [fetchData]);
   
-  const handleOpenSaleForm = (product: Product) => {
-    setSelectedProductForSale(product);
-    setIsSaleFormOpen(true);
-  }
 
   const handleFormSuccess = () => {
     fetchData();
     setIsProductionFormOpen(false);
-    setIsSaleFormOpen(false);
   }
 
   return (
     <>
       <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader title="Painel do Dia">
-          <Button onClick={() => setIsProductionFormOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Registrar Produção
-          </Button>
+            <div className='flex items-center gap-2'>
+                <Button onClick={() => setIsProductionFormOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Registrar Produção
+                </Button>
+                 <Button asChild>
+                    <Link href="/vendas/pdv">
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        Ir para o Ponto de Venda
+                    </Link>
+                </Button>
+            </div>
         </PageHeader>
         
         <div>
@@ -93,19 +87,19 @@ export default function OperacoesPage() {
               </CardContent>
               <CardFooter className="p-4 pt-0 flex flex-col gap-2">
                 <div className='flex gap-2 w-full'>
-                  <Button size="sm" className="w-full bg-green-500 hover:bg-green-600" onClick={() => handleOpenSaleForm(product)} disabled={product.stock === 0}>
-                      <ShoppingCart className='h-4 w-4 mr-2'/>
-                      Vender
+                    <Button size="sm" className="w-full bg-green-500 hover:bg-green-600" asChild>
+                        <Link href="/vendas/pdv">
+                            <ShoppingCart className='h-4 w-4 mr-2'/>
+                            Vender
+                        </Link>
                   </Button>
-                  <Button size="sm" className="w-full bg-orange-500 hover:bg-orange-600">
-                      <RefreshCw className='h-4 w-4 mr-2'/>
-                      Trocar
+                   <Button size="sm" className="w-full bg-orange-500 hover:bg-orange-600" asChild>
+                        <Link href="/trocas">
+                            <RefreshCw className='h-4 w-4 mr-2'/>
+                            Trocar
+                        </Link>
                   </Button>
                 </div>
-                <Button variant="link" size="sm" className="w-full text-muted-foreground">
-                  <Eye className='h-4 w-4 mr-2'/>
-                  Ver Detalhes
-                </Button>
               </CardFooter>
             </Card>
           ))}
@@ -169,25 +163,6 @@ export default function OperacoesPage() {
         </DialogContent>
       </Dialog>
       
-      <Dialog open={isSaleFormOpen} onOpenChange={setIsSaleFormOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Registrar Nova Venda</DialogTitle>
-                <DialogDescription>
-                    Confirme a quantidade e a forma de pagamento. O estoque e o financeiro serão atualizados automaticamente.
-                </DialogDescription>
-            </DialogHeader>
-            {selectedProductForSale && (
-                <RegisterSaleForm 
-                    product={selectedProductForSale} 
-                    customers={customers}
-                    onSaleRegistered={handleFormSuccess}
-                />
-            )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
-
-    
