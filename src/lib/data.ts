@@ -146,5 +146,3 @@ export const initialSuppliers = withIds<Supplier>(suppliersData, 'SUP');
 export const initialPurchases = withIds<Purchase>(purchasesData, 'PUR');
 // Note: FinancialMovements does not have stable IDs as they represent transactions
 // and are better generated dynamically in a real app. For seeding, we omit IDs.
-
-    
