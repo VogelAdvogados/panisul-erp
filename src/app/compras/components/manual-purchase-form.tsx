@@ -101,6 +101,7 @@ export function ManualPurchaseForm() {
     }
   }, [paymentType, form]);
 
+  const isCreditPurchase = paymentType === 'a_prazo';
 
   const onSubmit = async (data: ManualPurchaseFormInput) => {
     setIsSubmitting(true);
@@ -332,7 +333,7 @@ export function ManualPurchaseForm() {
                             <FormItem>
                             <FormLabel>Venc. da 1ª Parcela</FormLabel>
                             <FormControl>
-                                <Input type="date" {...field} disabled={isSubmitting}/>
+                                <Input type="date" {...field} disabled={isSubmitting || !isCreditPurchase}/>
                             </FormControl>
                             <FormMessage />
                             </FormItem>
