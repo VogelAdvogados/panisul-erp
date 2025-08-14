@@ -15,26 +15,24 @@ async function getSupplierData(id: string) {
 
     const supplier = { id: supplierDoc.id, ...supplierDoc.data() } as Supplier;
 
-    // Fetch related purchases - simplified query
-    const purchasesQuery = query(collection(db, 'purchases'), where('supplierId', '==', id));
+    // Fetch related purchases
+    const purchasesQuery = query(collection(db, 'purchases'), where('supplierId', '==', id), orderBy('date', 'desc'));
     const purchasesSnapshot = await getDocs(purchasesQuery);
-    const purchases = purchasesSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as Purchase))
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort in code
-    
-    // Fetch related financial movements
+    const purchases = purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+
+    // Fetch related financial movements using purchase IDs
     let movements: FinancialMovement[] = [];
     if (purchases.length > 0) {
+        // Firestore 'in' query is limited to 30 items. For larger sets, batching would be needed.
+        // For this app's scale, this is sufficient.
         const purchaseIds = purchases.map(p => p.id);
-        // Firestore 'in' query is limited to 30 items. For more, batching is needed.
-        // This simplified approach fetches all movements and filters in code for robustness without composite indexes.
-        const movementsSnapshot = await getDocs(collection(db, 'financialMovements'));
+        const movementsQuery = query(collection(db, 'financialMovements'), where('referenceId', 'in', purchaseIds));
+        const movementsSnapshot = await getDocs(movementsQuery);
+        
         movements = movementsSnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement))
-            .filter(m => purchaseIds.includes(m.referenceId || ''))
             .sort((a,b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
     }
-
 
     return { supplier, purchases, movements };
 }
