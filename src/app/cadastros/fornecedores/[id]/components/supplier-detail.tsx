@@ -33,11 +33,13 @@ export function SupplierDetail({ supplier, purchases, movements }: SupplierDetai
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
 
-  const totalPurchased = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
+  const totalPurchasedValue = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
+  const totalDue = movements.reduce((acc, fm) => acc + fm.amount, 0);
   const totalPaid = movements
     .filter(fm => fm.status === 'paid')
     .reduce((acc, fm) => acc + fm.amount, 0);
-  const pendingAmount = totalPurchased - totalPaid;
+
+  const pendingAmount = totalDue - totalPaid;
 
   const handleAnalyze = async () => {
     setIsLoading(true);
@@ -46,7 +48,7 @@ export function SupplierDetail({ supplier, purchases, movements }: SupplierDetai
         // In a real app, you would call an AI flow here.
         // For demonstration, we simulate an AI analysis.
         await new Promise(resolve => setTimeout(resolve, 1500));
-        const simulatedAnalysis = `Análise do Fornecedor: ${supplier.name}\n- Total de Compras: ${purchases.length}\n- Valor Total: ${totalPurchased.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n- Saldo Devedor: ${pendingAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n- Itens mais comprados: Farinha, Ovos.\n- Observação: Fornecedor com bom histórico e pagamentos majoritariamente em dia. Manter bom relacionamento.`;
+        const simulatedAnalysis = `Análise do Fornecedor: ${supplier.name}\n- Total de Compras: ${purchases.length}\n- Valor Total Comprado: ${totalPurchasedValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n- Saldo Devedor Atual: ${pendingAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n- Itens mais comprados: Farinha, Ovos.\n- Observação: Fornecedor com bom histórico e pagamentos majoritariamente em dia. Manter bom relacionamento.`;
         setAnalysis(simulatedAnalysis);
     } catch (error) {
         console.error(error);
@@ -102,7 +104,7 @@ export function SupplierDetail({ supplier, purchases, movements }: SupplierDetai
              </div>
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <p className="text-sm text-green-700 font-semibold flex items-center gap-1"><DollarSign className="h-4 w-4"/>Valor Total Comprado</p>
-                <p className="text-xl font-bold text-green-800">{totalPurchased.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                <p className="text-xl font-bold text-green-800">{totalPurchasedValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
              </div>
              <div className="bg-red-50 p-4 rounded-lg border border-red-200">
                 <p className="text-sm text-red-700 font-semibold flex items-center gap-1"><DollarSign className="h-4 w-4"/>Saldo Devedor</p>
@@ -138,7 +140,7 @@ export function SupplierDetail({ supplier, purchases, movements }: SupplierDetai
                       {movement.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </TableCell>
                     <TableCell className="text-center">
-                        <Badge variant={status.variant}>{status.text}</Badge>
+                        <Badge variant={status.variant}><status.icon className="h-3 w-3 mr-1"/>{status.text}</Badge>
                     </TableCell>
                   </TableRow>
                 );

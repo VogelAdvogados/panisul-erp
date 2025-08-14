@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { MoreHorizontal, Search, CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { Search, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import type { FinancialMovement } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -138,5 +138,3 @@ export function AccountsPayable() {
     </Card>
   );
 }
-
-    
