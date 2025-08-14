@@ -77,6 +77,7 @@ const registerSaleFlow = ai.defineFlow(
 
       const financialMovement: Omit<FinancialMovement, 'id'> = {
         description: `Venda de ${items.length} item(s): ${productNames.slice(0, 2).join(', ')}${productNames.length > 2 ? '...' : ''}`,
+        // Critical Fix: Ensure referenceId is set to customerId for credit sales
         referenceId: customerId || undefined, 
         dueDate: isSaleOnCredit ? dueDate : format(today, 'yyyy-MM-dd'),
         paymentDate: status === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
@@ -90,16 +91,19 @@ const registerSaleFlow = ai.defineFlow(
       const movementRef = doc(collection(db, 'financialMovements'));
       transaction.set(movementRef, financialMovement);
 
-      // 3. If it's a sale on credit to a specific customer, update their pending amount
-      if (customerId && isSaleOnCredit) {
+      // 3. If it's a sale on credit to a specific customer, update their pending amount and other stats
+      if (customerId) {
         const customerRef = doc(db, 'customers', customerId);
         const customerDoc = await transaction.get(customerRef);
         if(!customerDoc.exists()){
             throw new Error(`Cliente ${customerId} não encontrado.`);
         }
         transaction.update(customerRef, {
-            pendingAmount: increment(totalAmount),
-            lastPurchaseDate: format(today, 'dd/MM/yyyy')
+            // Only increment pending amount if the sale is on credit
+            pendingAmount: isSaleOnCredit ? increment(totalAmount) : increment(0),
+            lastPurchaseDate: format(today, 'dd/MM/yyyy'),
+            totalOrders: increment(1),
+            totalPurchasesValue: increment(totalAmount)
         });
       }
 

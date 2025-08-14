@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -20,40 +20,78 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { expenseCategories } from '@/lib/categories';
 import { useToast } from '@/hooks/use-toast';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { settleExpense } from '@/ai/flows/settle-expense';
 
 export function AccountsPayable() {
     const [movements, setMovements] = useState<FinancialMovement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSettling, setIsSettling] = useState<string | null>(null);
     const { toast } = useToast();
 
-    useEffect(() => {
-        const fetchMovements = async () => {
-            try {
-                const movementsCollection = collection(db, 'financialMovements');
-                const q = query(movementsCollection, orderBy('dueDate', 'asc'));
-                const snapshot = await getDocs(q);
-                const movementList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement));
-                setMovements(movementList);
-            } catch (error) {
-                toast({
-                    title: "Erro ao buscar contas a pagar",
-                    description: "Não foi possível carregar os dados.",
-                    variant: "destructive"
-                });
-                console.error("Error fetching financial movements: ", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchMovements();
+    const fetchMovements = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const movementsCollection = collection(db, 'financialMovements');
+            const q = query(
+                movementsCollection, 
+                where('type', '==', 'expense'),
+                orderBy('dueDate', 'asc')
+            );
+            const snapshot = await getDocs(q);
+            const movementList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement));
+            setMovements(movementList);
+        } catch (error) {
+            toast({
+                title: "Erro ao buscar contas a pagar",
+                description: "Não foi possível carregar os dados.",
+                variant: "destructive"
+            });
+            console.error("Error fetching financial movements: ", error);
+        } finally {
+            setIsLoading(false);
+        }
     }, [toast]);
+
+    useEffect(() => {
+        fetchMovements();
+    }, [fetchMovements]);
 
 
     const getStatus = (movement: FinancialMovement) => {
         if (movement.status === 'paid') return { variant: 'default', text: 'Pago', icon: CheckCircle };
         if (new Date(movement.dueDate) < new Date() && movement.status === 'pending') return { variant: 'destructive', text: 'Vencido', icon: Clock };
         return { variant: 'secondary', text: 'Pendente', icon: Clock };
+    }
+    
+    const handleSettleExpense = async (movementId: string) => {
+        setIsSettling(movementId);
+        try {
+            const result = await settleExpense({ movementId });
+            toast({
+                title: 'Sucesso!',
+                description: result.message
+            });
+            await fetchMovements(); // refetch to show updated status
+        } catch (error) {
+            toast({
+                title: "Erro ao dar baixa",
+                description: (error as Error).message,
+                variant: "destructive"
+            });
+        } finally {
+            setIsSettling(null);
+        }
     }
     
     if (isLoading) {
@@ -115,7 +153,29 @@ export function AccountsPayable() {
                             </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                           {movement.status !== 'paid' && <Button variant="outline" size="sm">Pagar</Button>}
+                           {movement.status !== 'paid' && (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                     <Button variant="outline" size="sm" disabled={isSettling === movement.id}>
+                                        {isSettling === movement.id ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Pagar'}
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Confirmar Pagamento?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Você está prestes a marcar a despesa "{movement.description}" no valor de {movement.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} como paga. Esta ação não pode ser desfeita.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleSettleExpense(movement.id)}>
+                                            Confirmar Pagamento
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                           )}
                         </TableCell>
                     </TableRow>
                 )
