@@ -1,14 +1,13 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import type { Product } from '@/lib/types';
+import type { Product, Exchange } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { ExchangeForm } from './components/exchange-form';
@@ -18,29 +17,48 @@ import { ExchangeHistory } from './components/exchange-history';
 export default function TrocasPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [exchanges, setExchanges] = useState<(Exchange & { returnedProduct?: Product, newProduct?: Product })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const productsCollection = collection(db, 'products');
-        const productSnapshot = await getDocs(productsCollection);
-        const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-        setProducts(productList);
-      } catch (error) {
-        toast({
-            title: "Erro ao buscar produtos",
-            description: "Não foi possível carregar os produtos do banco de dados.",
-            variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+   const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [productsSnapshot, exchangesSnapshot] = await Promise.all([
+        getDocs(collection(db, 'products')),
+        getDocs(collection(db, 'exchanges')),
+      ]);
+      
+      const productList = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      const productsMap = new Map(productList.map(p => [p.id, p]));
+      
+      const exchangeList = exchangesSnapshot.docs.map(doc => {
+        const data = { id: doc.id, ...doc.data() } as Exchange;
+        return {
+          ...data,
+          returnedProduct: productsMap.get(data.returnedProductId),
+          newProduct: productsMap.get(data.newProductId),
+        }
+      });
 
-    fetchProducts();
+      setProducts(productList);
+      setExchanges(exchangeList);
+
+    } catch (error) {
+      toast({
+          title: "Erro ao buscar dados",
+          description: "Não foi possível carregar os dados de trocas e produtos.",
+          variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, [toast]);
+
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
 
   return (
@@ -52,7 +70,7 @@ export default function TrocasPage() {
             Registrar Nova Troca
           </Button>
         </PageHeader>
-        <ExchangeHistory />
+        <ExchangeHistory exchanges={exchanges} isLoading={isLoading} />
       </div>
 
        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -70,7 +88,10 @@ export default function TrocasPage() {
             ) : (
                 <ExchangeForm 
                     products={products} 
-                    onExchangeRegistered={() => setIsFormOpen(false)}
+                    onExchangeRegistered={() => {
+                        setIsFormOpen(false);
+                        fetchData();
+                    }}
                 />
             )}
         </DialogContent>
@@ -78,3 +99,5 @@ export default function TrocasPage() {
     </>
   );
 }
+
+    

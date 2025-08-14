@@ -1,8 +1,4 @@
 
-
-
-
-
 export interface Sale {
     name: string;
     total: number;
@@ -48,7 +44,7 @@ export interface Customer {
   name: string;
   email: string;
   phone: string;
-  status: 'ativo' | 'inativo' | 'pendente';
+  status: 'ativo' | 'inativo';
   registeredAt: string;
   type: 'pessoa-juridica' | 'pessoa-fisica';
   doc: string;
@@ -58,9 +54,6 @@ export interface Customer {
   exchanges: number;
   lastPurchaseDate: string;
   pendingAmount: number;
-  purchaseHistory: PurchaseHistoryItem[];
-  exchangeHistory: ExchangeHistoryItem[];
-  financialHistory: FinancialHistoryItem[];
 }
 
 export type ExpenseCategory = 'insumos' | 'salarios' | 'infraestrutura' | 'marketing' | 'impostos' | 'outros' | 'vendas';
@@ -93,7 +86,7 @@ export interface FinancialMovement {
     description: string;
     dueDate: string;
     amount: number;
-    status: 'pending' | 'paid' | 'overdue';
+    status: 'pending' | 'paid';
     type: MovementType;
     paymentDate?: string;
     category: ExpenseCategory;
@@ -113,7 +106,6 @@ export interface Purchase {
         quantity: number;
         unitPrice: number;
     }>;
-    financialMovements?: FinancialMovement[];
 }
 
 export interface Ingredient {
@@ -135,4 +127,14 @@ export interface Recipe {
     items: RecipeItem[];
     // totalCost is calculated on the fly
 }
+
+export interface Exchange {
+    id: string;
+    date: string;
+    returnedProductId: string;
+    newProductId: string;
+    reason: string;
+    returnedProductStatus: 'restock' | 'discard';
+}
+
     

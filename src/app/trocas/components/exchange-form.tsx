@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { Loader2, Repeat } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { registerExchange } from '@/ai/flows/register-exchange';
 
 const formSchema = z.object({
   returnedProductId: z.string().min(1, 'Selecione o produto devolvido.'),
@@ -44,14 +45,10 @@ export function ExchangeForm({ products, onExchangeRegistered }: ExchangeFormPro
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-        // Here you would call a new Genkit flow `registerExchange`
-        // For now, we simulate the logic and show a toast
-        console.log("Registering exchange:", data);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        const result = await registerExchange(data);
         toast({
             title: "Troca Registrada!",
-            description: "O estoque foi ajustado com sucesso.",
+            description: result.message,
         });
         form.reset();
         onExchangeRegistered();
@@ -155,3 +152,4 @@ export function ExchangeForm({ products, onExchangeRegistered }: ExchangeFormPro
   );
 }
 
+    

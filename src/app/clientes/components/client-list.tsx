@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, getDoc, query, where, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc, query, where } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -27,7 +27,6 @@ import {
     DialogTitle, 
     DialogDescription,
     DialogFooter,
-    DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +41,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { settleCustomerPayment } from '@/ai/flows/settle-customer-payment';
+import { registerCustomer } from '@/ai/flows/register-customer';
+
 
 type FilterTab = 'all' | 'pessoa-juridica' | 'pessoa-fisica' | 'com-pendencias';
 
@@ -57,6 +58,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -146,10 +148,45 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     setEditingCustomer(customer);
     setIsFormOpen(true);
   };
+  
+  const handleOpenForm = (customer: Customer | null) => {
+    setEditingCustomer(customer);
+    setIsFormOpen(true);
+  }
 
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCloseForm = () => {
+    setEditingCustomer(null);
+    setIsFormOpen(false);
+  }
+
+
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Form submission logic would be implemented here to add/update in Firestore
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+    const customerData = {
+      id: editingCustomer?.id,
+      name: formData.get('name') as string,
+      email: formData.get('email') as string,
+      phone: formData.get('phone') as string,
+      doc: formData.get('doc') as string,
+      address: formData.get('address') as string,
+      type: formData.get('type') as 'pessoa-fisica' | 'pessoa-juridica',
+      status: formData.get('status') as 'ativo' | 'inativo',
+    };
+
+    try {
+        const result = await registerCustomer(customerData);
+        toast({ title: "Sucesso!", description: result.message });
+        await fetchCustomers();
+        handleCloseForm();
+    } catch(err) {
+        const error = err as Error;
+        toast({ title: "Erro ao salvar cliente", description: error.message, variant: 'destructive'});
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
   const handleSettlePayment = async (movement: FinancialMovement) => {
@@ -198,10 +235,9 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                     <SelectItem value="all">Todos os Status</SelectItem>
                     <SelectItem value="ativo">Ativo</SelectItem>
                     <SelectItem value="inativo">Inativo</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
                 </SelectContent>
             </Select>
-            <Button onClick={() => { setEditingCustomer(null); setIsFormOpen(true); }}>
+            <Button onClick={() => handleOpenForm(null)}>
               <PlusCircle className="mr-2" />
               Novo Cliente
             </Button>
@@ -224,14 +260,14 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                     <TabsTrigger value="all">Todos os Clientes <Badge variant="secondary" className="ml-2">{counts.all}</Badge></TabsTrigger>
                     <TabsTrigger value="pessoa-juridica">Pessoa Jurídica <Badge variant="secondary" className="ml-2">{counts['pessoa-juridica']}</Badge></TabsTrigger>
                     <TabsTrigger value="pessoa-fisica">Pessoa Física <Badge variant="secondary" className="ml-2">{counts['pessoa-fisica']}</Badge></TabsTrigger>
-                    <TabsTrigger value="com-pendencias">Com Pendências <Badge variant="secondary" className="ml-2">{counts['com-pendencias']}</Badge></TabsTrigger>
+                    <TabsTrigger value="com-pendencias">Com Pendências <Badge variant="destructive" className="ml-2">{counts['com-pendencias']}</Badge></TabsTrigger>
                 </TabsList>
             </Tabs>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredCustomers.map((customer) => (
-                <Card key={customer.id} className="shadow-md hover:shadow-lg transition-shadow">
+                <Card key={customer.id} className="shadow-sm hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-start justify-between">
                         <div className="flex items-center gap-4">
                             <div className="bg-primary/10 text-primary p-3 rounded-full">
@@ -243,7 +279,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                             </div>
                         </div>
                         <div className='flex items-center gap-2'>
-                           {customer.status === 'ativo' && <Badge variant="default" className='bg-green-100 text-green-800'>Ativo</Badge>}
+                           {customer.status === 'ativo' ? <Badge variant="default" className='bg-green-100 text-green-800'>Ativo</Badge> : <Badge variant="secondary">Inativo</Badge>}
                            {customer.pendingAmount > 0 && <Badge variant="destructive">Pendência</Badge>}
                         </div>
                     </CardHeader>
@@ -303,7 +339,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
       
 
        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{editingCustomer ? 'Editar Cliente' : 'Adicionar Novo Cliente'}</DialogTitle>
                     <DialogDescription>
@@ -325,24 +361,44 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                             <Input id="phone" name="phone" defaultValue={editingCustomer?.phone} className="col-span-3" />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="doc" className="text-right">CPF/CNPJ</Label>
+                            <Input id="doc" name="doc" defaultValue={editingCustomer?.doc} className="col-span-3" />
+                        </div>
+                         <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="address" className="text-right">Endereço</Label>
+                            <Input id="address" name="address" defaultValue={editingCustomer?.address} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="type" className="text-right">Tipo</Label>
+                             <Select name="type" defaultValue={editingCustomer?.type || 'pessoa-fisica'}>
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="pessoa-fisica">Pessoa Física</SelectItem>
+                                    <SelectItem value="pessoa-juridica">Pessoa Jurídica</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="status" className="text-right">Status</Label>
                              <Select name="status" defaultValue={editingCustomer?.status || 'ativo'}>
                                 <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Selecione um status" />
+                                    <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="ativo">Ativo</SelectItem>
                                     <SelectItem value="inativo">Inativo</SelectItem>
-                                    <SelectItem value="pendente">Pendente</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
                      <DialogFooter>
-                        <DialogClose asChild>
-                            <Button type="button" variant="ghost">Cancelar</Button>
-                        </DialogClose>
-                        <Button type="submit">{editingCustomer ? 'Salvar Alterações' : 'Cadastrar Cliente'}</Button>
+                        <Button type="button" variant="ghost" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {editingCustomer ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -438,3 +494,5 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     </>
   );
 }
+
+    

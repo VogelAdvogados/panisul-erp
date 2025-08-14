@@ -13,8 +13,10 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, increment, runTransaction } from 'firebase/firestore';
-import type { Purchase, FinancialMovement, Ingredient } from '@/lib/types';
+import { collection, addDoc, doc, updateDoc, increment, runTransaction, getDoc } from 'firebase/firestore';
+import type { Purchase, FinancialMovement, Ingredient, Supplier } from '@/lib/types';
+import { format, addMonths } from 'date-fns';
+
 
 const ImportPurchaseDataInputSchema = z.object({
   fileDataUri: z
@@ -39,6 +41,7 @@ const ExtractedPurchaseSchema = z.object({
     invoiceDate: z.string().describe('The invoice date (YYYY-MM-DD).'),
     items: z.array(ExtractedItemSchema).describe('The list of items in the purchase.'),
     totalAmount: z.number().describe('The total amount of the purchase.'),
+    installments: z.number().int().min(1).describe('The number of payment installments. Default to 1 if not specified.'),
 });
 
 const ImportPurchaseDataOutputSchema = z.object({
@@ -53,14 +56,14 @@ export type ImportPurchaseDataOutput = z.infer<typeof ImportPurchaseDataOutputSc
 const findSupplierAndIngredientsTool = ai.defineTool(
     {
         name: 'findSupplierAndIngredientsTool',
-        description: 'Finds the supplier and ingredients in the database and returns their IDs.',
+        description: 'Finds the supplier and ingredients in the database and returns their IDs. The supplier must be found by name.',
         inputSchema: z.object({
             supplierName: z.string(),
             itemNames: z.array(z.string()),
         }),
         outputSchema: z.object({
-            supplierId: z.string(),
-            ingredientIds: z.array(z.string()),
+            supplierId: z.string().optional(),
+            ingredientIds: z.array(z.string().optional()),
         }),
     },
     async ({ supplierName, itemNames }) => {
@@ -87,6 +90,7 @@ Your task is to meticulously extract the following details from the provided pur
 - Invoice Date (invoiceDate in YYYY-MM-DD format)
 - All line items, including their name, quantity, and unit price.
 - The total purchase amount (totalAmount).
+- The number of payment installments (installments). If not specified, assume 1.
 
 File Type: {{{fileType}}}
 File Content: {{media url=fileDataUri}}
@@ -127,36 +131,49 @@ const importPurchaseDataFlow = ai.defineFlow(
     // Execute the tool and get the result
     const { supplierId, ingredientIds } = await toolRequest.result();
 
-    if (!supplierId || ingredientIds.length !== extractedData.items.length) {
-        throw new Error("Could not find a matching supplier or ingredients in the database.");
+    if (!supplierId || ingredientIds.some(id => !id)) {
+        throw new Error("Não foi possível encontrar um fornecedor ou todos os insumos correspondentes no banco de dados.");
     }
 
-    const purchaseDocData: Omit<Purchase, 'id' | 'financialMovements'> = {
+    const supplierDoc = await getDoc(doc(db, 'suppliers', supplierId));
+     if (!supplierDoc.exists()) {
+        throw new Error('Fornecedor não encontrado no banco de dados.');
+    }
+    const supplier = supplierDoc.data() as Supplier;
+
+
+    const purchaseDocData: Omit<Purchase, 'id'> = {
         supplierId,
         invoiceNumber: extractedData.invoiceNumber,
         date: extractedData.invoiceDate,
         totalAmount: extractedData.totalAmount,
         items: extractedData.items,
-        paymentMethod: 'boleto', // Defaulting, could be extracted too
+        paymentMethod: 'boleto', // Defaulting for imports, as it's the most common for NFe
     };
 
     // Use a transaction to ensure all writes succeed or none do.
     const purchaseId = await runTransaction(db, async (transaction) => {
         // 1. Create the Purchase document
-        const purchaseRef = await addDoc(collection(db, 'purchases'), purchaseDocData);
+        const purchaseRef = doc(collection(db, 'purchases'));
+        transaction.set(purchaseRef, purchaseDocData);
 
-        // 2. Create the Financial Movement (accounts payable)
-        const financialMovement: Omit<FinancialMovement, 'id'> = {
-            description: `Compra NFE ${extractedData.invoiceNumber} de ${extractedData.supplierName}`,
-            referenceId: purchaseRef.id,
-            dueDate: new Date(extractedData.invoiceDate).toISOString().split('T')[0], // Simplified due date
-            amount: extractedData.totalAmount,
-            status: 'pending',
-            category: 'insumos',
-            sourceAccount: 'bank', // Defaulting, could be extracted
-            type: 'expense',
-        };
-        await addDoc(collection(db, 'financialMovements'), financialMovement);
+        // 2. Create the Financial Movements (accounts payable) for each installment
+        const installmentValue = extractedData.totalAmount / extractedData.installments;
+        for (let i = 0; i < extractedData.installments; i++) {
+            const dueDate = addMonths(new Date(extractedData.invoiceDate), i + 1); // Assume first payment is 1 month after
+            const financialMovement: Omit<FinancialMovement, 'id'> = {
+                description: `Compra NFE ${extractedData.invoiceNumber} - ${supplier.name} (Parc. ${i + 1}/${extractedData.installments})`,
+                referenceId: purchaseRef.id,
+                dueDate: format(dueDate, 'yyyy-MM-dd'),
+                amount: -installmentValue,
+                status: 'pending',
+                category: 'insumos',
+                sourceAccount: 'bank', // Default to bank for imports
+                type: 'expense',
+            };
+            const movementRef = doc(collection(db, 'financialMovements'));
+            transaction.set(movementRef, financialMovement);
+        }
 
         // 3. Update stock for each ingredient
         for (let i = 0; i < extractedData.items.length; i++) {
@@ -178,3 +195,5 @@ const importPurchaseDataFlow = ai.defineFlow(
     };
   }
 );
+
+    
