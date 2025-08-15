@@ -109,22 +109,20 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     try {
         const salesQuery = query(collection(db, 'sales'), where('customerId', '==', customer.id), orderBy('date', 'desc'));
         const exchangesQuery = query(collection(db, 'exchanges'), where('customerId', '==', customer.id), orderBy('date', 'desc'));
+        const financialsQuery = query(collection(db, 'financialMovements'), where('referenceId', '==', customer.id));
 
-        // Since financial movements are linked to sales, we first fetch sales, then movements.
-        const salesSnapshot = await getDocs(salesQuery);
+        const [salesSnapshot, exchangesSnapshot, financialsSnapshot] = await Promise.all([
+            getDocs(salesQuery),
+            getDocs(exchangesQuery),
+            getDocs(financialsQuery)
+        ]);
+
         const sales = salesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Sale);
         setCustomerSales(sales);
-        const saleIds = sales.map(s => s.id);
         
-        let financials: FinancialMovement[] = [];
-        if (saleIds.length > 0) {
-            const financialsQuery = query(collection(db, 'financialMovements'), where('referenceId', 'in', saleIds));
-            const financialsSnapshot = await getDocs(financialsQuery);
-            financials = financialsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
-        }
+        const financials = financialsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
         setCustomerFinancials(financials.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()));
 
-        const exchangesSnapshot = await getDocs(exchangesQuery);
         const exchanges = exchangesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Exchange);
         setCustomerExchanges(exchanges);
 
@@ -152,7 +150,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
         const searchLower = searchTerm.toLowerCase();
         return customer.name.toLowerCase().includes(searchLower) ||
                (customer.doc && customer.doc.toLowerCase().includes(searchLower)) ||
-               customer.email.toLowerCase().includes(searchLower);
+               (customer.email && customer.email.toLowerCase().includes(searchLower));
       })
       .filter((customer) => statusFilter === 'all' ? true : customer.status === statusFilter)
       .filter((customer) => {
@@ -578,3 +576,5 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     </>
   );
 }
+
+    
