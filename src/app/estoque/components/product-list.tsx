@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -144,7 +145,7 @@ export function ProductList() {
         const productsCollection = collection(db, 'products');
         const snapshot = await getCountFromServer(productsCollection);
         
-        if (snapshot.size > 0) {
+        if (snapshot.data().count > 0) {
             toast({
                 title: 'Banco de dados já populado',
                 description: 'Os dados iniciais já existem no Firestore.',
@@ -220,8 +221,8 @@ export function ProductList() {
         <CardHeader>
             <div className="flex items-center justify-between">
                 <div>
-                    <CardTitle>Produtos</CardTitle>
-                    <CardDescription>Gerencie seus produtos acabados.</CardDescription>
+                    <CardTitle>Produtos Acabados</CardTitle>
+                    <CardDescription>Gerencie os produtos prontos para venda.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={seedDatabase} disabled={isSeeding}>

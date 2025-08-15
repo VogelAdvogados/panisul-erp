@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -159,7 +160,7 @@ export function IngredientList() {
         <CardHeader>
             <div className="flex items-center justify-between">
                 <div>
-                    <CardTitle>Insumos</CardTitle>
+                    <CardTitle>Insumos (Matéria-prima)</CardTitle>
                     <CardDescription>Gerencie suas matérias-primas e outros insumos.</CardDescription>
                 </div>
                 <Button onClick={() => handleOpenForm(null)}>
