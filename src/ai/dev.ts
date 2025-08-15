@@ -11,5 +11,8 @@ import '@/ai/flows/register-expense.ts';
 import '@/ai/flows/register-customer.ts';
 import '@/ai/flows/register-exchange.ts';
 import '@/ai/flows/settle-expense.ts';
+import '@/ai/flows/analyze-financials.ts';
+import '@/ai/flows/analyze-sales.ts';
+import '@/ai/flows/analyze-supplier-history.ts';
     
     

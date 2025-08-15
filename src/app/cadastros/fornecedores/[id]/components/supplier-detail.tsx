@@ -22,6 +22,8 @@ import { Mail, Hash, DollarSign, Package, Sparkles, Loader2, CreditCard, Clock }
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { analyzeSupplierHistory } from '@/ai/flows/analyze-supplier-history';
+import { useToast } from '@/hooks/use-toast';
 
 interface SupplierDetailProps {
   supplier: Supplier;
@@ -32,27 +34,30 @@ interface SupplierDetailProps {
 export function SupplierDetail({ supplier, purchases, movements }: SupplierDetailProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const totalPurchasedValue = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
   const totalDue = movements.reduce((acc, fm) => acc + fm.amount, 0);
   const totalPaid = movements
     .filter(fm => fm.status === 'paid')
     .reduce((acc, fm) => acc + fm.amount, 0);
+  const totalPurchasedValue = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
 
+  // Correct calculation for pending amount based on financial movements
   const pendingAmount = totalDue - totalPaid;
 
   const handleAnalyze = async () => {
     setIsLoading(true);
     setAnalysis(null);
     try {
-        // In a real app, you would call an AI flow here.
-        // For demonstration, we simulate an AI analysis.
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const simulatedAnalysis = `Análise do Fornecedor: ${supplier.name}\n- Total de Compras: ${purchases.length}\n- Valor Total Comprado: ${totalPurchasedValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n- Saldo Devedor Atual: ${pendingAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n- Itens mais comprados: Farinha, Ovos.\n- Observação: Fornecedor com bom histórico e pagamentos majoritariamente em dia. Manter bom relacionamento.`;
-        setAnalysis(simulatedAnalysis);
+        const result = await analyzeSupplierHistory(supplier.id);
+        setAnalysis(result.analysis);
     } catch (error) {
         console.error(error);
-        setAnalysis("Ocorreu um erro ao analisar o histórico.");
+        toast({
+          title: 'Erro na Análise de IA',
+          description: error instanceof Error ? error.message : 'Não foi possível gerar a análise do fornecedor.',
+          variant: 'destructive',
+        });
     } finally {
         setIsLoading(false);
     }
@@ -108,7 +113,7 @@ export function SupplierDetail({ supplier, purchases, movements }: SupplierDetai
              </div>
              <div className="bg-red-50 p-4 rounded-lg border border-red-200">
                 <p className="text-sm text-red-700 font-semibold flex items-center gap-1"><DollarSign className="h-4 w-4"/>Saldo Devedor</p>
-                <p className="text-xl font-bold text-red-800">{pendingAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                <p className="text-xl font-bold text-red-800">{Math.abs(pendingAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
              </div>
           </div>
         </CardContent>
