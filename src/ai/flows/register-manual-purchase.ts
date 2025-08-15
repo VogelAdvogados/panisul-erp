@@ -3,7 +3,7 @@
 
 /**
  * @fileOverview Registers a new manual purchase, creating the purchase record,
- * financial movements for installments, and updating ingredient stock.
+ * financial movements for installments, and updating ingredient stock and average cost.
  */
 
 import { ai } from '@/ai/genkit';
@@ -58,7 +58,7 @@ const registerManualPurchaseFlow = ai.defineFlow(
     
     const purchaseId = await runTransaction(db, async (transaction) => {
       // 1. Create the Purchase document
-      const purchaseData: Omit<Purchase, 'id' | 'financialMovements'> = {
+      const purchaseData: Omit<Purchase, 'id'> = {
         supplierId: input.supplierId,
         invoiceNumber: input.invoiceNumber || `MANUAL-${Date.now()}`,
         date: input.date,
@@ -69,19 +69,33 @@ const registerManualPurchaseFlow = ai.defineFlow(
 
       const purchaseRef = doc(collection(db, 'purchases'));
       
-      // 2. Update stock for each ingredient and get item names for the purchase doc
+      // 2. Update stock and average cost for each ingredient, and get item names for the purchase doc
       for (const item of input.items) {
         const ingredientRef = doc(db, 'ingredients', item.ingredientId);
         const ingredientDoc = await transaction.get(ingredientRef);
         if (!ingredientDoc.exists()) {
           throw new Error(`Insumo com ID ${item.ingredientId} não encontrado.`);
         }
-        const ingredientName = ingredientDoc.data().name || 'Insumo desconhecido';
+        
+        const ingredientData = ingredientDoc.data() as Ingredient;
+        const oldStock = ingredientData.stock;
+        const oldCost = ingredientData.cost;
+        const newQuantity = item.quantity;
+        const newPrice = item.unitPrice;
+
+        // Calculate weighted average cost
+        const newTotalStock = oldStock + newQuantity;
+        const newAverageCost = newTotalStock > 0 
+            ? ((oldStock * oldCost) + (newQuantity * newPrice)) / newTotalStock
+            : newPrice;
+
         transaction.update(ingredientRef, {
-          stock: increment(item.quantity)
+          stock: increment(newQuantity),
+          cost: newAverageCost,
         });
+
         purchaseData.items.push({
-            name: ingredientName,
+            name: ingredientData.name,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
         });

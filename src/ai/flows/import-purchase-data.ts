@@ -3,11 +3,7 @@
 
 /**
  * @fileOverview Imports purchase data from XML or PDF files, extracts relevant details,
- * and automatically creates the purchase record, financial movements, and updates stock.
- *
- * - importPurchaseData - A function that handles the purchase data import process.
- * - ImportPurchaseDataInput - The input type for the importPurchaseData function.
- * - ImportPurchaseDataOutput - The return type for the importPurchaseData function.
+ * and automatically creates the purchase record, financial movements, and updates stock and average cost.
  */
 
 import {ai} from '@/ai/genkit';
@@ -130,13 +126,11 @@ const importPurchaseDataFlow = ai.defineFlow(
         throw new Error("Failed to extract data from the document.");
     }
     
-    // Find the tool call in the LLM response
     const toolRequest = llmResponse.toolRequest('findSupplierAndIngredientsTool');
     if (!toolRequest) {
         throw new Error("AI did not request to find supplier and ingredients. It might be that the document is not a valid invoice.");
     }
 
-    // Execute the tool and get the result
     const { supplierId, ingredientIds } = await toolRequest.result();
 
     if (!supplierId) {
@@ -161,19 +155,16 @@ const importPurchaseDataFlow = ai.defineFlow(
         date: extractedData.invoiceDate,
         totalAmount: extractedData.totalAmount,
         items: extractedData.items,
-        paymentMethod: 'boleto', // Defaulting for imports, as it's the most common for NFe
+        paymentMethod: 'boleto', 
     };
 
-    // Use a transaction to ensure all writes succeed or none do.
     const purchaseId = await runTransaction(db, async (transaction) => {
-        // 1. Create the Purchase document
         const purchaseRef = doc(collection(db, 'purchases'));
         transaction.set(purchaseRef, purchaseDocData);
 
-        // 2. Create the Financial Movements (accounts payable) for each installment
         const installmentValue = extractedData.totalAmount / extractedData.installments;
         for (let i = 0; i < extractedData.installments; i++) {
-            const dueDate = addMonths(new Date(extractedData.invoiceDate), i + 1); // Assume first payment is 1 month after
+            const dueDate = addMonths(new Date(extractedData.invoiceDate), i + 1);
             const financialMovement: Omit<FinancialMovement, 'id'> = {
                 description: `Compra NFE ${extractedData.invoiceNumber} - ${supplier.name} (Parc. ${i + 1}/${extractedData.installments})`,
                 referenceId: purchaseRef.id,
@@ -181,20 +172,35 @@ const importPurchaseDataFlow = ai.defineFlow(
                 amount: -installmentValue,
                 status: 'pending',
                 category: 'insumos',
-                sourceAccount: 'bank', // Default to bank for imports
+                sourceAccount: 'bank',
                 type: 'expense',
             };
             const movementRef = doc(collection(db, 'financialMovements'));
             transaction.set(movementRef, financialMovement);
         }
 
-        // 3. Update stock for each ingredient
         for (let i = 0; i < extractedData.items.length; i++) {
             const item = extractedData.items[i];
             const ingredientId = ingredientIds[i]!;
             const ingredientRef = doc(db, 'ingredients', ingredientId);
+            
+            const ingredientDoc = await transaction.get(ingredientRef);
+            if (!ingredientDoc.exists()) throw new Error (`Insumo ${item.name} não encontrado no BD.`);
+
+            const ingredientData = ingredientDoc.data() as Ingredient;
+            const oldStock = ingredientData.stock;
+            const oldCost = ingredientData.cost;
+            const newQuantity = item.quantity;
+            const newPrice = item.unitPrice;
+
+            const newTotalStock = oldStock + newQuantity;
+            const newAverageCost = newTotalStock > 0 
+                ? ((oldStock * oldCost) + (newQuantity * newPrice)) / newTotalStock
+                : newPrice;
+
             transaction.update(ingredientRef, {
-                stock: increment(item.quantity)
+                stock: increment(item.quantity),
+                cost: newAverageCost,
             });
         }
         return purchaseRef.id;
@@ -206,5 +212,3 @@ const importPurchaseDataFlow = ai.defineFlow(
     };
   }
 );
-
-    
