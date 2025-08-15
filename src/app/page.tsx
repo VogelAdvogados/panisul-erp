@@ -25,13 +25,9 @@ async function getDashboardData() {
     const movementsRef = collection(db, 'financialMovements');
     const ingredientsRef = collection(db, 'ingredients');
 
-    // Payables and receivables for today
-    const payablesQuery = query(movementsRef, where('dueDate', '==', todayStr), where('status', '==', 'pending'), where('type', '==', 'expense'));
-    const receivablesQuery = query(movementsRef, where('dueDate', '==', todayStr), where('status', '==', 'pending'), where('type', '==', 'revenue'));
-
-    // Today's paid expenses and revenues
-    const paidExpensesQuery = query(movementsRef, where('paymentDate', '==', todayStr), where('status', '==', 'paid'), where('type', '==', 'expense'));
-    const paidRevenuesQuery = query(movementsRef, where('paymentDate', '==', todayStr), where('status', '==', 'paid'), where('type', '==', 'revenue'));
+    // Simplified queries to avoid complex composite indexes
+    const movementsTodayQuery = query(movementsRef, where('dueDate', '==', todayStr));
+    const paidTodayQuery = query(movementsRef, where('paymentDate', '==', todayStr));
     
     // Low stock ingredients (simplified: checking stock < 1000)
     const lowStockQuery = query(ingredientsRef, where('stock', '<', 1000), limit(5));
@@ -39,29 +35,39 @@ async function getDashboardData() {
     // Latest transactions - Simplified query to avoid composite index
     const latestTransactionsQuery = query(collection(db, "financialMovements"), orderBy("paymentDate", "desc"), limit(15));
 
-
     const [
-        payablesSnapshot, 
-        receivablesSnapshot,
-        paidExpensesSnapshot,
-        paidRevenuesSnapshot,
+        movementsTodaySnapshot,
+        paidTodaySnapshot,
         lowStockSnapshot,
         latestTransactionsSnapshot
     ] = await Promise.all([
-        getDocs(payablesQuery),
-        getDocs(receivablesQuery),
-        getDocs(paidExpensesQuery),
-        getDocs(paidRevenuesQuery),
+        getDocs(movementsTodayQuery),
+        getDocs(paidTodayQuery),
         getDocs(lowStockQuery),
         getDocs(latestTransactionsQuery),
     ]);
 
-    const calculateTotal = (snapshot: any) => snapshot.docs.reduce((acc: number, doc: any) => acc + doc.data().amount, 0);
+    const movementsToday = movementsTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);
+    const paidToday = paidTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);
 
-    const totalPayableToday = calculateTotal(payablesSnapshot);
-    const totalReceivableToday = calculateTotal(receivablesSnapshot);
-    const totalRevenueToday = calculateTotal(paidRevenuesSnapshot);
-    const totalExpenseToday = calculateTotal(paidExpensesSnapshot);
+    // Process data in the application
+    const totalPayableToday = movementsToday
+        .filter(m => m.status === 'pending' && m.type === 'expense')
+        .reduce((acc, m) => acc + m.amount, 0);
+
+    const totalReceivableToday = movementsToday
+        .filter(m => m.status === 'pending' && m.type === 'revenue')
+        .reduce((acc, m) => acc + m.amount, 0);
+
+    const totalRevenueToday = paidToday
+        .filter(m => m.type === 'revenue')
+        .reduce((acc, m) => acc + m.amount, 0);
+    
+    const totalExpenseToday = paidToday
+        .filter(m => m.type === 'expense')
+        .reduce((acc, m) => acc + m.amount, 0);
+
+
     const lowStockItems = lowStockSnapshot.docs.map(doc => doc.data() as Ingredient);
     
     // Filter for paid transactions in code and take the first 5
@@ -100,7 +106,7 @@ export default async function Dashboard() {
           title="Receitas do Dia"
           value={data.totalRevenueToday.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
           icon={Wallet}
-          change={data.totalExpenseToday.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}) + " em despesas"}
+          change={Math.abs(data.totalExpenseToday).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}) + " em despesas"}
         />
         <StatCard
           title="Saldo em Contas"
