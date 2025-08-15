@@ -11,47 +11,60 @@ import { Alerts } from '@/components/dashboard/alerts';
 import { BillingChart } from '@/components/dashboard/billing-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, limit, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, limit, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import type { FinancialMovement, Ingredient } from '@/lib/types';
 import { StatCard } from '@/components/stat-card';
 import { LatestTransactions } from '@/components/dashboard/latest-transactions';
 
+// Helper to format date, as it's not available in Server Components by default
+import { format, startOfDay, endOfDay, isSameDay } from 'date-fns';
+
 async function getDashboardData() {
     const today = new Date();
-    const todayStr = format(today, 'yyyy-MM-dd');
+    const startOfToday = startOfDay(today);
+    const endOfToday = endOfDay(today);
     
-    // Simplified queries to avoid composite indexes
+    // Fetch all movements that are potentially relevant for today.
+    // This is more efficient than multiple complex queries that require indexes.
     const movementsRef = collection(db, 'financialMovements');
-    const movementsQuery = query(movementsRef, where('dueDate', '>=', todayStr), where('dueDate', '<=', todayStr + '\uf8ff'));
-    const paidQuery = query(movementsRef, where('paymentDate', '==', todayStr));
+    const recentMovementsQuery = query(
+        movementsRef,
+        where('dueDate', '>=', format(startOfToday, 'yyyy-MM-dd')),
+        orderBy('dueDate', 'asc')
+    );
 
     const [
-        movementsSnapshot,
-        paidSnapshot,
+        allMovementsSnapshot,
         lowStockSnapshot,
         latestTransactionsSnapshot,
     ] = await Promise.all([
-        getDocs(movementsQuery),
-        getDocs(paidQuery),
+        getDocs(movementsRef), // Get all movements to calculate balances correctly
         getDocs(query(collection(db, 'ingredients'), where('stock', '<', 1000), limit(5))),
         getDocs(query(collection(db, "financialMovements"), where('status', '==', 'paid'), orderBy("paymentDate", "desc"), limit(5)))
     ]);
     
-    const movementsToday = movementsSnapshot.docs.map(doc => doc.data() as FinancialMovement);
-    const paidToday = paidSnapshot.docs.map(doc => doc.data() as FinancialMovement);
+    const allMovements = allMovementsSnapshot.docs.map(doc => doc.data() as FinancialMovement);
+
+    // Process data in application code - this is more flexible and avoids complex indexes
+    const paidToday = allMovements.filter(m => m.paymentDate && isSameDay(new Date(m.paymentDate), today));
+    const dueToday = allMovements.filter(m => m.dueDate && isSameDay(new Date(m.dueDate), today));
     
-    const totalPayableToday = movementsToday.filter(m => m.status === 'pending' && m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
-    const totalReceivableToday = movementsToday.filter(m => m.status === 'pending' && m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
+    const cashBalance = allMovements
+        .filter(m => m.sourceAccount === 'cash' && m.status === 'paid')
+        .reduce((acc, m) => acc + m.amount, 0);
+
+    const bankBalance = allMovements
+        .filter(m => m.sourceAccount === 'bank' && m.status === 'paid')
+        .reduce((acc, m) => acc + m.amount, 0);
+
     const totalRevenueToday = paidToday.filter(m => m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
     const totalExpenseToday = paidToday.filter(m => m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
 
+    const totalPayableToday = dueToday.filter(m => m.status === 'pending' && m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
+    const totalReceivableToday = dueToday.filter(m => m.status === 'pending' && m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
+    
     const lowStockItems = lowStockSnapshot.docs.map(doc => doc.data() as Ingredient);
     const latestTransactions = latestTransactionsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
-
-    // Note: Cash and Bank balances would typically come from a separate 'accounts' collection
-    // or be calculated based on all historical transactions. For simplicity, we use mock data here.
-    const cashBalance = 1247.50;
-    const bankBalance = 8456.30;
 
     return {
         cashBalance,
@@ -65,9 +78,6 @@ async function getDashboardData() {
     };
 }
 
-
-// Helper to format date, as it's not available in Server Components by default
-import { format } from 'date-fns';
 
 export default async function Dashboard() {
   const data = await getDashboardData();

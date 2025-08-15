@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -7,20 +6,35 @@ import PageHeader from '@/components/page-header';
 import { SupplierList } from './components/supplier-list';
 import { RecipeList } from './components/recipe-list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
+import { ProductList } from './components/product-list';
+import { IngredientList } from './components/ingredient-list';
+import { ClientList } from '../clientes/components/client-list';
 
 export default function CadastrosPage() {
   const searchParams = useSearchParams();
-  const tab = searchParams.get('tab') || 'suppliers';
+  const tab = searchParams.get('tab') || 'products';
+  const customerToOpen = searchParams.get('open');
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Configurações" />
+      <PageHeader title="Cadastros" />
       <Tabs defaultValue={tab} className="w-full">
           <TabsList>
+              <TabsTrigger value="products">Produtos</TabsTrigger>
+              <TabsTrigger value="ingredients">Insumos</TabsTrigger>
+              <TabsTrigger value="clients">Clientes</TabsTrigger>
               <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
               <TabsTrigger value="recipes">Fichas Técnicas</TabsTrigger>
           </TabsList>
+           <TabsContent value="products">
+            <ProductList />
+          </TabsContent>
+          <TabsContent value="ingredients">
+            <IngredientList />
+          </TabsContent>
+           <TabsContent value="clients">
+            <ClientList customerToOpen={customerToOpen} />
+          </TabsContent>
            <TabsContent value="suppliers">
             <SupplierList />
           </TabsContent>

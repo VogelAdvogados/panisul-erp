@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState } from 'react';
@@ -20,21 +19,18 @@ import {
   Repeat,
   ShoppingBag,
   Package,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, description: "Visão geral do negócio" },
-    { href: '/operacoes', label: 'Painel do Dia', icon: ClipboardList, description: "Operações diárias" },
-    { href: '/vendas/pdv', label: 'Vendas (PDV)', icon: ShoppingBag, description: "Ponto de Venda" },
-    { href: '/estoque', label: 'Estoque', icon: Package, description: "Controle de produtos e insumos" },
+    { href: '/operacoes', label: 'Operações', icon: ClipboardList, description: "Vendas, produção e trocas" },
+    { href: '/cadastros', label: 'Cadastros', icon: FileText, description: "Produtos, insumos, clientes, fornecedores e receitas" },
+    { href: '/compras', label: 'Compras', icon: ShoppingCart, description: "Gestão e importação de compras" },
     { href: '/financeiro', label: 'Financeiro', icon: Wallet, description: "Contas e fluxo de caixa" },
-    { href: '/compras', label: 'Compras', icon: ShoppingCart, description: "Importar XML/PDF" },
-    { href: '/clientes', label: 'Clientes', icon: Users, description: "Cadastro e histórico" },
-    { href: '/trocas', label: 'Trocas', icon: Repeat, description: "Registro de trocas" },
     { href: '/relatorios', label: 'Relatórios', icon: BarChart3, description: "Análises gerenciais" },
-    { href: '/cadastros', label: 'Configurações', icon: Settings, description: "Fichas técnicas e Fornecedores" },
 ];
 
 export function AppSidebar() {
