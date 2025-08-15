@@ -110,7 +110,9 @@ export function IngredientList() {
     e.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
-    const ingredientData = {
+    
+    // Base data from form
+    const ingredientData: Partial<Ingredient> = {
       name: formData.get('name') as string,
       stock: parseFloat(formData.get('stock') as string),
       unitOfMeasure: formData.get('unitOfMeasure') as Ingredient['unitOfMeasure'],
@@ -119,11 +121,18 @@ export function IngredientList() {
 
     try {
         if (editingIngredient) {
+          // For updates, we don't touch produced/sold
           const ingredientDoc = doc(db, "ingredients", editingIngredient.id);
           await updateDoc(ingredientDoc, ingredientData);
           toast({ title: "Insumo Atualizado!", description: "Os dados do insumo foram atualizados." });
         } else {
-          await addDoc(collection(db, "ingredients"), ingredientData);
+          // For new ingredients, initialize produced and sold to 0
+          const dataToSave = {
+              ...ingredientData,
+              produced: 0,
+              sold: 0,
+          };
+          await addDoc(collection(db, "ingredients"), dataToSave);
           toast({ title: "Insumo Criado!", description: "Um novo insumo foi adicionado ao sistema." });
         }
         await fetchIngredients(); // Refetch data

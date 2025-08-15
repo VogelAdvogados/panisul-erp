@@ -78,6 +78,7 @@ export interface Purchase {
     totalAmount: number;
     paymentMethod: PaymentMethod;
     items: PurchaseItem[];
+    financialMovements?: FinancialMovement[]; // Optional: For status calculation
 }
 
 export interface SaleItem {
@@ -103,6 +104,8 @@ export interface Ingredient {
     stock: number; // in grams, ml, or units
     unitOfMeasure: 'g' | 'kg' | 'ml' | 'l' | 'un';
     cost: number; // cost per unit of measure (e.g., cost per gram)
+    produced: number;
+    sold: number;
 }
 
 export interface RecipeItem {
