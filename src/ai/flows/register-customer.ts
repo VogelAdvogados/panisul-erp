@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 const RegisterCustomerInputSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(1, 'O nome é obrigatório'),
-    email: z.string().email('Email inválido'),
+    email: z.string().email('Email inválido').or(z.string().length(0)).optional(),
     phone: z.string(),
     doc: z.string(),
     address: z.string(),
@@ -45,10 +45,15 @@ const registerCustomerFlow = ai.defineFlow(
   async (input) => {
     let customerId = input.id;
     
+    const customerPayload = {
+        ...input,
+        email: input.email || '',
+    };
+    
     if (customerId) {
         // Update existing customer
         const customerRef = doc(db, 'customers', customerId);
-        await updateDoc(customerRef, { ...input });
+        await updateDoc(customerRef, { ...customerPayload });
         return {
             customerId,
             message: `Cliente "${input.name}" atualizado com sucesso.`
@@ -56,7 +61,7 @@ const registerCustomerFlow = ai.defineFlow(
     } else {
         // Create new customer
         const customerData: Omit<Customer, 'id'> = {
-            ...input,
+            ...customerPayload,
             registeredAt: format(new Date(), 'yyyy-MM-dd'),
             pendingAmount: 0,
             totalOrders: 0,
@@ -72,5 +77,3 @@ const registerCustomerFlow = ai.defineFlow(
     }
   }
 );
-
-    

@@ -76,7 +76,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
        setIsLoading(true);
        try {
         const [customersSnapshot, productsSnapshot] = await Promise.all([
-            getDocs(collection(db, 'customers')),
+            getDocs(query(collection(db, 'customers'), orderBy('name', 'asc'))),
             getDocs(collection(db, 'products'))
         ]);
         const customersList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
@@ -107,23 +107,24 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     setIsDetailOpen(true);
     setIsHistoryLoading(true);
     try {
-        // Fetch financials, sales, and exchanges in parallel
-        const financialsQuery = query(collection(db, 'financialMovements'), where('referenceId', '==', customer.id), where('type', '==', 'revenue'));
         const salesQuery = query(collection(db, 'sales'), where('customerId', '==', customer.id), orderBy('date', 'desc'));
         const exchangesQuery = query(collection(db, 'exchanges'), where('customerId', '==', customer.id), orderBy('date', 'desc'));
 
-        const [financialsSnapshot, salesSnapshot, exchangesSnapshot] = await Promise.all([
-            getDocs(financialsQuery),
-            getDocs(salesQuery),
-            getDocs(exchangesQuery)
-        ]);
-
-        const financials = financialsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
-        setCustomerFinancials(financials.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()));
-        
+        // Since financial movements are linked to sales, we first fetch sales, then movements.
+        const salesSnapshot = await getDocs(salesQuery);
         const sales = salesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Sale);
         setCustomerSales(sales);
+        const saleIds = sales.map(s => s.id);
+        
+        let financials: FinancialMovement[] = [];
+        if (saleIds.length > 0) {
+            const financialsQuery = query(collection(db, 'financialMovements'), where('referenceId', 'in', saleIds));
+            const financialsSnapshot = await getDocs(financialsQuery);
+            financials = financialsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
+        }
+        setCustomerFinancials(financials.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()));
 
+        const exchangesSnapshot = await getDocs(exchangesQuery);
         const exchanges = exchangesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Exchange);
         setCustomerExchanges(exchanges);
 
@@ -311,7 +312,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                     <CardContent className="space-y-4">
                        <div className="text-sm text-muted-foreground space-y-2">
                            <div className="flex items-center gap-2"><CreditCard className="h-4 w-4" /> <span>Doc: {customer.doc}</span></div>
-                           <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> <span>{customer.email}</span></div>
+                           <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> <span>{customer.email || 'N/A'}</span></div>
                            <div className="flex items-center gap-2"><Phone className="h-4 w-4" /> <span>{customer.phone}</span></div>
                            <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> <span>{customer.address}</span></div>
                        </div>
@@ -331,7 +332,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                             </div>
                              <div className="space-y-1">
                                 <p className="text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> Última Compra</p>
-                                <p className="font-bold">{customer.lastPurchaseDate}</p>
+                                <p className="font-bold">{customer.lastPurchaseDate || 'N/A'}</p>
                             </div>
                        </div>
                        {customer.pendingAmount > 0 && (
@@ -379,7 +380,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="email" className="text-right">Email</Label>
-                            <Input id="email" name="email" type="email" defaultValue={editingCustomer?.email} className="col-span-3" required/>
+                            <Input id="email" name="email" type="email" defaultValue={editingCustomer?.email} className="col-span-3" />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="phone" className="text-right">Telefone</Label>
