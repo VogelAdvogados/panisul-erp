@@ -13,7 +13,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, increment, runTransaction, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, increment, runTransaction, getDoc, getDocs, query, where } from 'firebase/firestore';
 import type { Purchase, FinancialMovement, Ingredient, Supplier } from '@/lib/types';
 import { format, addMonths } from 'date-fns';
 
@@ -51,15 +51,13 @@ const ImportPurchaseDataOutputSchema = z.object({
 export type ImportPurchaseDataOutput = z.infer<typeof ImportPurchaseDataOutputSchema>;
 
 
-// This is a simplified tool. A real implementation would query the database
-// to find a matching supplier and products. For now, it returns mock IDs.
 const findSupplierAndIngredientsTool = ai.defineTool(
     {
         name: 'findSupplierAndIngredientsTool',
-        description: 'Finds the supplier and ingredients in the database and returns their IDs. The supplier must be found by name.',
+        description: 'Finds the supplier and ingredients in the database by name and returns their database IDs. It is critical to use this tool to get IDs before creating any records.',
         inputSchema: z.object({
-            supplierName: z.string(),
-            itemNames: z.array(z.string()),
+            supplierName: z.string().describe('The name of the supplier to find.'),
+            itemNames: z.array(z.string()).describe('An array of ingredient names to find.'),
         }),
         outputSchema: z.object({
             supplierId: z.string().optional(),
@@ -67,12 +65,22 @@ const findSupplierAndIngredientsTool = ai.defineTool(
         }),
     },
     async ({ supplierName, itemNames }) => {
-        // In a real app, you would query Firestore here.
-        // For now, we'll return the first supplier and matching ingredients from the initial data.
-        return {
-            supplierId: 'SUP-001', // Mock ID
-            ingredientIds: itemNames.map(name => 'ING-001') // Mock IDs
-        };
+        // Find Supplier
+        const suppliersRef = collection(db, 'suppliers');
+        const q = query(suppliersRef, where('name', '==', supplierName));
+        const supplierSnapshot = await getDocs(q);
+        const supplierId = supplierSnapshot.docs.length > 0 ? supplierSnapshot.docs[0].id : undefined;
+
+        // Find Ingredients
+        const ingredientIds: (string | undefined)[] = [];
+        for (const name of itemNames) {
+            const ingredientsRef = collection(db, 'ingredients');
+            const iq = query(ingredientsRef, where('name', '==', name));
+            const ingredientSnapshot = await getDocs(iq);
+            ingredientIds.push(ingredientSnapshot.docs.length > 0 ? ingredientSnapshot.docs[0].id : undefined);
+        }
+
+        return { supplierId, ingredientIds };
     }
 );
 
@@ -95,7 +103,7 @@ Your task is to meticulously extract the following details from the provided pur
 File Type: {{{fileType}}}
 File Content: {{media url=fileDataUri}}
 
-After extracting the data, you MUST use the 'findSupplierAndIngredientsTool' to get the database IDs for the supplier and the ingredients.
+After extracting the data, you MUST use the 'findSupplierAndIngredientsTool' to get the database IDs for the supplier and all the ingredients before finishing.
 
 Produce the final output in JSON format according to the schema.`,
 });
@@ -125,14 +133,19 @@ const importPurchaseDataFlow = ai.defineFlow(
     // Find the tool call in the LLM response
     const toolRequest = llmResponse.toolRequest('findSupplierAndIngredientsTool');
     if (!toolRequest) {
-        throw new Error("AI did not request to find supplier and ingredients.");
+        throw new Error("AI did not request to find supplier and ingredients. It might be that the document is not a valid invoice.");
     }
 
     // Execute the tool and get the result
     const { supplierId, ingredientIds } = await toolRequest.result();
 
-    if (!supplierId || ingredientIds.some(id => !id)) {
-        throw new Error("Não foi possível encontrar um fornecedor ou todos os insumos correspondentes no banco de dados.");
+    if (!supplierId) {
+        throw new Error(`O fornecedor "${extractedData.supplierName}" não foi encontrado no sistema. Por favor, cadastre-o primeiro.`);
+    }
+     if (ingredientIds.some(id => !id)) {
+        const missingItemIndex = ingredientIds.findIndex(id => !id);
+        const missingItemName = extractedData.items[missingItemIndex].name;
+        throw new Error(`O insumo "${missingItemName}" não foi encontrado no sistema. Por favor, cadastre-o primeiro.`);
     }
 
     const supplierDoc = await getDoc(doc(db, 'suppliers', supplierId));
@@ -178,13 +191,11 @@ const importPurchaseDataFlow = ai.defineFlow(
         // 3. Update stock for each ingredient
         for (let i = 0; i < extractedData.items.length; i++) {
             const item = extractedData.items[i];
-            const ingredientId = ingredientIds[i];
-            if (ingredientId) {
-                const ingredientRef = doc(db, 'ingredients', ingredientId);
-                transaction.update(ingredientRef, {
-                    stock: increment(item.quantity)
-                });
-            }
+            const ingredientId = ingredientIds[i]!;
+            const ingredientRef = doc(db, 'ingredients', ingredientId);
+            transaction.update(ingredientRef, {
+                stock: increment(item.quantity)
+            });
         }
         return purchaseRef.id;
     });
@@ -195,3 +206,5 @@ const importPurchaseDataFlow = ai.defineFlow(
     };
   }
 );
+
+    
