@@ -18,38 +18,34 @@ import { LatestTransactions } from '@/components/dashboard/latest-transactions';
 
 async function getDashboardData() {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const todayStr = format(today, 'yyyy-MM-dd');
     
-    // To avoid complex queries, fetch movements for the day and process in code.
+    // Simplified queries to avoid composite indexes
     const movementsRef = collection(db, 'financialMovements');
-    const movementsTodayQuery = query(movementsRef, where('dueDate', '==', todayStr));
-    const paidTodayQuery = query(movementsRef, where('paymentDate', '==', todayStr));
+    const movementsQuery = query(movementsRef, where('dueDate', '>=', todayStr), where('dueDate', '<=', todayStr + '\uf8ff'));
+    const paidQuery = query(movementsRef, where('paymentDate', '==', todayStr));
 
     const [
-        movementsTodaySnapshot,
-        paidTodaySnapshot
+        movementsSnapshot,
+        paidSnapshot,
+        lowStockSnapshot,
+        latestTransactionsSnapshot,
     ] = await Promise.all([
-        getDocs(movementsTodayQuery),
-        getDocs(paidTodayQuery)
+        getDocs(movementsQuery),
+        getDocs(paidQuery),
+        getDocs(query(collection(db, 'ingredients'), where('stock', '<', 1000), limit(5))),
+        getDocs(query(collection(db, "financialMovements"), where('status', '==', 'paid'), orderBy("paymentDate", "desc"), limit(5)))
     ]);
     
-    const movementsToday = movementsTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);
-    const paidToday = paidTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);
-
+    const movementsToday = movementsSnapshot.docs.map(doc => doc.data() as FinancialMovement);
+    const paidToday = paidSnapshot.docs.map(doc => doc.data() as FinancialMovement);
+    
     const totalPayableToday = movementsToday.filter(m => m.status === 'pending' && m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
     const totalReceivableToday = movementsToday.filter(m => m.status === 'pending' && m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
     const totalRevenueToday = paidToday.filter(m => m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
     const totalExpenseToday = paidToday.filter(m => m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
 
-    // Fetch low stock items
-    const lowStockQuery = query(collection(db, 'ingredients'), where('stock', '<', 1000), limit(5));
-    const lowStockSnapshot = await getDocs(lowStockQuery);
     const lowStockItems = lowStockSnapshot.docs.map(doc => doc.data() as Ingredient);
-
-    // Fetch latest transactions
-    const latestTransactionsQuery = query(collection(db, "financialMovements"), where('status', '==', 'paid'), orderBy("paymentDate", "desc"), limit(5));
-    const latestTransactionsSnapshot = await getDocs(latestTransactionsQuery);
     const latestTransactions = latestTransactionsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
 
     // Note: Cash and Bank balances would typically come from a separate 'accounts' collection
