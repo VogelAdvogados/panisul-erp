@@ -8,7 +8,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import type { Customer } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -45,6 +45,7 @@ const registerCustomerFlow = ai.defineFlow(
   async (input) => {
     let customerId = input.id;
     
+    // Ensure email is an empty string if not provided, to avoid 'undefined' in Firestore.
     const customerPayload = {
         ...input,
         email: input.email || '',
@@ -59,8 +60,8 @@ const registerCustomerFlow = ai.defineFlow(
             message: `Cliente "${input.name}" atualizado com sucesso.`
         }
     } else {
-        // Create new customer
-        const customerData: Omit<Customer, 'id'> = {
+        // Create new customer with all required fields initialized
+        const newCustomerData: Omit<Customer, 'id'> = {
             ...customerPayload,
             registeredAt: format(new Date(), 'yyyy-MM-dd'),
             pendingAmount: 0,
@@ -69,7 +70,7 @@ const registerCustomerFlow = ai.defineFlow(
             exchanges: 0,
             lastPurchaseDate: '',
         };
-        const customerRef = await addDoc(collection(db, 'customers'), customerData);
+        const customerRef = await addDoc(collection(db, 'customers'), newCustomerData);
         return {
             customerId: customerRef.id,
             message: `Cliente "${input.name}" cadastrado com sucesso.`
