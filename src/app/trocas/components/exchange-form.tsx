@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import type { Product } from '@/lib/types';
+import type { Product, Customer } from '@/lib/types';
 import { useState } from 'react';
 import { Loader2, Repeat } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { registerExchange } from '@/ai/flows/register-exchange';
 
 const formSchema = z.object({
+  customerId: z.string().optional(),
   returnedProductId: z.string().min(1, 'Selecione o produto devolvido.'),
   newProductId: z.string().min(1, 'Selecione o produto entregue.'),
   reason: z.string().min(5, 'O motivo deve ter pelo menos 5 caracteres.'),
@@ -25,16 +26,18 @@ const formSchema = z.object({
 
 interface ExchangeFormProps {
     products: Product[];
+    customers: Customer[];
     onExchangeRegistered: () => void;
 }
 
-export function ExchangeForm({ products, onExchangeRegistered }: ExchangeFormProps) {
+export function ExchangeForm({ products, customers, onExchangeRegistered }: ExchangeFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      customerId: 'none',
       returnedProductId: '',
       newProductId: '',
       reason: '',
@@ -67,6 +70,24 @@ export function ExchangeForm({ products, onExchangeRegistered }: ExchangeFormPro
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         
+        <FormField
+          control={form.control}
+          name="customerId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Cliente (Opcional)</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                <FormControl><SelectTrigger><SelectValue placeholder="Selecione o cliente..." /></SelectTrigger></FormControl>
+                <SelectContent>
+                   <SelectItem value="none">Troca anônima</SelectItem>
+                   {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="returnedProductId"
@@ -151,5 +172,3 @@ export function ExchangeForm({ products, onExchangeRegistered }: ExchangeFormPro
     </Form>
   );
 }
-
-    

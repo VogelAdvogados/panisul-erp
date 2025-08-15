@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, updateDoc, doc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc, query, where, orderBy } from 'firebase/firestore';
 import {
   Table,
   TableHeader,
@@ -32,8 +32,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
-import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, XCircle, FileText, ShoppingBag, Repeat, DollarSign, User, Building, Mail, Phone, MapPin, CreditCard, Package, RefreshCw, Calendar, Eye, Loader2 } from 'lucide-react';
-import type { Customer, FinancialMovement } from '@/lib/types';
+import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, XCircle, FileText, ShoppingBag, Repeat, DollarSign, User, Building, Mail, Phone, MapPin, CreditCard, Package, RefreshCw, Calendar, Eye, Loader2, ArrowRight } from 'lucide-react';
+import type { Customer, FinancialMovement, Sale, Exchange, Product } from '@/lib/types';
 import PageHeader from '@/components/page-header';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -52,6 +52,8 @@ interface ClientListProps {
 
 export function ClientList({ customerToOpen }: ClientListProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsMap, setProductsMap] = useState<Map<string, Product>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -63,48 +65,72 @@ export function ClientList({ customerToOpen }: ClientListProps) {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerFinancials, setCustomerFinancials] = useState<FinancialMovement[]>([]);
-  const [isFinancialsLoading, setIsFinancialsLoading] = useState(false);
+  const [customerSales, setCustomerSales] = useState<Sale[]>([]);
+  const [customerExchanges, setCustomerExchanges] = useState<Exchange[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [isSettlingPayment, setIsSettlingPayment] = useState<string | null>(null);
   
   const { toast } = useToast();
   
-  const fetchCustomers = useCallback(async () => {
+  const fetchData = useCallback(async () => {
        setIsLoading(true);
        try {
-        const customersCollection = collection(db, 'customers');
-        const customersSnapshot = await getDocs(customersCollection);
+        const [customersSnapshot, productsSnapshot] = await Promise.all([
+            getDocs(collection(db, 'customers')),
+            getDocs(collection(db, 'products'))
+        ]);
         const customersList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
         setCustomers(customersList);
+
+        const productList = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        setProducts(productList);
+        setProductsMap(new Map(productList.map(p => [p.id, p])));
+
       } catch (error) {
          toast({
-            title: "Erro ao buscar clientes",
-            description: "Não foi possível carregar os clientes do banco de dados.",
+            title: "Erro ao buscar dados",
+            description: "Não foi possível carregar os clientes ou produtos.",
             variant: "destructive"
         });
-        console.error("Error fetching customers: ", error);
+        console.error("Error fetching data: ", error);
       } finally {
         setIsLoading(false);
       }
   }, [toast]);
 
   useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+    fetchData();
+  }, [fetchData]);
 
   const handleViewDetails = useCallback(async (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsDetailOpen(true);
-    setIsFinancialsLoading(true);
+    setIsHistoryLoading(true);
     try {
-        const movementsRef = collection(db, 'financialMovements');
-        const q = query(movementsRef, where('referenceId', '==', customer.id), where('type', '==', 'revenue'));
-        const querySnapshot = await getDocs(q);
-        const financials = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
+        // Fetch financials, sales, and exchanges in parallel
+        const financialsQuery = query(collection(db, 'financialMovements'), where('referenceId', '==', customer.id), where('type', '==', 'revenue'));
+        const salesQuery = query(collection(db, 'sales'), where('customerId', '==', customer.id), orderBy('date', 'desc'));
+        const exchangesQuery = query(collection(db, 'exchanges'), where('customerId', '==', customer.id), orderBy('date', 'desc'));
+
+        const [financialsSnapshot, salesSnapshot, exchangesSnapshot] = await Promise.all([
+            getDocs(financialsQuery),
+            getDocs(salesQuery),
+            getDocs(exchangesQuery)
+        ]);
+
+        const financials = financialsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
         setCustomerFinancials(financials.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()));
+        
+        const sales = salesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Sale);
+        setCustomerSales(sales);
+
+        const exchanges = exchangesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Exchange);
+        setCustomerExchanges(exchanges);
+
     } catch(err) {
-        toast({ title: "Erro ao buscar financeiro", description: "Não foi possível carregar o histórico financeiro do cliente."});
+        toast({ title: "Erro ao buscar histórico", description: "Não foi possível carregar o histórico completo do cliente."});
     } finally {
-        setIsFinancialsLoading(false);
+        setIsHistoryLoading(false);
     }
   }, [toast]);
 
@@ -179,7 +205,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     try {
         const result = await registerCustomer(customerData);
         toast({ title: "Sucesso!", description: result.message });
-        await fetchCustomers();
+        await fetchData();
         handleCloseForm();
     } catch(err) {
         const error = err as Error;
@@ -200,9 +226,8 @@ export function ClientList({ customerToOpen }: ClientListProps) {
         });
         toast({ title: "Sucesso!", description: result.message });
         
-        // Refresh data
-        await handleViewDetails(selectedCustomer); // Re-fetch financials
-        await fetchCustomers(); // Re-fetch all customers to update list view
+        await handleViewDetails(selectedCustomer);
+        await fetchData();
     } catch (err) {
         const error = err as Error;
         toast({ title: "Erro ao dar baixa", description: error.message, variant: 'destructive' });
@@ -427,7 +452,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                                     <CardDescription>Movimentações financeiras pendentes e pagas para este cliente.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    {isFinancialsLoading ? (
+                                    {isHistoryLoading ? (
                                         <div className='flex justify-center items-center h-40'><Loader2 className="h-8 w-8 animate-spin"/></div>
                                     ) : (
                                         <Table>
@@ -477,14 +502,72 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                                     <CardTitle>Compras Realizadas</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                   <p className='text-muted-foreground text-center py-8'>Em breve: Histórico de produtos comprados.</p>
+                                    {isHistoryLoading ? (
+                                         <div className='flex justify-center items-center h-40'><Loader2 className="h-8 w-8 animate-spin"/></div>
+                                    ) : (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Data</TableHead>
+                                                    <TableHead>Itens</TableHead>
+                                                    <TableHead className='text-right'>Valor Total</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {customerSales.map(sale => (
+                                                    <TableRow key={sale.id}>
+                                                        <TableCell>{new Date(sale.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
+                                                        <TableCell>
+                                                            <ul className='text-sm'>
+                                                                {sale.items.map((item, index) => <li key={index}>- {item.quantity}x {item.productName}</li>)}
+                                                            </ul>
+                                                        </TableCell>
+                                                        <TableCell className='text-right font-medium'>{sale.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                                {customerSales.length === 0 && (
+                                                    <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground">Nenhuma compra registrada para este cliente.</TableCell></TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    )}
                                 </CardContent>
                             </Card>
                         </TabsContent>
                         <TabsContent value="exchanges">
                              <Card>
                                 <CardHeader><CardTitle>Trocas Solicitadas</CardTitle></CardHeader>
-                                <CardContent><p className='text-muted-foreground text-center py-8'>Em breve: Histórico de trocas.</p></CardContent>
+                                <CardContent>
+                                    {isHistoryLoading ? (
+                                        <div className='flex justify-center items-center h-40'><Loader2 className="h-8 w-8 animate-spin"/></div>
+                                    ) : (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Data</TableHead>
+                                                    <TableHead>Troca Realizada</TableHead>
+                                                    <TableHead>Motivo</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {customerExchanges.map(exchange => (
+                                                    <TableRow key={exchange.id}>
+                                                        <TableCell>{new Date(exchange.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
+                                                        <TableCell className="font-medium flex items-center gap-2">
+                                                            <span className="text-red-600">{productsMap.get(exchange.returnedProductId)?.name || 'N/A'}</span>
+                                                            <ArrowRight className="h-4 w-4 text-muted-foreground"/>
+                                                            <span className="text-green-600">{productsMap.get(exchange.newProductId)?.name || 'N/A'}</span>
+                                                        </TableCell>
+                                                        <TableCell className='text-muted-foreground'>{exchange.reason}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                                {customerExchanges.length === 0 && (
+                                                     <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground">Nenhuma troca registrada para este cliente.</TableCell></TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    )}
+                                </CardContent>
                             </Card>
                         </TabsContent>
                     </Tabs>
@@ -494,5 +577,3 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     </>
   );
 }
-
-    

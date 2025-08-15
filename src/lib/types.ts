@@ -60,8 +60,14 @@ export interface FinancialMovement {
     type: MovementType;
     paymentDate?: string;
     category: ExpenseCategory;
-    referenceId?: string; // e.g., purchaseId or expenseId
+    referenceId?: string; // e.g., purchaseId or saleId
     sourceAccount: SourceAccount;
+}
+
+export interface PurchaseItem {
+    name: string;
+    quantity: number;
+    unitPrice: number;
 }
 
 export interface Purchase {
@@ -71,12 +77,25 @@ export interface Purchase {
     date: string;
     totalAmount: number;
     paymentMethod: PaymentMethod;
-    items: Array<{
-        name: string;
-        quantity: number;
-        unitPrice: number;
-    }>;
+    items: PurchaseItem[];
 }
+
+export interface SaleItem {
+    productId: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+}
+
+export interface Sale {
+    id: string;
+    customerId?: string;
+    date: string;
+    items: SaleItem[];
+    totalAmount: number;
+    paymentMethod: PaymentMethod;
+}
+
 
 export interface Ingredient {
     id: string;
@@ -101,6 +120,7 @@ export interface Recipe {
 export interface Exchange {
     id: string;
     date: string;
+    customerId?: string;
     returnedProductId: string;
     newProductId: string;
     reason: string;

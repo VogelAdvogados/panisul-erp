@@ -2,15 +2,15 @@
 'use server';
 
 /**
- * @fileOverview Registers a new sale, updating product stock and creating a financial revenue entry.
- * It also handles accounts receivable for sales on credit.
+ * @fileOverview Registers a new sale, creating a sale record, updating product stock, 
+ * and creating a financial revenue entry. It also handles accounts receivable for sales on credit.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, doc, runTransaction, increment } from 'firebase/firestore';
-import type { Product, FinancialMovement, Customer, SourceAccount } from '@/lib/types';
+import { collection, doc, runTransaction, increment, addDoc } from 'firebase/firestore';
+import type { Product, FinancialMovement, Customer, SourceAccount, Sale, SaleItem } from '@/lib/types';
 import { format } from 'date-fns';
 
 const SaleItemSchema = z.object({
@@ -71,14 +71,30 @@ const registerSaleFlow = ai.defineFlow(
         productNames.push(item.productName);
       }
       
-      // 2. Create the Financial Movement (revenue)
+      // 2. Create the Sale document
       const today = new Date();
-      const status = isSaleOnCredit ? 'pending' : 'paid';
+      const saleRef = doc(collection(db, 'sales'));
+      const saleData: Omit<Sale, 'id'> = {
+        customerId,
+        date: format(today, 'yyyy-MM-dd'),
+        items: items.map(i => ({
+            productId: i.productId,
+            productName: i.productName,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+        })),
+        totalAmount,
+        paymentMethod,
+      };
+      transaction.set(saleRef, saleData);
 
+      // 3. Create the Financial Movement (revenue)
+      const status = isSaleOnCredit ? 'pending' : 'paid';
+      const movementDescription = `Venda ${saleRef.id}: ${items.length} item(s) - ${productNames.slice(0, 2).join(', ')}${productNames.length > 2 ? '...' : ''}`;
+      
       const financialMovement: Omit<FinancialMovement, 'id'> = {
-        description: `Venda de ${items.length} item(s): ${productNames.slice(0, 2).join(', ')}${productNames.length > 2 ? '...' : ''}`,
-        // Critical Fix: Ensure referenceId is set to customerId for credit sales
-        referenceId: customerId || undefined, 
+        description: movementDescription,
+        referenceId: saleRef.id,
         dueDate: isSaleOnCredit ? dueDate : format(today, 'yyyy-MM-dd'),
         paymentDate: status === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
         amount: totalAmount,
@@ -88,10 +104,15 @@ const registerSaleFlow = ai.defineFlow(
         sourceAccount,
       };
       
+      // If sale is on credit, link financial movement to customer for receivable tracking
+      if (isSaleOnCredit && customerId) {
+        financialMovement.referenceId = customerId; 
+      }
+      
       const movementRef = doc(collection(db, 'financialMovements'));
       transaction.set(movementRef, financialMovement);
 
-      // 3. If it's a sale on credit to a specific customer, update their pending amount and other stats
+      // 4. If it's a sale to a specific customer, update their stats
       if (customerId) {
         const customerRef = doc(db, 'customers', customerId);
         const customerDoc = await transaction.get(customerRef);
@@ -99,7 +120,6 @@ const registerSaleFlow = ai.defineFlow(
             throw new Error(`Cliente ${customerId} não encontrado.`);
         }
         transaction.update(customerRef, {
-            // Only increment pending amount if the sale is on credit
             pendingAmount: isSaleOnCredit ? increment(totalAmount) : increment(0),
             lastPurchaseDate: format(today, 'dd/MM/yyyy'),
             totalOrders: increment(1),
@@ -107,11 +127,11 @@ const registerSaleFlow = ai.defineFlow(
         });
       }
 
-      return { saleId: movementRef.id, productNames };
+      return { saleId: saleRef.id, productNames };
     });
 
     return {
-      message: `Venda de ${items.length} item(s) no valor de ${totalAmount.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})} registrada com sucesso.`,
+      message: `Venda ${saleId} no valor de ${totalAmount.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})} registrada com sucesso.`,
       saleId,
     };
   }

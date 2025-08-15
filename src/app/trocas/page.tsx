@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import type { Product, Exchange } from '@/lib/types';
+import type { Product, Exchange, Customer } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { ExchangeForm } from './components/exchange-form';
@@ -17,6 +17,7 @@ import { ExchangeHistory } from './components/exchange-history';
 export default function TrocasPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [exchanges, setExchanges] = useState<(Exchange & { returnedProduct?: Product, newProduct?: Product })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -26,9 +27,10 @@ export default function TrocasPage() {
     try {
       const exchangesQuery = query(collection(db, 'exchanges'), orderBy('date', 'desc'));
 
-      const [productsSnapshot, exchangesSnapshot] = await Promise.all([
+      const [productsSnapshot, exchangesSnapshot, customersSnapshot] = await Promise.all([
         getDocs(collection(db, 'products')),
         getDocs(exchangesQuery),
+        getDocs(collection(db, 'customers')),
       ]);
       
       const productList = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
@@ -42,8 +44,11 @@ export default function TrocasPage() {
           newProduct: productsMap.get(data.newProductId),
         }
       });
+      
+      const customerList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
 
       setProducts(productList);
+      setCustomers(customerList);
       setExchanges(exchangeList);
 
     } catch (error) {
@@ -89,7 +94,8 @@ export default function TrocasPage() {
                 </div>
             ) : (
                 <ExchangeForm 
-                    products={products} 
+                    products={products}
+                    customers={customers} 
                     onExchangeRegistered={() => {
                         setIsFormOpen(false);
                         fetchData();
