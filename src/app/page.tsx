@@ -4,7 +4,6 @@ import {
   Landmark,
   Clock,
   AlertOctagon,
-  Package,
 } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import { QuickActions } from '@/components/dashboard/quick-actions';
@@ -19,63 +18,39 @@ import { LatestTransactions } from '@/components/dashboard/latest-transactions';
 
 async function getDashboardData() {
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
     today.setHours(0, 0, 0, 0);
-
+    const todayStr = format(today, 'yyyy-MM-dd');
+    
+    // To avoid complex queries, fetch movements for the day and process in code.
     const movementsRef = collection(db, 'financialMovements');
-    const ingredientsRef = collection(db, 'ingredients');
-
-    // Simplified queries to avoid complex composite indexes
     const movementsTodayQuery = query(movementsRef, where('dueDate', '==', todayStr));
     const paidTodayQuery = query(movementsRef, where('paymentDate', '==', todayStr));
-    
-    // Low stock ingredients (simplified: checking stock < 1000)
-    const lowStockQuery = query(ingredientsRef, where('stock', '<', 1000), limit(5));
-
-    // Latest transactions - Simplified query to avoid composite index
-    const latestTransactionsQuery = query(collection(db, "financialMovements"), orderBy("paymentDate", "desc"), limit(15));
 
     const [
         movementsTodaySnapshot,
-        paidTodaySnapshot,
-        lowStockSnapshot,
-        latestTransactionsSnapshot
+        paidTodaySnapshot
     ] = await Promise.all([
         getDocs(movementsTodayQuery),
-        getDocs(paidTodayQuery),
-        getDocs(lowStockQuery),
-        getDocs(latestTransactionsQuery),
+        getDocs(paidTodayQuery)
     ]);
-
+    
     const movementsToday = movementsTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);
     const paidToday = paidTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);
 
-    // Process data in the application
-    const totalPayableToday = movementsToday
-        .filter(m => m.status === 'pending' && m.type === 'expense')
-        .reduce((acc, m) => acc + m.amount, 0);
+    const totalPayableToday = movementsToday.filter(m => m.status === 'pending' && m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
+    const totalReceivableToday = movementsToday.filter(m => m.status === 'pending' && m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
+    const totalRevenueToday = paidToday.filter(m => m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
+    const totalExpenseToday = paidToday.filter(m => m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
 
-    const totalReceivableToday = movementsToday
-        .filter(m => m.status === 'pending' && m.type === 'revenue')
-        .reduce((acc, m) => acc + m.amount, 0);
-
-    const totalRevenueToday = paidToday
-        .filter(m => m.type === 'revenue')
-        .reduce((acc, m) => acc + m.amount, 0);
-    
-    const totalExpenseToday = paidToday
-        .filter(m => m.type === 'expense')
-        .reduce((acc, m) => acc + m.amount, 0);
-
-
+    // Fetch low stock items
+    const lowStockQuery = query(collection(db, 'ingredients'), where('stock', '<', 1000), limit(5));
+    const lowStockSnapshot = await getDocs(lowStockQuery);
     const lowStockItems = lowStockSnapshot.docs.map(doc => doc.data() as Ingredient);
-    
-    // Filter for paid transactions in code and take the first 5
-    const latestTransactions = latestTransactionsSnapshot.docs
-        .map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement)
-        .filter(t => t.status === 'paid')
-        .slice(0, 5);
 
+    // Fetch latest transactions
+    const latestTransactionsQuery = query(collection(db, "financialMovements"), where('status', '==', 'paid'), orderBy("paymentDate", "desc"), limit(5));
+    const latestTransactionsSnapshot = await getDocs(latestTransactionsQuery);
+    const latestTransactions = latestTransactionsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
 
     // Note: Cash and Bank balances would typically come from a separate 'accounts' collection
     // or be calculated based on all historical transactions. For simplicity, we use mock data here.
@@ -94,6 +69,9 @@ async function getDashboardData() {
     };
 }
 
+
+// Helper to format date, as it's not available in Server Components by default
+import { format } from 'date-fns';
 
 export default async function Dashboard() {
   const data = await getDashboardData();

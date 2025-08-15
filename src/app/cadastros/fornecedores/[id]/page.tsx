@@ -15,24 +15,31 @@ async function getSupplierData(id: string) {
 
     const supplier = { id: supplierDoc.id, ...supplierDoc.data() } as Supplier;
 
-    // Fetch related purchases
     const purchasesQuery = query(collection(db, 'purchases'), where('supplierId', '==', id), orderBy('date', 'desc'));
     const purchasesSnapshot = await getDocs(purchasesQuery);
     const purchases = purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+    const purchaseIds = purchases.map(p => p.id);
 
-    // Fetch related financial movements using purchase IDs
     let movements: FinancialMovement[] = [];
-    if (purchases.length > 0) {
-        // Firestore 'in' query is limited to 30 items. For larger sets, batching would be needed.
-        // For this app's scale, this is sufficient.
-        const purchaseIds = purchases.map(p => p.id);
-        const movementsQuery = query(collection(db, 'financialMovements'), where('referenceId', 'in', purchaseIds));
-        const movementsSnapshot = await getDocs(movementsQuery);
+    if (purchaseIds.length > 0) {
+        const batchSize = 30;
+        const batches = [];
+        for (let i = 0; i < purchaseIds.length; i += batchSize) {
+            batches.push(purchaseIds.slice(i, i + batchSize));
+        }
+
+        const movementPromises = batches.map(batch => {
+            const movementsQuery = query(collection(db, 'financialMovements'), where('referenceId', 'in', batch));
+            return getDocs(movementsQuery);
+        });
         
-        movements = movementsSnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement))
+        const allMovementSnapshots = await Promise.all(movementPromises);
+
+        movements = allMovementSnapshots
+            .flatMap(snapshot => snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement)))
             .sort((a,b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
     }
+
 
     return { supplier, purchases, movements };
 }

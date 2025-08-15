@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -22,11 +22,6 @@ import {
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-interface SidebarProps {
-  isCollapsed: boolean;
-  setIsCollapsed: (collapsed: boolean) => void;
-}
-
 const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, description: "Visão geral do negócio" },
     { href: '/operacoes', label: 'Painel do Dia', icon: ClipboardList, description: "Operações diárias" },
@@ -37,17 +32,17 @@ const menuItems = [
     { href: '/clientes', label: 'Clientes', icon: Users, description: "Cadastro e histórico" },
     { href: '/trocas', label: 'Trocas', icon: Repeat, description: "Registro de trocas" },
     { href: '/relatorios', label: 'Relatórios', icon: BarChart3, description: "Análises gerenciais" },
-    
 ];
 
-export function AppSidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
+export function AppSidebar() {
   const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          'bg-sidebar text-sidebar-foreground border-r border-sidebar-border fixed top-0 left-0 h-full z-50 flex flex-col transition-all duration-300 shadow-lg',
+          'bg-sidebar text-sidebar-foreground border-r border-sidebar-border sticky top-0 h-screen z-50 flex flex-col transition-all duration-300 shadow-lg',
           isCollapsed ? 'w-20' : 'w-72'
         )}
       >
