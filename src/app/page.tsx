@@ -20,48 +20,46 @@ import { LatestTransactions } from '@/components/dashboard/latest-transactions';
 import { format, startOfDay, endOfDay, isSameDay } from 'date-fns';
 
 async function getDashboardData() {
-    const today = new Date();
-    const startOfToday = startOfDay(today);
-    const endOfToday = endOfDay(today);
-    
-    // Fetch all movements that are potentially relevant for today.
-    // This is more efficient than multiple complex queries that require indexes.
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+    // More efficient queries
     const movementsRef = collection(db, 'financialMovements');
-    const recentMovementsQuery = query(
-        movementsRef,
-        where('dueDate', '>=', format(startOfToday, 'yyyy-MM-dd')),
-        orderBy('dueDate', 'asc')
-    );
+    const paidTodayQuery = query(movementsRef, where('paymentDate', '==', todayStr));
+    const dueTodayQuery = query(movementsRef, where('dueDate', '==', todayStr), where('status', '==', 'pending'));
+    const allMovementsQuery = query(movementsRef, where('status', '==', 'paid'));
+
 
     const [
+        paidTodaySnapshot,
+        dueTodaySnapshot,
         allMovementsSnapshot,
         lowStockSnapshot,
         latestTransactionsSnapshot,
     ] = await Promise.all([
-        getDocs(movementsRef), // Get all movements to calculate balances correctly
+        getDocs(paidTodayQuery),
+        getDocs(dueTodayQuery),
+        getDocs(allMovementsQuery), // For total balance calculation
         getDocs(query(collection(db, 'ingredients'), where('stock', '<', 1000), limit(5))),
         getDocs(query(collection(db, "financialMovements"), where('status', '==', 'paid'), orderBy("paymentDate", "desc"), limit(5)))
     ]);
-    
-    const allMovements = allMovementsSnapshot.docs.map(doc => doc.data() as FinancialMovement);
 
-    // Process data in application code - this is more flexible and avoids complex indexes
-    const paidToday = allMovements.filter(m => m.paymentDate && isSameDay(new Date(m.paymentDate), today));
-    const dueToday = allMovements.filter(m => m.dueDate && isSameDay(new Date(m.dueDate), today));
+    const paidToday = paidTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);
+    const dueToday = dueTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);
+    const allMovements = allMovementsSnapshot.docs.map(doc => doc.data() as FinancialMovement);
     
     const cashBalance = allMovements
-        .filter(m => m.sourceAccount === 'cash' && m.status === 'paid')
+        .filter(m => m.sourceAccount === 'cash')
         .reduce((acc, m) => acc + m.amount, 0);
 
     const bankBalance = allMovements
-        .filter(m => m.sourceAccount === 'bank' && m.status === 'paid')
+        .filter(m => m.sourceAccount === 'bank')
         .reduce((acc, m) => acc + m.amount, 0);
 
     const totalRevenueToday = paidToday.filter(m => m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
     const totalExpenseToday = paidToday.filter(m => m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
 
-    const totalPayableToday = dueToday.filter(m => m.status === 'pending' && m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
-    const totalReceivableToday = dueToday.filter(m => m.status === 'pending' && m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
+    const totalPayableToday = dueToday.filter(m => m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
+    const totalReceivableToday = dueToday.filter(m => m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
     
     const lowStockItems = lowStockSnapshot.docs.map(doc => doc.data() as Ingredient);
     const latestTransactions = latestTransactionsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
