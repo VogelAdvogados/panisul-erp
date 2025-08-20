@@ -19,6 +19,7 @@ const RegisterExpenseInputSchema = z.object({
   sourceAccount: z.enum(['cash', 'bank']),
   dueDate: z.string(),
   paymentStatus: z.enum(['pending', 'paid']),
+  employeeId: z.string().optional(),
 });
 
 const RegisterExpenseOutputSchema = z.object({
@@ -49,6 +50,7 @@ const registerExpenseFlow = ai.defineFlow(
       category: input.category as ExpenseCategory,
       sourceAccount: input.sourceAccount,
       type: 'expense',
+      employeeId: input.employeeId === 'none' ? undefined : input.employeeId,
     };
 
     const movementRef = await addDoc(collection(db, 'financialMovements'), financialMovement);

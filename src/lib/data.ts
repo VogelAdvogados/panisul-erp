@@ -54,7 +54,7 @@ const customersData: Omit<Customer, 'id'>[] = [
 export const expenseChartData: ExpenseChartItem[] = [
   { category: 'insumos', value: 2350.50, fill: expenseCategories.insumos.color },
   { category: 'salarios', value: 4800, fill: expenseCategories.salarios.color },
-  { category: 'infraestrutura', value: 620, fill: expenseCategories.infraestrutura.color },
+  { category: 'contas_consumo', value: 620, fill: expenseCategories.contas_consumo.color },
   { category: 'impostos', value: 950, fill: expenseCategories.impostos.color },
   { category: 'outros', value: 280, fill: expenseCategories.outros.color },
 ];
@@ -132,9 +132,9 @@ export const initialFinancialMovements: Omit<FinancialMovement, 'id'>[] = [
     { description: 'Venda para Padaria Central', referenceId: 'CUST-001', dueDate: '2024-06-20', amount: 245.00, status: 'pending', category: 'vendas', sourceAccount: 'bank', type: 'revenue' },
     { description: 'Compra de Insumos NFE-12345', referenceId: 'PUR-001', dueDate: '2024-06-15', amount: -1500, status: 'paid', paymentDate: '2024-06-14', category: 'insumos', sourceAccount: 'bank', type: 'expense' },
     { description: 'Compra de Insumos NFE-12360', referenceId: 'PUR-002', dueDate: '2024-05-20', amount: -850.50, status: 'pending', category: 'insumos', sourceAccount: 'bank', type: 'expense' },
-    { description: 'Conta de Energia', dueDate: '2024-06-10', amount: -450.80, status: 'paid', paymentDate: '2024-06-10', category: 'infraestrutura', sourceAccount: 'bank', type: 'expense' },
+    { description: 'Conta de Energia', dueDate: '2024-06-10', amount: -450.80, status: 'paid', paymentDate: '2024-06-10', category: 'contas_consumo', sourceAccount: 'bank', type: 'expense' },
     { description: 'Salários Funcionários', dueDate: '2024-06-05', amount: -4800, status: 'paid', paymentDate: '2024-06-05', category: 'salarios', sourceAccount: 'bank', type: 'expense' },
-    { description: 'Aluguel', dueDate: '2024-06-10', amount: -1200, status: 'pending', category: 'infraestrutura', sourceAccount: 'bank', type: 'expense' },
+    { description: 'Aluguel', dueDate: '2024-06-10', amount: -1200, status: 'pending', category: 'outros', sourceAccount: 'bank', type: 'expense' },
 ];
 
 

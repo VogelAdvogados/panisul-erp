@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { add, format } from 'date-fns';
@@ -37,8 +37,12 @@ import { expenseCategories } from '@/lib/categories';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { registerExpense } from '@/ai/flows/register-expense';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import type { Employee } from '@/lib/types';
+
 
 const formSchema = z.object({
   description: z.string().min(3, 'A descrição deve ter pelo menos 3 caracteres.'),
@@ -47,6 +51,7 @@ const formSchema = z.object({
   sourceAccount: z.enum(['cash', 'bank'], { required_error: 'Selecione a conta de origem.'}),
   dueDate: z.string().min(1, 'A data de vencimento é obrigatória.'),
   paymentStatus: z.enum(['pending', 'paid']),
+  employeeId: z.string().optional(),
 });
 
 export type ExpenseFormValues = z.infer<typeof formSchema>;
@@ -54,6 +59,7 @@ export type ExpenseFormValues = z.infer<typeof formSchema>;
 export default function NewExpensePage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
@@ -64,8 +70,31 @@ export default function NewExpensePage() {
       sourceAccount: 'bank',
       dueDate: format(new Date(), 'yyyy-MM-dd'),
       paymentStatus: 'paid',
+      employeeId: 'none',
     },
   });
+
+  const watchedCategory = useWatch({
+    control: form.control,
+    name: 'category',
+  });
+
+  const shouldShowEmployeeField = ['salarios', 'adiantamentos'].includes(watchedCategory);
+
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+        if (shouldShowEmployeeField) {
+            try {
+                const employeesSnapshot = await getDocs(collection(db, 'employees'));
+                setEmployees(employeesSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Employee)));
+            } catch (error) {
+                 toast({ title: "Erro ao buscar funcionários", variant: 'destructive' });
+            }
+        }
+    };
+    fetchEmployees();
+  }, [shouldShowEmployeeField, toast]);
 
   const onSubmit = async (data: ExpenseFormValues) => {
     setIsLoading(true);
@@ -97,7 +126,7 @@ export default function NewExpensePage() {
             <CardHeader>
               <CardTitle>Detalhes da Despesa</CardTitle>
               <CardDescription>
-                Preencha os campos abaixo para registrar uma nova despesa avulsa (Ex: aluguel, luz, salários).
+                Preencha os campos abaixo para registrar uma nova despesa avulsa.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -108,7 +137,7 @@ export default function NewExpensePage() {
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Ex: Conta de luz, Salário do padeiro..." {...field} disabled={isLoading} />
+                      <Textarea placeholder="Ex: Conta de luz, Salário do padeiro, Adiantamento de viagem..." {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -129,7 +158,7 @@ export default function NewExpensePage() {
                         </FormControl>
                         <SelectContent>
                           {Object.entries(expenseCategories).map(([key, value]) => {
-                             if (key === 'vendas') return null; // Hide 'vendas' from expense form
+                             if (key === 'vendas' || key === 'insumos') return null; // Hide from this form
                              return (
                                 <SelectItem key={key} value={key}>
                                 {value.label}
@@ -156,6 +185,33 @@ export default function NewExpensePage() {
                     )}
                 />
               </div>
+
+               {shouldShowEmployeeField && (
+                 <FormField
+                  control={form.control}
+                  name="employeeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Funcionário</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || employees.length === 0}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o funcionário" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Não vincular</SelectItem>
+                          {employees.map(emp => (
+                            <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  <FormField
                     control={form.control}
@@ -230,5 +286,3 @@ export default function NewExpensePage() {
     </div>
   );
 }
-
-    

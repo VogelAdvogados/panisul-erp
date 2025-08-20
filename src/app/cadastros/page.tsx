@@ -10,6 +10,7 @@ import { ProductList } from './components/product-list';
 import { IngredientList } from './components/ingredient-list';
 import { ClientList } from '../clientes/components/client-list';
 import { SalespersonList } from './components/salesperson-list';
+import { EmployeeList } from './components/employee-list';
 
 export default function CadastrosPage() {
   const searchParams = useSearchParams();
@@ -26,6 +27,7 @@ export default function CadastrosPage() {
               <TabsTrigger value="clients">Clientes</TabsTrigger>
               <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
               <TabsTrigger value="salespeople">Vendedores</TabsTrigger>
+              <TabsTrigger value="employees">Funcionários</TabsTrigger>
               <TabsTrigger value="recipes">Fichas Técnicas</TabsTrigger>
           </TabsList>
            <TabsContent value="products">
@@ -42,6 +44,9 @@ export default function CadastrosPage() {
           </TabsContent>
           <TabsContent value="salespeople">
             <SalespersonList />
+          </TabsContent>
+           <TabsContent value="employees">
+            <EmployeeList />
           </TabsContent>
           <TabsContent value="recipes">
             <RecipeList />

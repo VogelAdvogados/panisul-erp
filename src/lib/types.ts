@@ -25,7 +25,19 @@ export interface Customer {
   pendingAmount: number;
 }
 
-export type ExpenseCategory = 'insumos' | 'salarios' | 'infraestrutura' | 'marketing' | 'impostos' | 'outros' | 'vendas';
+export type ExpenseCategory = 
+    | 'insumos' 
+    | 'salarios' 
+    | 'contas_consumo'
+    | 'marketing' 
+    | 'impostos' 
+    | 'seguros'
+    | 'adiantamentos'
+    | 'servicos_terceiros'
+    | 'emprestimos'
+    | 'manutencao'
+    | 'outros' 
+    | 'vendas';
 
 export interface ExpenseChartItem {
   category: ExpenseCategory;
@@ -60,6 +72,7 @@ export interface FinancialMovement {
     paymentDate?: string;
     category: ExpenseCategory;
     referenceId?: string; // e.g., purchaseId or saleId
+    employeeId?: string;
     sourceAccount: SourceAccount;
 }
 
@@ -108,6 +121,15 @@ export interface Salesperson {
     name: string;
     phone: string;
     email: string;
+    admissionDate: string;
+    status: 'ativo' | 'inativo';
+}
+
+export interface Employee {
+    id: string;
+    name: string;
+    role: string;
+    salary: number;
     admissionDate: string;
     status: 'ativo' | 'inativo';
 }
