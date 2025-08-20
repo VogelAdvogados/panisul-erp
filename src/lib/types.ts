@@ -87,6 +87,8 @@ export interface SaleItem {
     unitPrice: number;
 }
 
+export type SaleChannel = 'interna' | 'externa_rota' | 'externa_feira' | 'externa_entrega';
+
 export interface Sale {
     id: string;
     customerId?: string;
@@ -94,6 +96,20 @@ export interface Sale {
     items: SaleItem[];
     totalAmount: number;
     paymentMethod: PaymentMethod;
+    status: 'concluida' | 'pendente';
+    channel: SaleChannel;
+    salespersonId?: string;
+    location?: string; // Rota/Região/Município
+    notes?: string;
+}
+
+export interface Salesperson {
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+    admissionDate: string;
+    status: 'ativo' | 'inativo';
 }
 
 

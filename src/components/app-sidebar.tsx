@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   Package,
   FileText,
+  Truck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -27,7 +28,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, description: "Visão geral do negócio" },
     { href: '/operacoes', label: 'Operações', icon: ClipboardList, description: "Produção e trocas" },
-    { href: '/pdv', label: 'Vendas (PDV)', icon: ShoppingBag, description: "Ponto de Venda para registrar vendas" },
+    { href: '/pdv', label: 'PDV (Venda Interna)', icon: ShoppingBag, description: "Ponto de Venda para registrar vendas no balcão" },
+    { href: '/vendas', label: 'Vendas Externas', icon: Truck, description: "Registro de vendas em rota, feiras e entregas" },
     { href: '/cadastros', label: 'Cadastros', icon: FileText, description: "Produtos, insumos, clientes, fornecedores e receitas" },
     { href: '/compras', label: 'Compras', icon: ShoppingCart, description: "Gestão e importação de compras" },
     { href: '/financeiro', label: 'Financeiro', icon: Wallet, description: "Contas e fluxo de caixa" },

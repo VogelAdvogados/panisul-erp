@@ -10,7 +10,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, doc, runTransaction, increment, addDoc } from 'firebase/firestore';
-import type { Product, FinancialMovement, Customer, SourceAccount, Sale, SaleItem } from '@/lib/types';
+import type { Product, FinancialMovement, Customer, SourceAccount, Sale, SaleItem, SaleChannel } from '@/lib/types';
 import { format } from 'date-fns';
 
 const SaleItemSchema = z.object({
@@ -27,6 +27,11 @@ const RegisterSaleInputSchema = z.object({
   sourceAccount: z.custom<SourceAccount>(),
   customerId: z.string().optional(),
   dueDate: z.string().optional(), // This indicates a credit sale if present
+  status: z.enum(['concluida', 'pendente']),
+  channel: z.custom<SaleChannel>(),
+  salespersonId: z.string().optional(),
+  location: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 
@@ -40,35 +45,39 @@ const registerSaleFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    const { items, totalAmount, paymentMethod, sourceAccount, customerId, dueDate } = input;
+    const { items, totalAmount, paymentMethod, sourceAccount, customerId, dueDate, channel, salespersonId, location, notes, status } = input;
     
     // A sale is on credit if a due date is provided.
     const isSaleOnCredit = !!dueDate;
 
     const { saleId, productNames } = await runTransaction(db, async (transaction) => {
       const productNames: string[] = [];
+      const isConcluded = status === 'concluida';
 
-      for (const item of items) {
-        const productRef = doc(db, 'products', item.productId);
-        const productDoc = await transaction.get(productRef);
+      // Only update stock if the sale is concluded
+      if (isConcluded) {
+        for (const item of items) {
+          const productRef = doc(db, 'products', item.productId);
+          const productDoc = await transaction.get(productRef);
 
-        if (!productDoc.exists()) {
-          throw new Error(`Produto ${item.productName} não encontrado.`);
+          if (!productDoc.exists()) {
+            throw new Error(`Produto ${item.productName} não encontrado.`);
+          }
+          const product = productDoc.data() as Product;
+
+          const currentStock = product.stock || 0;
+          if (currentStock < item.quantity) {
+            throw new Error(`Estoque insuficiente para ${product.name}. Disponível: ${currentStock}, Solicitado: ${item.quantity}`);
+          }
+          
+          // 1. Update product stock and sold count
+          transaction.update(productRef, { 
+            stock: increment(-item.quantity),
+            sold: increment(item.quantity)
+          });
+
+          productNames.push(item.productName);
         }
-        const product = productDoc.data() as Product;
-
-        const currentStock = product.stock || 0;
-        if (currentStock < item.quantity) {
-          throw new Error(`Estoque insuficiente para ${product.name}. Disponível: ${currentStock}, Solicitado: ${item.quantity}`);
-        }
-        
-        // 1. Update product stock and sold count
-        transaction.update(productRef, { 
-          stock: increment(-item.quantity),
-          sold: increment(item.quantity)
-        });
-
-        productNames.push(item.productName);
       }
       
       // 2. Create the Sale document
@@ -85,35 +94,43 @@ const registerSaleFlow = ai.defineFlow(
         })),
         totalAmount,
         paymentMethod,
+        status,
+        channel,
+        salespersonId: salespersonId === 'none' ? undefined : salespersonId,
+        location,
+        notes,
       };
       transaction.set(saleRef, saleData);
 
-      // 3. Create the Financial Movement (revenue)
-      const status = isSaleOnCredit ? 'pending' : 'paid';
-      const movementDescription = `Venda ${saleRef.id}: ${items.length} item(s) - ${productNames.slice(0, 2).join(', ')}${productNames.length > 2 ? '...' : ''}`;
-      
-      const financialMovement: Omit<FinancialMovement, 'id'> = {
-        description: movementDescription,
-        referenceId: saleRef.id,
-        dueDate: isSaleOnCredit ? dueDate : format(today, 'yyyy-MM-dd'),
-        paymentDate: status === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
-        amount: totalAmount,
-        status: status,
-        type: 'revenue',
-        category: 'vendas',
-        sourceAccount,
-      };
-      
-      // If sale is on credit, link financial movement to customer for receivable tracking
-      if (isSaleOnCredit && customerId) {
-        financialMovement.referenceId = customerId; 
+      // 3. Create the Financial Movement (revenue) only if the sale is concluded
+      if (isConcluded) {
+        const movementStatus = isSaleOnCredit ? 'pending' : 'paid';
+        const movementDescription = `Venda ${saleRef.id}: ${items.length} item(s) - ${productNames.slice(0, 2).join(', ')}${productNames.length > 2 ? '...' : ''}`;
+        
+        const financialMovement: Omit<FinancialMovement, 'id'> = {
+          description: movementDescription,
+          referenceId: saleRef.id,
+          dueDate: isSaleOnCredit ? dueDate : format(today, 'yyyy-MM-dd'),
+          paymentDate: movementStatus === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
+          amount: totalAmount,
+          status: movementStatus,
+          type: 'revenue',
+          category: 'vendas',
+          sourceAccount,
+        };
+        
+        // If sale is on credit, link financial movement to customer for receivable tracking
+        if (isSaleOnCredit && customerId) {
+          financialMovement.referenceId = customerId; 
+        }
+        
+        const movementRef = doc(collection(db, 'financialMovements'));
+        transaction.set(movementRef, financialMovement);
       }
-      
-      const movementRef = doc(collection(db, 'financialMovements'));
-      transaction.set(movementRef, financialMovement);
+
 
       // 4. If it's a sale to a specific customer, update their stats
-      if (customerId) {
+      if (customerId && isConcluded) {
         const customerRef = doc(db, 'customers', customerId);
         const customerDoc = await transaction.get(customerRef);
         if(!customerDoc.exists()){
