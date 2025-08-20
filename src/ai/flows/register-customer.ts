@@ -43,18 +43,23 @@ const registerCustomerFlow = ai.defineFlow(
     outputSchema: RegisterCustomerOutputSchema,
   },
   async (input) => {
-    let customerId = input.id;
+    const customerId = input.id;
     
     // Ensure email is an empty string if not provided, to avoid 'undefined' in Firestore.
     const customerPayload = {
-        ...input,
+        name: input.name,
         email: input.email || '',
+        phone: input.phone,
+        doc: input.doc,
+        address: input.address,
+        type: input.type,
+        status: input.status,
     };
     
     if (customerId) {
         // Update existing customer
         const customerRef = doc(db, 'customers', customerId);
-        await updateDoc(customerRef, { ...customerPayload });
+        await updateDoc(customerRef, customerPayload);
         return {
             customerId,
             message: `Cliente "${input.name}" atualizado com sucesso.`
