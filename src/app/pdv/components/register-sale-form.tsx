@@ -12,11 +12,14 @@ import { useToast } from '@/hooks/use-toast';
 import type { Customer } from '@/lib/types';
 import { registerSale } from '@/ai/flows/register-sale';
 import { useState, useEffect } from 'react';
-import { Loader2, ShoppingCart } from 'lucide-react';
+import { Loader2, ShoppingCart, UserSearch } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { format, addDays } from 'date-fns';
 import type { CartItem } from '../page';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 const RegisterSaleInputSchema = z.object({
   paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
@@ -38,6 +41,7 @@ type PaymentType = 'a_vista' | 'a_prazo';
 export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: RegisterSaleFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [paymentType, setPaymentType] = useState<PaymentType>('a_vista');
+  const [isCustomerPopoverOpen, setIsCustomerPopoverOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof RegisterSaleInputSchema>>({
@@ -74,12 +78,15 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
         }));
         
         const sourceAccount = data.paymentMethod === 'dinheiro' ? 'cash' : 'bank';
+        const isConcluded = form.getValues('status') === 'concluida';
 
         const payload = {
             ...data,
             items: itemsToSell,
             totalAmount: total,
             sourceAccount: sourceAccount,
+            channel: 'interna' as const,
+            status: 'concluida' as const,
             customerId: data.customerId === 'none' ? undefined : data.customerId,
             dueDate: isCreditSale ? data.dueDate : undefined,
         };
@@ -108,25 +115,63 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
           control={form.control}
           name="customerId"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>Cliente</FormLabel>
-               <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente (para vendas a prazo)" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                   <SelectItem value="none">Venda Avulsa / Consumidor Final</SelectItem>
-                   {customers.map(customer => (
-                    <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={isCustomerPopoverOpen} onOpenChange={setIsCustomerPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        "w-full justify-between",
+                        !field.value || field.value === 'none' && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value && field.value !== 'none'
+                        ? customers.find(c => c.id === field.value)?.name
+                        : "Consumidor Final"}
+                      <UserSearch className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <CommandInput placeholder="Buscar cliente..." />
+                    <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup>
+                            <CommandItem
+                                value="none"
+                                onSelect={() => {
+                                    form.setValue("customerId", "none");
+                                    setIsCustomerPopoverOpen(false);
+                                }}
+                                >
+                                Consumidor Final
+                            </CommandItem>
+                            {customers.map((customer) => (
+                            <CommandItem
+                                value={customer.name}
+                                key={customer.id}
+                                onSelect={() => {
+                                    form.setValue("customerId", customer.id);
+                                    setIsCustomerPopoverOpen(false);
+                                }}
+                            >
+                                {customer.name}
+                            </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
         />
+
 
         <div className="grid grid-cols-2 gap-4">
             <FormItem>
