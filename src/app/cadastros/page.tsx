@@ -8,14 +8,12 @@ import { RecipeList } from './components/recipe-list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProductList } from './components/product-list';
 import { IngredientList } from './components/ingredient-list';
-import { ClientList } from '../clientes/components/client-list';
 import { SalespersonList } from './components/salesperson-list';
 import { EmployeeList } from './components/employee-list';
 
 export default function CadastrosPage() {
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab') || 'products';
-  const customerToOpen = searchParams.get('open');
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
@@ -24,7 +22,6 @@ export default function CadastrosPage() {
           <TabsList>
               <TabsTrigger value="products">Produtos</TabsTrigger>
               <TabsTrigger value="ingredients">Insumos</TabsTrigger>
-              <TabsTrigger value="clients">Clientes</TabsTrigger>
               <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
               <TabsTrigger value="salespeople">Vendedores</TabsTrigger>
               <TabsTrigger value="employees">Funcionários</TabsTrigger>
@@ -35,9 +32,6 @@ export default function CadastrosPage() {
           </TabsContent>
           <TabsContent value="ingredients">
             <IngredientList />
-          </TabsContent>
-           <TabsContent value="clients">
-            <ClientList customerToOpen={customerToOpen} />
           </TabsContent>
            <TabsContent value="suppliers">
             <SupplierList />

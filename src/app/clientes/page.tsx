@@ -1,7 +1,16 @@
 
-import { redirect } from 'next/navigation';
+'use client';
 
-// This page is obsolete and redirects to the new unified "Cadastros" page.
+import { useSearchParams } from 'next/navigation';
+import { ClientList } from './components/client-list';
+
 export default function ClientesPage() {
-  redirect('/cadastros?tab=clients');
+  const searchParams = useSearchParams();
+  const customerToOpen = searchParams.get('open');
+
+  return (
+    <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
+      <ClientList customerToOpen={customerToOpen} />
+    </div>
+  );
 }
