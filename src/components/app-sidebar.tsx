@@ -26,7 +26,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, description: "Visão geral do negócio" },
-    { href: '/operacoes', label: 'Operações', icon: ClipboardList, description: "Vendas, produção e trocas" },
+    { href: '/operacoes', label: 'Operações', icon: ClipboardList, description: "Produção e trocas" },
+    { href: '/pdv', label: 'Vendas (PDV)', icon: ShoppingBag, description: "Ponto de Venda para registrar vendas" },
     { href: '/cadastros', label: 'Cadastros', icon: FileText, description: "Produtos, insumos, clientes, fornecedores e receitas" },
     { href: '/compras', label: 'Compras', icon: ShoppingCart, description: "Gestão e importação de compras" },
     { href: '/financeiro', label: 'Financeiro', icon: Wallet, description: "Contas e fluxo de caixa" },
