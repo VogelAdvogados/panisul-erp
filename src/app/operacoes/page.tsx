@@ -55,7 +55,7 @@ export default function OperacoesPage() {
                     Registrar Produção
                 </Button>
                  <Button asChild>
-                    <Link href="/vendas/pdv">
+                    <Link href="/pdv">
                         <ShoppingCart className="mr-2 h-4 w-4" />
                         Ir para o Ponto de Venda
                     </Link>
@@ -88,7 +88,7 @@ export default function OperacoesPage() {
               <CardFooter className="p-4 pt-0 flex flex-col gap-2">
                 <div className='flex gap-2 w-full'>
                     <Button size="sm" className="w-full bg-green-500 hover:bg-green-600" asChild>
-                        <Link href="/vendas/pdv">
+                        <Link href="/pdv">
                             <ShoppingCart className='h-4 w-4 mr-2'/>
                             Vender
                         </Link>
