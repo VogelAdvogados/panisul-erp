@@ -12,7 +12,6 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { ExternalSaleForm } from './components/external-sale-form';
 import { SalesHistory } from './components/sales-history';
-import { CartItem } from '../pdv/page';
 
 
 export default function VendasExternasPage() {
@@ -22,7 +21,6 @@ export default function VendasExternasPage() {
   const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const [cart, setCart] = useState<CartItem[]>([]);
 
    const fetchData = useCallback(async () => {
     setIsLoading(true);

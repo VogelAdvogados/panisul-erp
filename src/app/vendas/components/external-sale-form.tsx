@@ -303,10 +303,12 @@ export function ExternalSaleForm({ products, customers, salespeople, onSaleRegis
             <p className='font-bold text-2xl text-primary'>{totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
         </div>
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-            {isLoading ? 'Registrando...' : 'Confirmar Venda'}
-        </Button>
+        <div className="w-full flex justify-end">
+            <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
+                {isLoading ? 'Registrando...' : 'Confirmar Venda'}
+            </Button>
+        </div>
       </form>
     </Form>
   );

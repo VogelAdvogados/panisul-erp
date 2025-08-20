@@ -230,7 +230,7 @@ export default function PdvPage() {
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Finalizar Venda</DialogTitle>
+            <DialogTitle>Finalizar Venda: {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</DialogTitle>
             <DialogDescription>
               Selecione o cliente (se houver) e a forma de pagamento para concluir a venda.
             </DialogDescription>
