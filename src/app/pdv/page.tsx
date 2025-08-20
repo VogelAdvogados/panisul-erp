@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import type { Product, Customer } from '@/lib/types';
@@ -103,9 +103,14 @@ export default function PdvPage() {
       fetchData(); // Refresh product stock
   }
 
-  const total = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  const total = useMemo(() => {
+    return cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  }, [cart]);
+  
 
-  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [products, searchTerm]);
 
   if (isLoading) {
     return (
@@ -117,13 +122,15 @@ export default function PdvPage() {
 
   return (
     <>
-      <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
-        <PageHeader title="Ponto de Venda (PDV)" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="flex flex-col h-screen">
+        <div className="p-4 sm:p-6 lg:p-8 border-b">
+            <PageHeader title="Ponto de Venda (PDV)" />
+        </div>
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start p-4 sm:p-6 lg:p-8 overflow-hidden">
           
           {/* Products List */}
-          <div className="lg:col-span-2">
-            <Card>
+          <div className="lg:col-span-2 h-full flex flex-col">
+            <Card className='flex-1 flex flex-col'>
               <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle>Selecione os Produtos</CardTitle>
@@ -138,50 +145,52 @@ export default function PdvPage() {
                     </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[60vh]">
-                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filteredProducts.map(product => (
-                      <Card 
-                        key={product.id} 
-                        className={`shadow-sm hover:shadow-md transition-shadow cursor-pointer ${product.stock === 0 ? 'opacity-50' : ''}`}
-                        onClick={() => addToCart(product)}
-                      >
-                        <CardHeader className="p-0">
-                           <div className="aspect-video w-full flex items-center justify-center bg-muted rounded-t-lg overflow-hidden">
-                               <Package className="h-10 w-10 text-muted-foreground" />
-                           </div>
-                        </CardHeader>
-                        <CardContent className="p-3">
-                           <h3 className="font-semibold truncate">{product.name}</h3>
-                           <p className="text-sm text-muted-foreground">Estoque: {product.stock}</p>
-                           <p className="text-md font-bold">{product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {filteredProducts.length === 0 && (
-                        <div className="col-span-full text-center py-12 text-muted-foreground">
-                            <XCircle className='mx-auto h-12 w-12' />
-                            <p className='mt-4'>Nenhum produto encontrado com este nome.</p>
-                        </div>
-                    )}
-                  </div>
+              <CardContent className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full">
+                  {filteredProducts.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pr-4">
+                        {filteredProducts.map(product => (
+                        <Card 
+                            key={product.id} 
+                            className={`shadow-sm hover:shadow-md transition-shadow cursor-pointer ${product.stock === 0 ? 'opacity-50' : ''}`}
+                            onClick={() => addToCart(product)}
+                        >
+                            <CardHeader className="p-0">
+                            <div className="aspect-video w-full flex items-center justify-center bg-muted rounded-t-lg overflow-hidden">
+                                <Package className="h-10 w-10 text-muted-foreground" />
+                            </div>
+                            </CardHeader>
+                            <CardContent className="p-3">
+                            <h3 className="font-semibold truncate">{product.name}</h3>
+                            <p className="text-sm text-muted-foreground">Estoque: {product.stock}</p>
+                            <p className="text-md font-bold">{product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                            </CardContent>
+                        </Card>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="col-span-full text-center py-12 text-muted-foreground h-full flex flex-col justify-center items-center">
+                        <XCircle className='mx-auto h-12 w-12' />
+                        <p className='mt-4 font-semibold'>Nenhum produto encontrado</p>
+                        <p className='text-sm'>Tente refinar sua busca.</p>
+                    </div>
+                  )}
                 </ScrollArea>
               </CardContent>
             </Card>
           </div>
 
           {/* Cart */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-4">
+          <div className="lg:col-span-1 h-full">
+            <Card className="sticky top-4 flex flex-col h-full">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><ShoppingCart /> Carrinho</CardTitle>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[45vh]">
+              <CardContent className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full pr-4">
                     {cart.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            <p>Seu carrinho está vazio.</p>
+                        <div className="text-center py-12 text-muted-foreground h-full flex flex-col justify-center items-center">
+                            <p className='font-medium'>Seu carrinho está vazio.</p>
                             <p className='text-sm'>Clique em um produto para adicionar.</p>
                         </div>
                     ) : (
@@ -209,7 +218,7 @@ export default function PdvPage() {
                     )}
                 </ScrollArea>
               </CardContent>
-              <CardFooter className="flex-col space-y-4">
+              <CardFooter className="flex-col space-y-4 border-t pt-4">
                 <div className="w-full flex justify-between text-lg font-bold">
                     <span>Total:</span>
                     <span>{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>

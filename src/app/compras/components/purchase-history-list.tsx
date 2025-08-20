@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import {
@@ -26,6 +26,7 @@ export function PurchaseHistoryList() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [suppliers, setSuppliers] = useState<Record<string, Supplier>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
   const fetchData = useCallback(async () => {
@@ -42,7 +43,6 @@ export function PurchaseHistoryList() {
           return acc;
       }, {} as Record<string, Supplier>);
 
-      // Sort purchases by date in descending order
       purchasesList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       setPurchases(purchasesList);
@@ -64,11 +64,20 @@ export function PurchaseHistoryList() {
     fetchData();
   }, [fetchData]);
 
-
   const getSupplierName = (supplierId: string) => {
     return suppliers[supplierId]?.name || 'Fornecedor Desconhecido';
   };
-  
+
+  const filteredPurchases = useMemo(() => {
+    return purchases.filter(p => {
+        const supplierName = getSupplierName(p.supplierId).toLowerCase();
+        const invoiceNumber = p.invoiceNumber.toLowerCase();
+        const searchLower = searchTerm.toLowerCase();
+        return supplierName.includes(searchLower) || invoiceNumber.includes(searchLower);
+    })
+  }, [purchases, searchTerm, suppliers]);
+
+
   const getOverallStatus = (movements: FinancialMovement[]): {variant: 'default' | 'secondary' | 'destructive' | 'outline', text: string} => {
     const total = movements?.length || 0;
     if (total === 0) return { variant: 'outline', text: 'N/A' };
@@ -112,7 +121,7 @@ export function PurchaseHistoryList() {
             </div>
             <div className="relative w-full max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Buscar por fornecedor ou nota..." className="pl-10"/>
+                <Input placeholder="Buscar por fornecedor ou nota..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
         </div>
       </CardHeader>
@@ -131,7 +140,7 @@ export function PurchaseHistoryList() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {purchases.map((purchase) => {
+                {filteredPurchases.map((purchase) => {
                     const status = getOverallStatus(purchase.financialMovements || []);
                     return (
                         <TableRow key={purchase.id}>
@@ -173,7 +182,7 @@ export function PurchaseHistoryList() {
                         </TableRow>
                     )
                 })}
-                {purchases.length === 0 && (
+                {filteredPurchases.length === 0 && (
                     <TableRow>
                         <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                             Nenhuma compra encontrada.
