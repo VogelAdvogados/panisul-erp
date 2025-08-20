@@ -5,8 +5,8 @@ import { Plus, ChefHat, Receipt, Upload, Repeat, ShoppingBag } from 'lucide-reac
 import Link from 'next/link';
 
 const actions = [
-    { label: 'Nova Venda', icon: ShoppingBag, href: '/operacoes?action=vender', color: 'bg-green-500 hover:bg-green-600' },
-    { label: 'Nova Produção', icon: ChefHat, href: '/operacoes?action=produzir', color: 'bg-blue-500 hover:bg-blue-600' },
+    { label: 'Nova Venda', icon: ShoppingBag, href: '/pdv', color: 'bg-green-500 hover:bg-green-600' },
+    { label: 'Nova Produção', icon: ChefHat, href: '/operacoes', color: 'bg-blue-500 hover:bg-blue-600' },
     { label: 'Nova Despesa', icon: Receipt, href: '/financeiro/despesas/nova', color: 'bg-red-500 hover:bg-red-600' },
     { label: 'Importar Compra', icon: Upload, href: '/compras', color: 'bg-purple-500 hover:bg-purple-600' },
 ]
