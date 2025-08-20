@@ -15,5 +15,6 @@ import '@/ai/flows/analyze-financials.ts';
 import '@/ai/flows/analyze-sales.ts';
 import '@/ai/flows/analyze-supplier-history.ts';
 import '@/ai/flows/adjust-stock.ts';
+import '@/ai/flows/transfer-funds.ts';
     
     
