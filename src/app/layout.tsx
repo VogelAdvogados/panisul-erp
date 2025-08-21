@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 const ptSans = PT_Sans({
   subsets: ['latin'],
   weight: ['400', '700'],
-  variable: '--font-sans',
+  display: 'swap',
 });
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={cn(
           "min-h-screen bg-background font-sans antialiased",
-          ptSans.variable
+          ptSans.className
         )}>
         <div className="flex min-h-screen">
           <AppSidebar />
