@@ -1,5 +1,5 @@
 
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
@@ -13,7 +13,16 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+let app: FirebaseApp;
+try {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+} catch (error) {
+    console.error("Falha ao inicializar o Firebase. Verifique a configuração.", error);
+    // Em um cenário real, você poderia lançar o erro novamente ou ter um fallback.
+    // Para depuração, o log é o mais importante.
+    app = {} as FirebaseApp; // Evita erros de "não inicializado" em outras partes do código.
+}
+
 const db = getFirestore(app);
 const auth = getAuth(app);
 
