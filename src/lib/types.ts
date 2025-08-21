@@ -6,6 +6,8 @@ export interface Product {
     produced: number;
     sold: number;
     price: number;
+    cost?: number;
+    unitOfMeasure?: string;
 }
 
 export interface Customer {
@@ -141,8 +143,6 @@ export interface Ingredient {
     stock: number; // in grams, ml, or units
     unitOfMeasure: 'g' | 'kg' | 'ml' | 'l' | 'un';
     cost: number; // cost per unit of measure (e.g., cost per gram)
-    produced: number;
-    sold: number;
 }
 
 export interface RecipeItem {

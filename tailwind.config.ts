@@ -12,7 +12,6 @@ export default {
     extend: {
       fontFamily: {
         sans: ['var(--font-sans)', 'sans-serif'],
-        headline: ['"PT Sans"', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
