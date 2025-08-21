@@ -19,6 +19,8 @@ import { LatestTransactions } from '@/components/dashboard/latest-transactions';
 // Helper to format date, as it's not available in Server Components by default
 import { format, startOfDay, endOfDay, isSameDay } from 'date-fns';
 
+export const revalidate = 60; // Revalidate the dashboard every 60 seconds
+
 async function getDashboardData() {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
 
