@@ -11,7 +11,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"PT Sans"', 'sans-serif'],
+        // Configura a família de fontes 'sans' para usar a variável CSS '--font-sans',
+        // que é fornecida pelo layout.tsx. Isso garante uma integração estável.
+        sans: ['var(--font-sans)', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
