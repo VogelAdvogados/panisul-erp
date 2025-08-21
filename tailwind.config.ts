@@ -12,7 +12,8 @@ export default {
     extend: {
       fontFamily: {
         // Configura a família de fontes 'sans' para usar a variável CSS '--font-sans',
-        // que é fornecida pelo layout.tsx. Isso garante uma integração estável.
+        // que é fornecida pelo layout.tsx. Isso garante uma integração estável e robusta,
+        // eliminando a causa do erro 'trimEnd' durante o build.
         sans: ['var(--font-sans)', 'sans-serif'],
       },
       colors: {
