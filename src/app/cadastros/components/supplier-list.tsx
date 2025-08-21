@@ -236,11 +236,11 @@ export function SupplierList() {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="cnpj" className="text-right">CNPJ</Label>
-                        <Input id="cnpj" name="cnpj" defaultValue={editingSupplier?.cnpj} className="col-span-3" required/>
+                        <Input id="cnpj" name="cnpj" defaultValue={editingSupplier?.cnpj || ''} className="col-span-3" required/>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="contact" className="text-right">Contato</Label>
-                        <Input id="contact" name="contact" defaultValue={editingSupplier?.contact} className="col-span-3" required />
+                        <Input id="contact" name="contact" defaultValue={editingSupplier?.contact || ''} className="col-span-3" required />
                     </div>
                 </div>
                     <DialogFooter>
