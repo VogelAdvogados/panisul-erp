@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 
+// Revalidate this page at most once every hour
+export const revalidate = 3600;
 
 async function getSupplierData(id: string) {
     const supplierDocRef = doc(db, 'suppliers', id);
