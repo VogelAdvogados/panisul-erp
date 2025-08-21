@@ -242,15 +242,15 @@ export function SalespersonList() {
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="name" className="text-right">Nome</Label>
-                        <Input id="name" name="name" defaultValue={editingSalesperson?.name} className="col-span-3" required />
+                        <Input id="name" name="name" defaultValue={editingSalesperson?.name || ''} className="col-span-3" required />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="phone" className="text-right">Telefone</Label>
-                        <Input id="phone" name="phone" defaultValue={editingSalesperson?.phone} className="col-span-3" required/>
+                        <Input id="phone" name="phone" defaultValue={editingSalesperson?.phone || ''} className="col-span-3" required/>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="email" className="text-right">Email</Label>
-                        <Input id="email" name="email" type="email" defaultValue={editingSalesperson?.email} className="col-span-3" required/>
+                        <Input id="email" name="email" type="email" defaultValue={editingSalesperson?.email || ''} className="col-span-3" required/>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="status" className="text-right">Status</Label>

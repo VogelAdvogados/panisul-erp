@@ -240,19 +240,19 @@ export function EmployeeList() {
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="name" className="text-right">Nome</Label>
-                        <Input id="name" name="name" defaultValue={editingEmployee?.name} className="col-span-3" required />
+                        <Input id="name" name="name" defaultValue={editingEmployee?.name || ''} className="col-span-3" required />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="role" className="text-right">Cargo</Label>
-                        <Input id="role" name="role" defaultValue={editingEmployee?.role} className="col-span-3" required/>
+                        <Input id="role" name="role" defaultValue={editingEmployee?.role || ''} className="col-span-3" required/>
                     </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="salary" className="text-right">Salário</Label>
-                        <Input id="salary" name="salary" type="number" step="0.01" defaultValue={editingEmployee?.salary} className="col-span-3" required/>
+                        <Input id="salary" name="salary" type="number" step="0.01" defaultValue={editingEmployee?.salary || 0} className="col-span-3" required/>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="admissionDate" className="text-right">Data Admissão</Label>
-                        <Input id="admissionDate" name="admissionDate" type="date" defaultValue={editingEmployee?.admissionDate} className="col-span-3" required/>
+                        <Input id="admissionDate" name="admissionDate" type="date" defaultValue={editingEmployee?.admissionDate || ''} className="col-span-3" required/>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="status" className="text-right">Status</Label>
