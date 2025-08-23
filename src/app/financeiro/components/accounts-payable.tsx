@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import {
   Table,
   TableHeader,
@@ -42,7 +42,7 @@ export function AccountsPayable() {
     const fetchMovements = useCallback(async () => {
         setIsLoading(true);
         try {
-            const movementList = ((await getDocs(collection('financialMovements'))) as Array<FinancialMovement & { id: string }>)
+            const movementList = ((await getDocs(collection(db, 'financialMovements'))) as Array<FinancialMovement & { id: string }>)
                 .filter(m => m.type === 'expense')
                 .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
             setMovements(movementList);

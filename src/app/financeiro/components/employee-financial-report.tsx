@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import type { FinancialMovement, Employee } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -31,7 +31,7 @@ export function EmployeeFinancialReport() {
 
   useEffect(() => {
     const fetchEmployees = async () => {
-      const snap = (await getDocs(collection('employees'))) as Array<Employee & { id: string }>;
+      const snap = (await getDocs(collection(db, 'employees'))) as Array<Employee & { id: string }>;
       setEmployees(snap);
     };
     fetchEmployees();
@@ -40,7 +40,7 @@ export function EmployeeFinancialReport() {
   const fetchReport = async () => {
     setIsLoading(true);
     try {
-      const movements = ((await getDocs(collection('financialMovements'))) as Array<FinancialMovement & { id: string }>)
+      const movements = ((await getDocs(collection(db, 'financialMovements'))) as Array<FinancialMovement & { id: string }>)
         .filter(
           m =>
             !!m.paymentDate &&

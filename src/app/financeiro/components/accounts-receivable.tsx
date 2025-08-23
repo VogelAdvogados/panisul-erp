@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import {
   Table,
   TableHeader,
@@ -29,7 +29,7 @@ export function AccountsReceivable() {
     const fetchReceivables = async () => {
       setIsLoading(true);
       try {
-        const accountsList = ((await getDocs(collection('customers'))) as Array<Customer & { id: string }>).
+        const accountsList = ((await getDocs(collection(db, 'customers'))) as Array<Customer & { id: string }>).
           filter(c => c.pendingAmount > 0);
         setAccounts(accountsList);
       } catch (error) {

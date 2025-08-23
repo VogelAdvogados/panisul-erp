@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import type { Product, Customer } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -33,8 +33,8 @@ export default function PdvPage() {
     setIsLoading(true);
     try {
       const [productList, customerList] = await Promise.all([
-        getDocs(collection('products')) as Promise<Array<Product & { id: string }>>,
-        getDocs(collection('customers')) as Promise<Array<Customer & { id: string }>>,
+        getDocs(collection(db, 'products')) as Promise<Array<Product & { id: string }>>,
+        getDocs(collection(db, 'customers')) as Promise<Array<Customer & { id: string }>>,
       ]);
       setProducts(productList);
       setCustomers(customerList);

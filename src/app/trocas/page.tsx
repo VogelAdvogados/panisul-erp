@@ -9,7 +9,7 @@ import { PlusCircle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Exchange, Customer } from '@/lib/types';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import { ExchangeForm } from './components/exchange-form';
 import { ExchangeHistory } from './components/exchange-history';
 
@@ -26,9 +26,9 @@ export default function TrocasPage() {
     setIsLoading(true);
     try {
       const [productList, exchangeListRaw, customerList] = await Promise.all([
-        getDocs(collection('products')) as Promise<Array<Product & { id: string }>>,
-        getDocs(collection('exchanges')) as Promise<Array<Exchange & { id: string }>>,
-        getDocs(collection('customers')) as Promise<Array<Customer & { id: string }>>,
+        getDocs(collection(db, 'products')) as Promise<Array<Product & { id: string }>>,
+        getDocs(collection(db, 'exchanges')) as Promise<Array<Exchange & { id: string }>>,
+        getDocs(collection(db, 'customers')) as Promise<Array<Customer & { id: string }>>,
       ]);
 
       const productsMap = new Map(productList.map(p => [p.id, p]));

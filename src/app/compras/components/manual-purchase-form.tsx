@@ -14,7 +14,7 @@ import { FilePlus2, Trash, CheckCircle2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { PaymentMethod, SourceAccount, Supplier, Ingredient } from '@/lib/types';
 import { add, addDays, format } from 'date-fns';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import { registerManualPurchase } from '@/services/register-manual-purchase';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -51,8 +51,8 @@ export function ManualPurchaseForm() {
         setIsDataLoading(true);
         try {
             const [suppliersSnapshot, ingredientsSnapshot] = await Promise.all([
-                getDocs(collection('suppliers')) as Promise<Array<Supplier & { id: string }>>,
-                getDocs(collection('ingredients')) as Promise<Array<Ingredient & { id: string }>>,
+                getDocs(collection(db, 'suppliers')) as Promise<Array<Supplier & { id: string }>>,
+                getDocs(collection(db, 'ingredients')) as Promise<Array<Ingredient & { id: string }>>,
             ]);
             setSuppliers(suppliersSnapshot);
             setIngredients(ingredientsSnapshot);

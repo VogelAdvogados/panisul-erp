@@ -9,7 +9,7 @@ import { PlusCircle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Customer, Salesperson } from '@/lib/types';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import { ExternalSaleForm } from './components/external-sale-form';
 import { SalesHistory } from './components/sales-history';
 
@@ -26,9 +26,9 @@ export default function VendasExternasPage() {
     setIsLoading(true);
     try {
       const [productList, customerList, salespersonList] = await Promise.all([
-        getDocs(collection('products')) as Promise<Array<Product & { id: string }>>,
-        getDocs(collection('customers')) as Promise<Array<Customer & { id: string }>>,
-        getDocs(collection('salespeople')) as Promise<Array<Salesperson & { id: string }>>,
+        getDocs(collection(db, 'products')) as Promise<Array<Product & { id: string }>>,
+        getDocs(collection(db, 'customers')) as Promise<Array<Customer & { id: string }>>,
+        getDocs(collection(db, 'salespeople')) as Promise<Array<Salesperson & { id: string }>>,
       ]);
 
       setProducts(productList);

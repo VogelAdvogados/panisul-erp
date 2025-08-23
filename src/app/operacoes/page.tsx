@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, ShoppingCart, Package, RefreshCw, Eye, ShoppingBag, SlidersHorizontal } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import type { Product, Customer, Ingredient } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -25,8 +25,8 @@ export default function OperacoesPage() {
   const fetchData = useCallback(async () => {
     try {
         const [productList, ingredientList] = await Promise.all([
-            getDocs(collection('products')) as Promise<Array<Product & { id: string }>>,
-            getDocs(collection('ingredients')) as Promise<Array<Ingredient & { id: string }>>,
+            getDocs(collection(db, 'products')) as Promise<Array<Product & { id: string }>>,
+            getDocs(collection(db, 'ingredients')) as Promise<Array<Ingredient & { id: string }>>,
         ]);
         setProducts(productList);
         setIngredients(ingredientList);
