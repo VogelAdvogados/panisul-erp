@@ -17,16 +17,21 @@ export type RegisterEmployeeInput = z.infer<typeof RegisterEmployeeInputSchema>;
 export async function registerEmployee(
   input: RegisterEmployeeInput
 ): Promise<{ employeeId: string; message: string }> {
-  const employeeId = input.id;
-  const employeePayload = { ...input };
+  const { id, ...employeePayload } = input;
 
-  if (employeeId) {
-    const employeeRef = doc('employees', employeeId);
+  if (id) {
+    const employeeRef = doc('employees', id);
     await updateDoc(employeeRef, employeePayload);
-    return { employeeId, message: `Funcionário "${input.name}" atualizado com sucesso.` };
+    return {
+      employeeId: id,
+      message: `Funcionário "${employeePayload.name}" atualizado com sucesso.`,
+    };
   }
 
-  const newEmployeeData: Omit<Employee, 'id'> = { ...employeePayload };
+  const newEmployeeData: Omit<Employee, 'id'> = employeePayload;
   const employeeRef = await addDoc('employees', newEmployeeData);
-  return { employeeId: employeeRef.id, message: `Funcionário "${input.name}" cadastrado com sucesso.` };
+  return {
+    employeeId: employeeRef.id,
+    message: `Funcionário "${employeePayload.name}" cadastrado com sucesso.`,
+  };
 }
