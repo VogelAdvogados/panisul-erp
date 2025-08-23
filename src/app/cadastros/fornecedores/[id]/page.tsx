@@ -1,12 +1,10 @@
-// @ts-nocheck
-
-// @ts-nocheck
 import { SupplierDetail } from './components/supplier-detail';
 import { db, collection, doc, getDoc, getDocs, query, where, orderBy } from '@/lib/netly';
 import type { Supplier, Purchase, FinancialMovement } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
+import type { PageProps } from 'next';
 
 // Revalidate this page at most once every hour
 export const revalidate = 3600;
@@ -16,11 +14,12 @@ async function getSupplierData(id: string) {
     const supplierDoc = await getDoc(supplierDocRef);
     if (!supplierDoc.exists()) return null;
 
-    const supplier = { id: supplierDoc.id, ...supplierDoc.data() } as Supplier;
+    const supplierData = supplierDoc.data() as Record<string, unknown>;
+    const supplier = { id: supplierDoc.id, ...supplierData } as Supplier;
 
     const purchasesQuery = query(collection(db, 'purchases'), where('supplierId', '==', id), orderBy('date', 'desc'));
     const purchasesSnapshot = await getDocs(purchasesQuery);
-    const purchases = purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+    const purchases = purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) } as Purchase));
     const purchaseIds = purchases.map(p => p.id);
 
     let movements: FinancialMovement[] = [];
@@ -39,7 +38,7 @@ async function getSupplierData(id: string) {
         const allMovementSnapshots = await Promise.all(movementPromises);
 
         movements = allMovementSnapshots
-            .flatMap(snapshot => snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement)))
+            .flatMap(snapshot => snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) } as FinancialMovement)))
             .sort((a,b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
     }
 
@@ -48,8 +47,9 @@ async function getSupplierData(id: string) {
 }
 
 
-export default async function SupplierDetailPage({ params }: { params: { id: string } }) {
-  const data = await getSupplierData(params.id);
+export default async function SupplierDetailPage({ params }: PageProps<{ id: string }>) {
+  const { id } = await params;
+  const data = await getSupplierData(id);
 
   if (!data) {
     return (
