@@ -12,6 +12,7 @@ import { AccountsPayable } from './components/accounts-payable';
 import { AccountsReceivable } from './components/accounts-receivable';
 import { TransactionsList } from './components/transactions-list';
 import { LatestTransactions } from './components/latest-transactions';
+import { EmployeeMovementsReport } from './components/employee-movements-report';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
@@ -58,6 +59,7 @@ export default function FinanceiroPage() {
                 <TabsTrigger value="receivable">Contas a Receber</TabsTrigger>
                 <TabsTrigger value="payable">Contas a Pagar</TabsTrigger>
                 <TabsTrigger value="movements">Movimentações</TabsTrigger>
+                <TabsTrigger value="employees">Por Funcionário</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="mt-6 space-y-6">
               <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
@@ -143,6 +145,9 @@ export default function FinanceiroPage() {
             </TabsContent>
             <TabsContent value="movements">
               <TransactionsList accountFilter={accountFilter} />
+            </TabsContent>
+            <TabsContent value="employees">
+              <EmployeeMovementsReport />
             </TabsContent>
         </Tabs>
       </div>
