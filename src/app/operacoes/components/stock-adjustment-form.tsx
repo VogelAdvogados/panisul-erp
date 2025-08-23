@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Ingredient } from '@/lib/types';
-import { adjustStock } from '@/ai/flows/adjust-stock';
+import { adjustStock } from '@/services/adjust-stock';
 import { useState } from 'react';
 import { Loader2, Package, Droplets, SlidersHorizontal } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';

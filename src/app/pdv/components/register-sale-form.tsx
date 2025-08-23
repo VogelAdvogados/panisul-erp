@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer } from '@/lib/types';
-import { registerSale } from '@/ai/flows/register-sale';
+import { registerSale } from '@/services/register-sale';
 import { useState, useEffect } from 'react';
 import { Loader2, ShoppingCart, UserSearch } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';

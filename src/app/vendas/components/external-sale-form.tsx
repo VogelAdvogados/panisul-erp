@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, addDays } from 'date-fns';
-import type { Product, Customer, Salesperson, SaleChannel } from '@/lib/types';
+import type { Product, Customer, Salesperson, SaleChannel, SourceAccount } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Trash, PlusCircle, ShoppingCart } from 'lucide-react';
-import { registerSale } from '@/ai/flows/register-sale';
+import { registerSale } from '@/services/register-sale';
 
 const saleItemSchema = z.object({
   productId: z.string().min(1, 'Selecione um produto.'),
@@ -89,7 +89,7 @@ export function ExternalSaleForm({ products, customers, salespeople, onSaleRegis
             }
         });
 
-        const sourceAccount = data.paymentMethod === 'dinheiro' ? 'cash' : 'bank';
+        const sourceAccount: SourceAccount = data.paymentMethod === 'dinheiro' ? 'cash' : 'bank';
 
         const payload = {
             ...data,

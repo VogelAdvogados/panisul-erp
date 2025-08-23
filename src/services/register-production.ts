@@ -1,0 +1,62 @@
+// @ts-nocheck
+'use server';
+
+import { z } from 'zod';
+import { db, collection, doc, runTransaction, getDoc, increment } from '@/lib/netly';
+import type { Recipe, Ingredient, Product } from '@/lib/types';
+
+const RegisterProductionInputSchema = z.object({
+  productId: z.string().describe('The ID of the product being produced.'),
+  quantity: z.number().int().positive().describe('The quantity of the product being produced.'),
+});
+export type RegisterProductionInput = z.infer<typeof RegisterProductionInputSchema>;
+
+export async function registerProduction(
+  input: RegisterProductionInput
+): Promise<{ message: string }> {
+  const { productId, quantity } = input;
+
+  const productName = await runTransaction(db, async (transaction) => {
+    const productRef = doc(db, 'products', productId);
+    const recipeRef = doc(db, 'recipes', productId);
+    const [productDoc, recipeDoc] = await Promise.all([
+      transaction.get(productRef),
+      transaction.get(recipeRef),
+    ]);
+    if (!productDoc.exists()) {
+      throw new Error(`Produto com ID ${productId} não encontrado.`);
+    }
+    if (!recipeDoc.exists()) {
+      throw new Error(`Ficha técnica para o produto ${productDoc.data().name} não encontrada.`);
+    }
+    const product = productDoc.data() as Product;
+    const recipe = recipeDoc.data() as Recipe;
+
+    for (const item of recipe.items) {
+      const ingredientRef = doc(db, 'ingredients', item.ingredientId);
+      const ingredientDoc = await transaction.get(ingredientRef);
+      if (!ingredientDoc.exists()) {
+        throw new Error(`Insumo com ID ${item.ingredientId} da receita não foi encontrado.`);
+      }
+      const ingredient = ingredientDoc.data() as Ingredient;
+      const currentStock = ingredient.stock || 0;
+      const requiredStock = item.quantity * quantity;
+      if (currentStock < requiredStock) {
+        throw new Error(
+          `Estoque insuficiente para o insumo "${ingredient.name}". Necessário: ${requiredStock}${ingredient.unitOfMeasure}, Disponível: ${currentStock}${ingredient.unitOfMeasure}`,
+        );
+      }
+      transaction.update(ingredientRef, { stock: increment(-requiredStock) });
+    }
+
+    transaction.update(productRef, {
+      stock: increment(quantity),
+      produced: increment(quantity),
+    });
+    return product.name;
+  });
+
+  return {
+    message: `${quantity} unidade(s) de ${productName} registradas com sucesso. Estoques de produtos e insumos foram atualizados.`,
+  };
+}

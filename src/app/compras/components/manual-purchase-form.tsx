@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { PaymentMethod, SourceAccount, Supplier, Ingredient } from '@/lib/types';
 import { add, addDays, format } from 'date-fns';
 import { db, collection, getDocs } from '@/lib/netly';
-import { registerManualPurchase } from '@/ai/flows/register-manual-purchase';
+import { registerManualPurchase } from '@/services/register-manual-purchase';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 

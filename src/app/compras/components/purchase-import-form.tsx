@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Upload } from 'lucide-react';
-import { importPurchaseData } from '@/ai/flows/import-purchase-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -43,40 +42,12 @@ export function PurchaseImportForm() {
     }
 
     setIsLoading(true);
-
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async (event) => {
-      try {
-        const fileDataUri = event.target?.result as string;
-        const response = await importPurchaseData({
-          fileDataUri,
-          fileType,
-        });
-        toast({
-            title: 'Importação Concluída!',
-            description: response.message,
-        })
-        form.reset();
-      } catch (error) {
-        console.error(error);
-        toast({
-          variant: 'destructive',
-          title: 'Erro na Automação',
-          description: error instanceof Error ? error.message : 'Não foi possível processar e salvar o arquivo automaticamente.',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    reader.onerror = () => {
-        toast({
-          variant: 'destructive',
-          title: 'Erro ao ler arquivo',
-          description: 'Não foi possível ler o arquivo selecionado.',
-        });
-        setIsLoading(false);
-    }
+    toast({
+      variant: 'destructive',
+      title: 'Função indisponível',
+      description: 'A importação automática foi desativada.',
+    });
+    setIsLoading(false);
   };
 
   return (

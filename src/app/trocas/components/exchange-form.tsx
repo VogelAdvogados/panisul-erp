@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { Loader2, Repeat } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { registerExchange } from '@/ai/flows/register-exchange';
+import { registerExchange } from '@/services/register-exchange';
 
 const formSchema = z.object({
   customerId: z.string().optional(),

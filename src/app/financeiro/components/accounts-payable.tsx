@@ -30,7 +30,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { settleExpense } from '@/ai/flows/settle-expense';
+import { settleExpense } from '@/services/settle-expense';
 
 export function AccountsPayable() {
     const [movements, setMovements] = useState<FinancialMovement[]>([]);
