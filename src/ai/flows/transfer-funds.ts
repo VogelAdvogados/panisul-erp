@@ -8,7 +8,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import type { FinancialMovement, SourceAccount } from '@/lib/types';
 import { format } from 'date-fns';
 
