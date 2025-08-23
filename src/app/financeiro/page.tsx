@@ -15,12 +15,12 @@ import { LatestTransactions } from './components/latest-transactions';
 import { EmployeeFinancialReport } from './components/employee-financial-report';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { TransferFundsForm } from './components/transfer-funds-form';
 
 
-export default function FinanceiroPage() {
+function FinanceiroPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'overview';
@@ -163,5 +163,13 @@ export default function FinanceiroPage() {
           </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+export default function FinanceiroPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <FinanceiroPageContent />
+    </Suspense>
   );
 }
