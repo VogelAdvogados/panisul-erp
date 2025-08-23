@@ -315,7 +315,11 @@ export function ClientList({ customerToOpen }: ClientListProps) {
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredCustomers.map((customer) => (
-                <Card key={customer.id} className="shadow-sm hover:shadow-lg transition-shadow">
+                <Card
+                    key={customer.id}
+                    className="shadow-sm hover:shadow-lg transition-shadow cursor-pointer"
+                    onClick={() => handleViewDetails(customer)}
+                >
                     <CardHeader className="flex flex-row items-start justify-between">
                         <div className="flex items-center gap-4">
                             <div className="bg-primary/10 text-primary p-3 rounded-full">
