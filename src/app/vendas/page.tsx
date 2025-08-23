@@ -8,8 +8,7 @@ import { PlusCircle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Customer, Salesperson } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { db, collection, getDocs, orderBy, query } from '@/lib/netly';
 import { ExternalSaleForm } from './components/external-sale-form';
 import { SalesHistory } from './components/sales-history';
 

@@ -10,8 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { db, collection, doc, getDoc, getDocs, query, where } from '@/lib/netly';
 import type { Supplier, Purchase, FinancialMovement } from '@/lib/types';
 
 // Tool to get basic supplier details

@@ -2,8 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
+import { db, collection, getDocs, query, orderBy, where } from '@/lib/netly';
 import {
   Table,
   TableHeader,

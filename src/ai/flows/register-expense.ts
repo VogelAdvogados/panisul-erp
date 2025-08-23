@@ -7,8 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { db, collection, addDoc } from '@/lib/netly';
 import type { FinancialMovement, ExpenseCategory, SourceAccount } from '@/lib/types';
 import { format } from 'date-fns';
 

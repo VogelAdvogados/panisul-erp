@@ -8,8 +8,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, increment, runTransaction, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { db, collection, addDoc, doc, updateDoc, increment, runTransaction, getDoc, getDocs, query, where } from '@/lib/netly';
 import type { Purchase, FinancialMovement, Ingredient, Supplier } from '@/lib/types';
 import { format, addMonths } from 'date-fns';
 

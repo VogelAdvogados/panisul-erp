@@ -8,8 +8,7 @@ import { PlusCircle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Exchange, Customer } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { db, collection, getDocs, orderBy, query } from '@/lib/netly';
 import { ExchangeForm } from './components/exchange-form';
 import { ExchangeHistory } from './components/exchange-history';
 

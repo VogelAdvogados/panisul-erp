@@ -7,8 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { db, collection, addDoc, updateDoc, doc } from '@/lib/netly';
 import type { Employee } from '@/lib/types';
 import { format } from 'date-fns';
 

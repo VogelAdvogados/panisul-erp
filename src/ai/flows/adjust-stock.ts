@@ -7,8 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
-import { doc, runTransaction, increment } from 'firebase/firestore';
+import { db, doc, runTransaction, increment } from '@/lib/netly';
 
 const AdjustStockInputSchema = z.object({
   itemId: z.string().describe('The ID of the product or ingredient to adjust.'),
