@@ -45,7 +45,7 @@ const registerCustomerFlow = ai.defineFlow(
   async (input) => {
     const customerId = input.id;
     
-    // Ensure email is an empty string if not provided, to avoid 'undefined' in Firestore.
+    // Default email to an empty string when missing to keep Netly's data consistent.
     const customerPayload = {
         name: input.name,
         email: input.email || '',
