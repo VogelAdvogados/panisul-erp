@@ -1,3 +1,4 @@
+// @ts-nocheck
 
 // @ts-nocheck
 import { SupplierDetail } from './components/supplier-detail';
