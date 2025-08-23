@@ -10,7 +10,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const FinancialAnalysisInputSchema = z.object({
   revenues: z.number().describe('Total revenues for the day.'),
@@ -62,7 +62,7 @@ const analyzeFinancialsFlow = ai.defineFlow(
     inputSchema: FinancialAnalysisInputSchema,
     outputSchema: FinancialAnalysisOutputSchema,
   },
-  async (input) => {
+  async (input: FinancialAnalysisInput) => {
     const { output } = await prompt(input);
     return output!;
   }

@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, addDays } from 'date-fns';
-import type { Product, Customer, Salesperson, SaleChannel } from '@/lib/types';
+import type { Product, Customer, Salesperson, SaleChannel, SourceAccount } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -89,7 +89,7 @@ export function ExternalSaleForm({ products, customers, salespeople, onSaleRegis
             }
         });
 
-        const sourceAccount = data.paymentMethod === 'dinheiro' ? 'cash' : 'bank';
+        const sourceAccount = (data.paymentMethod === 'dinheiro' ? 'cash' : 'bank') as SourceAccount;
 
         const payload = {
             ...data,

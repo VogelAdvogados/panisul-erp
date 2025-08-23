@@ -36,7 +36,7 @@ const registerProductionFlow = ai.defineFlow(
     inputSchema: RegisterProductionInputSchema,
     outputSchema: RegisterProductionOutputSchema,
   },
-  async ({ productId, quantity }) => {
+  async ({ productId, quantity }: RegisterProductionInput) => {
     
     const productName = await runTransaction(db, async (transaction) => {
         // 1. Get the product and its recipe

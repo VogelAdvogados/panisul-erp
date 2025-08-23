@@ -35,16 +35,19 @@ const adjustStockFlow = ai.defineFlow(
     inputSchema: AdjustStockInputSchema,
     outputSchema: AdjustStockOutputSchema,
   },
-  async ({ itemId, itemType, adjustmentType, quantity }) => {
+  async ({ itemId, itemType, adjustmentType, quantity }: AdjustStockInput) => {
     
     const collectionPath = itemType === 'product' ? 'products' : 'ingredients';
     const itemRef = doc(db, collectionPath, itemId);
 
+    let itemName = 'item';
     await runTransaction(db, async (transaction) => {
         const itemDoc = await transaction.get(itemRef);
         if (!itemDoc.exists()) {
             throw new Error(`Item with ID ${itemId} not found in ${collectionPath}.`);
         }
+
+        itemName = (itemDoc.data() as any)?.name || 'item';
 
         let stockChange = 0;
         switch (adjustmentType) {
@@ -62,7 +65,7 @@ const adjustStockFlow = ai.defineFlow(
     });
 
     return {
-        message: `Estoque de ${itemDoc.data()?.name || 'item'} ajustado com sucesso.`,
+        message: `Estoque de ${itemName} ajustado com sucesso.`,
     };
   }
 );

@@ -24,13 +24,15 @@ const RegisterCustomerInputSchema = z.object({
     notes: z.string().optional(),
 });
 
+type RegisterCustomerInput = z.infer<typeof RegisterCustomerInputSchema>;
+
 const RegisterCustomerOutputSchema = z.object({
   customerId: z.string(),
   message: z.string(),
 });
 
 export async function registerCustomer(
-  input: z.infer<typeof RegisterCustomerInputSchema>
+  input: RegisterCustomerInput
 ): Promise<z.infer<typeof RegisterCustomerOutputSchema>> {
   return registerCustomerFlow(input);
 }
@@ -42,7 +44,7 @@ const registerCustomerFlow = ai.defineFlow(
     inputSchema: RegisterCustomerInputSchema,
     outputSchema: RegisterCustomerOutputSchema,
   },
-  async (input) => {
+  async (input: RegisterCustomerInput) => {
     const customerId = input.id;
     
     // Ensure email is an empty string if not provided, to avoid 'undefined' in Firestore.

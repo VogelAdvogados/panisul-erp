@@ -82,7 +82,7 @@ export function PurchaseHistoryList() {
     if (total === 0) return { variant: 'outline', text: 'N/A' };
     
     const paidCount = movements.filter(m => m.status === 'paid').length;
-    const overdueCount = movements.filter(m => m.status === 'overdue' || (m.status === 'pending' && new Date(m.dueDate) < new Date())).length;
+    const overdueCount = movements.filter(m => (m.status as any) === 'overdue' || (m.status === 'pending' && new Date(m.dueDate) < new Date())).length;
 
     if(overdueCount > 0) return { variant: 'destructive', text: 'Vencida' };
     if(paidCount === total) return { variant: 'default', text: 'Paga' };

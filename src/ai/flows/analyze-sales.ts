@@ -10,7 +10,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const ProductSaleSchema = z.object({
   productId: z.string(),
@@ -77,7 +77,7 @@ const analyzeSalesFlow = ai.defineFlow(
     inputSchema: SalesAnalysisInputSchema,
     outputSchema: SalesAnalysisOutputSchema,
   },
-  async (input) => {
+  async (input: SalesAnalysisInput) => {
     const { output } = await prompt(input);
     return output!;
   }

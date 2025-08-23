@@ -17,12 +17,14 @@ const SettleCustomerPaymentInputSchema = z.object({
   amount: z.number().describe('The amount being paid.'),
 });
 
+type SettleCustomerPaymentInput = z.infer<typeof SettleCustomerPaymentInputSchema>;
+
 const SettleCustomerPaymentOutputSchema = z.object({
   message: z.string(),
 });
 
 export async function settleCustomerPayment(
-  input: z.infer<typeof SettleCustomerPaymentInputSchema>
+  input: SettleCustomerPaymentInput
 ): Promise<z.infer<typeof SettleCustomerPaymentOutputSchema>> {
   return settleCustomerPaymentFlow(input);
 }
@@ -33,7 +35,7 @@ const settleCustomerPaymentFlow = ai.defineFlow(
     inputSchema: SettleCustomerPaymentInputSchema,
     outputSchema: SettleCustomerPaymentOutputSchema,
   },
-  async ({ movementId, customerId, amount }) => {
+  async ({ movementId, customerId, amount }: SettleCustomerPaymentInput) => {
     
     await runTransaction(db, async (transaction) => {
       const movementRef = doc(db, 'financialMovements', movementId);

@@ -15,12 +15,14 @@ const SettleExpenseInputSchema = z.object({
   movementId: z.string().describe('The ID of the financial movement to be settled.'),
 });
 
+type SettleExpenseInput = z.infer<typeof SettleExpenseInputSchema>;
+
 const SettleExpenseOutputSchema = z.object({
   message: z.string(),
 });
 
 export async function settleExpense(
-  input: z.infer<typeof SettleExpenseInputSchema>
+  input: SettleExpenseInput
 ): Promise<z.infer<typeof SettleExpenseOutputSchema>> {
   return settleExpenseFlow(input);
 }
@@ -31,7 +33,7 @@ const settleExpenseFlow = ai.defineFlow(
     inputSchema: SettleExpenseInputSchema,
     outputSchema: SettleExpenseOutputSchema,
   },
-  async ({ movementId }) => {
+  async ({ movementId }: SettleExpenseInput) => {
     
     await runTransaction(db, async (transaction) => {
       const movementRef = doc(db, 'financialMovements', movementId);

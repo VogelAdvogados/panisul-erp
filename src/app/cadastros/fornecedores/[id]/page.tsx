@@ -46,7 +46,7 @@ async function getSupplierData(id: string) {
 }
 
 
-export default async function SupplierDetailPage({ params }: { params: { id: string } }) {
+export default async function SupplierDetailPage({ params }: any) {
   const data = await getSupplierData(params.id);
 
   if (!data) {

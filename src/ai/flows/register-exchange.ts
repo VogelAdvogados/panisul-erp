@@ -41,7 +41,7 @@ const registerExchangeFlow = ai.defineFlow(
     inputSchema: RegisterExchangeInputSchema,
     outputSchema: RegisterExchangeOutputSchema,
   },
-  async ({ customerId, returnedProductId, newProductId, reason, returnedProductStatus }) => {
+  async ({ customerId, returnedProductId, newProductId, reason, returnedProductStatus }: RegisterExchangeInput) => {
     
     const exchangeId = await runTransaction(db, async (transaction) => {
         const returnedProductRef = doc(db, 'products', returnedProductId);

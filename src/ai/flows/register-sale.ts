@@ -34,6 +34,8 @@ const RegisterSaleInputSchema = z.object({
 });
 
 
+type RegisterSaleInput = z.infer<typeof RegisterSaleInputSchema>;
+
 const registerSaleFlow = ai.defineFlow(
   {
     name: 'registerSaleFlow',
@@ -43,7 +45,7 @@ const registerSaleFlow = ai.defineFlow(
       saleId: z.string(),
     }),
   },
-  async (input) => {
+  async (input: RegisterSaleInput) => {
     const { items, totalAmount, paymentMethod, sourceAccount, customerId, dueDate, channel, salespersonId, location, notes, status } = input;
     
     // A sale is on credit if a due date is provided.

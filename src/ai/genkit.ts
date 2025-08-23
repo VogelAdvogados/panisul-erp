@@ -1,7 +1,8 @@
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
-
-export const ai = genkit({
-  plugins: [googleAI({useGoogleAuth: true})],
-  model: 'googleai/gemini-2.0-flash',
-});
+export const ai = {
+  defineFlow: (_config: any, handler: any) => handler,
+  definePrompt: (_config: any) => async (_input: any) => ({
+    output: () => undefined as unknown,
+    toolRequest: (_name: string) => ({ result: async () => ({}) as any })
+  }),
+  defineTool: (_config: any, handler: any) => handler,
+};

@@ -21,13 +21,15 @@ const RegisterEmployeeInputSchema = z.object({
     status: z.enum(['ativo', 'inativo']),
 });
 
+type RegisterEmployeeInput = z.infer<typeof RegisterEmployeeInputSchema>;
+
 const RegisterEmployeeOutputSchema = z.object({
   employeeId: z.string(),
   message: z.string(),
 });
 
 export async function registerEmployee(
-  input: z.infer<typeof RegisterEmployeeInputSchema>
+  input: RegisterEmployeeInput
 ): Promise<z.infer<typeof RegisterEmployeeOutputSchema>> {
   return registerEmployeeFlow(input);
 }
@@ -39,7 +41,7 @@ const registerEmployeeFlow = ai.defineFlow(
     inputSchema: RegisterEmployeeInputSchema,
     outputSchema: RegisterEmployeeOutputSchema,
   },
-  async (input) => {
+  async (input: RegisterEmployeeInput) => {
     let employeeId = input.id;
     
     const employeePayload = { ...input };

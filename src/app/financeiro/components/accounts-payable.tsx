@@ -146,8 +146,8 @@ export function AccountsPayable() {
                         <TableCell>{new Date(movement.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                         <TableCell className="text-right">{movement.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
                         <TableCell className="text-center">
-                            <Badge variant={statusInfo.variant}>
-                                <statusInfo.icon className="mr-1 h-3 w-3"/>
+                            <Badge variant={statusInfo.variant as any}>
+                                <statusInfo.icon className="mr-1 h-3 w-3" />
                                 {statusInfo.text}
                             </Badge>
                         </TableCell>

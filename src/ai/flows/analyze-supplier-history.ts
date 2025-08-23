@@ -9,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { db, collection, doc, getDoc, getDocs, query, where } from '@/lib/netly';
 import type { Supplier, Purchase, FinancialMovement } from '@/lib/types';
 
@@ -21,7 +21,7 @@ const getSupplierDetailsTool = ai.defineTool(
         inputSchema: z.string().describe('The supplier ID.'),
         outputSchema: z.custom<Supplier>(),
     },
-    async (supplierId) => {
+    async (supplierId: string) => {
         const docRef = doc(db, 'suppliers', supplierId);
         const docSnap = await getDoc(docRef);
         if (!docSnap.exists()) {
@@ -39,7 +39,7 @@ const getSupplierPurchasesTool = ai.defineTool(
         inputSchema: z.string().describe('The supplier ID.'),
         outputSchema: z.array(z.custom<Purchase>()),
     },
-    async (supplierId) => {
+    async (supplierId: string) => {
         const q = query(collection(db, 'purchases'), where('supplierId', '==', supplierId));
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
@@ -54,7 +54,7 @@ const getFinancialMovementsForPurchasesTool = ai.defineTool(
         inputSchema: z.array(z.string()).describe('An array of purchase IDs.'),
         outputSchema: z.array(z.custom<FinancialMovement>()),
     },
-    async (purchaseIds) => {
+    async (purchaseIds: string[]) => {
         if (purchaseIds.length === 0) return [];
         const q = query(collection(db, 'financialMovements'), where('referenceId', 'in', purchaseIds));
         const querySnapshot = await getDocs(q);
@@ -96,7 +96,7 @@ const analyzeSupplierHistoryFlow = ai.defineFlow(
     inputSchema: z.string(),
     outputSchema: AnalysisSchema,
   },
-  async (supplierId) => {
+  async (supplierId: string) => {
     const response = await prompt(supplierId);
     return response.output()!;
   }

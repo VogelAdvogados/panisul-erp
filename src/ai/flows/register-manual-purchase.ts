@@ -30,13 +30,15 @@ const RegisterManualPurchaseInputSchema = z.object({
   totalAmount: z.number(),
 });
 
+type RegisterManualPurchaseInput = z.infer<typeof RegisterManualPurchaseInputSchema>;
+
 const RegisterManualPurchaseOutputSchema = z.object({
   purchaseId: z.string(),
   message: z.string(),
 });
 
 export async function registerManualPurchase(
-  input: z.infer<typeof RegisterManualPurchaseInputSchema>
+  input: RegisterManualPurchaseInput
 ): Promise<z.infer<typeof RegisterManualPurchaseOutputSchema>> {
   return registerManualPurchaseFlow(input);
 }
@@ -47,7 +49,7 @@ const registerManualPurchaseFlow = ai.defineFlow(
     inputSchema: RegisterManualPurchaseInputSchema,
     outputSchema: RegisterManualPurchaseOutputSchema,
   },
-  async (input) => {
+  async (input: RegisterManualPurchaseInput) => {
 
     const supplierDoc = await getDoc(doc(db, 'suppliers', input.supplierId));
     if (!supplierDoc.exists()) {

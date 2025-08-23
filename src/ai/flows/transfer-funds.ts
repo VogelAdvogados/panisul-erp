@@ -23,12 +23,14 @@ const TransferFundsInputSchema = z.object({
 });
 
 
+type TransferFundsInput = z.infer<typeof TransferFundsInputSchema>;
+
 const TransferFundsOutputSchema = z.object({
   message: z.string(),
 });
 
 export async function transferFunds(
-  input: z.infer<typeof TransferFundsInputSchema>
+  input: TransferFundsInput
 ): Promise<z.infer<typeof TransferFundsOutputSchema>> {
   return transferFundsFlow(input);
 }
@@ -40,7 +42,7 @@ const transferFundsFlow = ai.defineFlow(
     inputSchema: TransferFundsInputSchema,
     outputSchema: TransferFundsOutputSchema,
   },
-  async ({ fromAccount, toAccount, amount, date, notes }) => {
+  async ({ fromAccount, toAccount, amount, date, notes }: TransferFundsInput) => {
     
     const batch = writeBatch(db);
     const movementsRef = collection(db, 'financialMovements');

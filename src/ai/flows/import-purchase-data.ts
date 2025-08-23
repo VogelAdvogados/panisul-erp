@@ -7,7 +7,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from 'zod';
 import { db, collection, addDoc, doc, updateDoc, increment, runTransaction, getDoc, getDocs, query, where } from '@/lib/netly';
 import type { Purchase, FinancialMovement, Ingredient, Supplier } from '@/lib/types';
 import { format, addMonths } from 'date-fns';
@@ -59,7 +59,7 @@ const findSupplierAndIngredientsTool = ai.defineTool(
             ingredientIds: z.array(z.string().optional()),
         }),
     },
-    async ({ supplierName, itemNames }) => {
+    async ({ supplierName, itemNames }: { supplierName: string; itemNames: string[] }) => {
         // Find Supplier
         const suppliersRef = collection(db, 'suppliers');
         const q = query(suppliersRef, where('name', '==', supplierName));
@@ -117,9 +117,9 @@ const importPurchaseDataFlow = ai.defineFlow(
     inputSchema: ImportPurchaseDataInputSchema,
     outputSchema: ImportPurchaseDataOutputSchema,
   },
-  async (input) => {
+  async (input: ImportPurchaseDataInput) => {
     const llmResponse = await prompt(input);
-    const extractedData = llmResponse.output;
+    const extractedData: any = (llmResponse as any).output;
 
     if (!extractedData) {
         throw new Error("Failed to extract data from the document.");
@@ -130,14 +130,14 @@ const importPurchaseDataFlow = ai.defineFlow(
         throw new Error("AI did not request to find supplier and ingredients. It might be that the document is not a valid invoice.");
     }
 
-    const { supplierId, ingredientIds } = await toolRequest.result();
+    const { supplierId, ingredientIds } = await (toolRequest as any).result() as any;
 
     if (!supplierId) {
-        throw new Error(`O fornecedor "${extractedData.supplierName}" não foi encontrado no sistema. Por favor, cadastre-o primeiro.`);
+        throw new Error(`O fornecedor "${(extractedData as any).supplierName}" não foi encontrado no sistema. Por favor, cadastre-o primeiro.`);
     }
-     if (ingredientIds.some(id => !id)) {
-        const missingItemIndex = ingredientIds.findIndex(id => !id);
-        const missingItemName = extractedData.items[missingItemIndex].name;
+     if ((ingredientIds as any[]).some((id: any) => !id)) {
+        const missingItemIndex = (ingredientIds as any[]).findIndex((id: any) => !id);
+        const missingItemName = (extractedData as any).items[missingItemIndex].name;
         throw new Error(`O insumo "${missingItemName}" não foi encontrado no sistema. Por favor, cadastre-o primeiro.`);
     }
 

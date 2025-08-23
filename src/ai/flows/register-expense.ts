@@ -21,13 +21,15 @@ const RegisterExpenseInputSchema = z.object({
   employeeId: z.string().optional(),
 });
 
+type RegisterExpenseInput = z.infer<typeof RegisterExpenseInputSchema>;
+
 const RegisterExpenseOutputSchema = z.object({
   movementId: z.string(),
   message: z.string(),
 });
 
 export async function registerExpense(
-  input: z.infer<typeof RegisterExpenseInputSchema>
+  input: RegisterExpenseInput
 ): Promise<z.infer<typeof RegisterExpenseOutputSchema>> {
   return registerExpenseFlow(input);
 }
@@ -38,7 +40,7 @@ const registerExpenseFlow = ai.defineFlow(
     inputSchema: RegisterExpenseInputSchema,
     outputSchema: RegisterExpenseOutputSchema,
   },
-  async (input) => {
+  async (input: RegisterExpenseInput) => {
     
     const financialMovement: Omit<FinancialMovement, 'id'> = {
       description: input.description,

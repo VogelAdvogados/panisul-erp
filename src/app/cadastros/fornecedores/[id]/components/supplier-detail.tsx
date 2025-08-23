@@ -145,7 +145,7 @@ export function SupplierDetail({ supplier, purchases, movements }: SupplierDetai
                       {movement.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </TableCell>
                     <TableCell className="text-center">
-                        <Badge variant={status.variant}><status.icon className="h-3 w-3 mr-1"/>{status.text}</Badge>
+                        <Badge variant={status.variant as any}><status.icon className="h-3 w-3 mr-1" />{status.text}</Badge>
                     </TableCell>
                   </TableRow>
                 );

@@ -31,8 +31,8 @@ import type { SourceAccount } from '@/lib/types';
 import { transferFunds } from '@/ai/flows/transfer-funds';
 
 const formSchema = z.object({
-  fromAccount: z.custom<SourceAccount>({ required_error: 'Selecione a conta de origem.'}),
-  toAccount: z.custom<SourceAccount>({ required_error: 'Selecione a conta de destino.'}),
+  fromAccount: z.custom<SourceAccount>(),
+  toAccount: z.custom<SourceAccount>(),
   amount: z.coerce.number().min(0.01, 'O valor deve ser maior que zero.'),
   date: z.string().min(1, 'A data é obrigatória.'),
   notes: z.string().optional(),
