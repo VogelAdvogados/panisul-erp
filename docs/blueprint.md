@@ -31,3 +31,10 @@
 - Fonte do corpo e do título: 'PT Sans', uma fonte humanista sans-serif para legibilidade.
 - Uso de ícones simples e modernos para representar diferentes funções e pontos de dados.
 - Manutenção de um layout limpo e baseado em grade com espaçamento consistente para facilitar a digestão das informações.
+
+## Implantação e Configuração na Netly
+
+1. Crie um novo site na Netly e conecte este repositório Git.
+2. Configure o comando de build como `npm run build` e o diretório de publicação como `.next`.
+3. Defina as variáveis de ambiente necessárias no painel da Netly.
+4. Salve e acompanhe o processo de implantação pelo painel.
