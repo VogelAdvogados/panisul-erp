@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { addDoc, updateDoc, doc } from '@/lib/netly';
+import { db, addDoc, updateDoc, doc } from '@/lib/netly';
 import type { Customer } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -34,7 +34,7 @@ export async function registerCustomer(
   };
 
   if (customerId) {
-    const customerRef = doc('customers', customerId);
+    const customerRef = doc(db, 'customers', customerId);
     await updateDoc(customerRef, customerPayload);
     return { customerId, message: `Cliente "${input.name}" atualizado com sucesso.` };
   }

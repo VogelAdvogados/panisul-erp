@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, getDoc, updateDoc, increment } from '@/lib/netly';
+import { db, doc, getDoc, updateDoc, increment } from '@/lib/netly';
 import { format } from 'date-fns';
 
 const SettleCustomerPaymentInputSchema = z.object({
@@ -16,7 +16,7 @@ export async function settleCustomerPayment(
 ): Promise<{ message: string }> {
   const { movementId, customerId, amount } = input;
 
-  const movementRef = doc('financialMovements', movementId);
+  const movementRef = doc(db, 'financialMovements', movementId);
   const movement = (await getDoc(movementRef)) as { status: string } | null;
   if (!movement) {
     throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
@@ -30,7 +30,7 @@ export async function settleCustomerPayment(
     paymentDate: format(new Date(), 'yyyy-MM-dd'),
   });
 
-  const customerRef = doc('customers', customerId);
+  const customerRef = doc(db, 'customers', customerId);
   const customer = await getDoc(customerRef);
   if (!customer) {
     throw new Error(`Cliente ${customerId} não encontrado.`);

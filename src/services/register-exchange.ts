@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, getDoc, updateDoc, addDoc, increment } from '@/lib/netly';
+import { db, doc, getDoc, updateDoc, addDoc, increment } from '@/lib/netly';
 import type { Exchange, Product } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -19,7 +19,7 @@ export async function registerExchange(
 ): Promise<{ message: string; exchangeId: string }> {
   const { customerId, returnedProductId, newProductId, reason, returnedProductStatus } = input;
 
-  const newProductRef = doc('products', newProductId);
+  const newProductRef = doc(db, 'products', newProductId);
   const newProduct = (await getDoc(newProductRef)) as Product | null;
   if (!newProduct || newProduct.stock < 1) {
     throw new Error(
@@ -29,12 +29,12 @@ export async function registerExchange(
   await updateDoc(newProductRef, { stock: increment(-1) });
 
   if (returnedProductStatus === 'restock') {
-    const returnedProductRef = doc('products', returnedProductId);
+    const returnedProductRef = doc(db, 'products', returnedProductId);
     await updateDoc(returnedProductRef, { stock: increment(1) });
   }
 
   if (customerId && customerId !== 'none') {
-    const customerRef = doc('customers', customerId);
+    const customerRef = doc(db, 'customers', customerId);
     await updateDoc(customerRef, { exchanges: increment(1) });
   }
 

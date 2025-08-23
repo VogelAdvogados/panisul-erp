@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, getDoc, updateDoc, increment } from '@/lib/netly';
+import { db, doc, getDoc, updateDoc, increment } from '@/lib/netly';
 import type { Product, Ingredient } from '@/lib/types';
 
 const AdjustStockInputSchema = z.object({
@@ -18,7 +18,7 @@ export async function adjustStock(
 ): Promise<{ message: string }> {
   const { itemId, itemType, adjustmentType, quantity } = input;
   const collectionPath = itemType === 'product' ? 'products' : 'ingredients';
-  const itemRef = doc(collectionPath, itemId);
+  const itemRef = doc(db, collectionPath, itemId);
 
   const item = (await getDoc(itemRef)) as (Product | Ingredient) | null;
   if (!item) {
