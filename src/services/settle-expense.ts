@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, getDoc, updateDoc } from '@/lib/netly';
+import { db, doc, getDoc, updateDoc } from '@/lib/netly';
 import { format } from 'date-fns';
 
 const SettleExpenseInputSchema = z.object({
@@ -14,9 +14,10 @@ export async function settleExpense(
 ): Promise<{ message: string }> {
   const { movementId } = input;
 
-  const movementRef = doc('financialMovements', movementId);
-  const movement = (await getDoc(movementRef)) as { status: string } | null;
-  if (!movement) {
+  const movementRef = doc(db, 'financialMovements', movementId);
+  const movementSnap = await getDoc<{ status: string }>(movementRef);
+  const movement = movementSnap.data();
+  if (!movementSnap.exists()) {
     throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
   }
   if (movement.status === 'paid') {

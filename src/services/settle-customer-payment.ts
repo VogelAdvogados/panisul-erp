@@ -1,8 +1,9 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, getDoc, updateDoc, increment } from '@/lib/netly';
+import { db, doc, getDoc, updateDoc, increment } from '@/lib/netly';
 import { format } from 'date-fns';
+import type { Customer } from '@/lib/types';
 
 const SettleCustomerPaymentInputSchema = z.object({
   movementId: z.string().describe('The ID of the financial movement to be settled.'),
@@ -16,9 +17,10 @@ export async function settleCustomerPayment(
 ): Promise<{ message: string }> {
   const { movementId, customerId, amount } = input;
 
-  const movementRef = doc('financialMovements', movementId);
-  const movement = (await getDoc(movementRef)) as { status: string } | null;
-  if (!movement) {
+  const movementRef = doc(db, 'financialMovements', movementId);
+  const movementSnap = await getDoc<{ status: string }>(movementRef);
+  const movement = movementSnap.data();
+  if (!movementSnap.exists()) {
     throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
   }
   if (movement.status === 'paid') {
@@ -30,9 +32,10 @@ export async function settleCustomerPayment(
     paymentDate: format(new Date(), 'yyyy-MM-dd'),
   });
 
-  const customerRef = doc('customers', customerId);
-  const customer = await getDoc(customerRef);
-  if (!customer) {
+  const customerRef = doc(db, 'customers', customerId);
+  const customerSnap = await getDoc<Customer>(customerRef);
+  const customer = customerSnap.data();
+  if (!customerSnap.exists()) {
     throw new Error(`Cliente ${customerId} não encontrado.`);
   }
 
