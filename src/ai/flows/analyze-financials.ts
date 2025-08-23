@@ -10,7 +10,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const FinancialAnalysisInputSchema = z.object({
   revenues: z.number().describe('Total revenues for the day.'),

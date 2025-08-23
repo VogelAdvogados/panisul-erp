@@ -9,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { db, collection, doc, getDoc, getDocs, query, where } from '@/lib/netly';
 import type { Supplier, Purchase, FinancialMovement } from '@/lib/types';
 
