@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Edit, Trash2, Atom, Loader2, PlusCircle, MinusCircle } from 'lucide-react';
-import type { Recipe, Product, Ingredient, RecipeItem } from '@/lib/types';
+import type { Recipe, Product, Ingredient, RecipeItem, Mutable } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -160,13 +160,17 @@ export function RecipeList() {
     }
   };
 
-  const handleItemChange = (index: number, field: keyof RecipeItem, value: string | number) => {
+  const handleItemChange = <K extends keyof RecipeItem>(
+    index: number,
+    field: K,
+    value: RecipeItem[K],
+  ) => {
     const newItems = [...recipeItems];
-    const item = { ...newItems[index] };
-    (item[field] as any) = field === 'quantity' ? Number(value) : value;
+    const item = { ...newItems[index] } as Mutable<RecipeItem>;
+    item[field] = value;
     newItems[index] = item;
     setRecipeItems(newItems);
-  }
+  };
 
   const addItem = () => setRecipeItems([...recipeItems, { ingredientId: '', quantity: 0 }]);
   const removeItem = (index: number) => setRecipeItems(recipeItems.filter((_, i) => i !== index));
@@ -318,12 +322,12 @@ export function RecipeList() {
                                         {ingredients.map(i => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unitOfMeasure})</SelectItem>)}
                                     </SelectContent>
                                 </Select>
-                                <Input 
-                                    type="number" 
-                                    placeholder="Qtd." 
-                                    className="w-28" 
+                                <Input
+                                    type="number"
+                                    placeholder="Qtd."
+                                    className="w-28"
                                     value={item.quantity || ''}
-                                    onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                    onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}
                                 />
                                 <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)} className="text-destructive">
                                     <MinusCircle className="h-4 w-4"/>
