@@ -33,7 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, XCircle, FileText, ShoppingBag, Repeat, DollarSign, User, Building, Mail, Phone, MapPin, CreditCard, Package, RefreshCw, Calendar, Eye, Loader2, ArrowRight } from 'lucide-react';
-import type { Customer, FinancialMovement, Sale, Exchange, Product } from '@/lib/types';
+import type { Customer, FinancialMovement, Sale, Exchange, Product, PaymentMethod, SourceAccount } from '@/lib/types';
 import PageHeader from '@/components/page-header';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -69,6 +69,10 @@ export function ClientList({ customerToOpen }: ClientListProps) {
   const [customerExchanges, setCustomerExchanges] = useState<Exchange[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [isSettlingPayment, setIsSettlingPayment] = useState<string | null>(null);
+  const [isSettleDialogOpen, setIsSettleDialogOpen] = useState(false);
+  const [movementToSettle, setMovementToSettle] = useState<FinancialMovement | null>(null);
+  const [settleSourceAccount, setSettleSourceAccount] = useState<SourceAccount | ''>('');
+  const [settlePaymentMethod, setSettlePaymentMethod] = useState<PaymentMethod | ''>('');
   
   const { toast } = useToast();
   
@@ -214,26 +218,37 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     }
   }
 
-  const handleSettlePayment = async (movement: FinancialMovement) => {
-    if (!selectedCustomer) return;
-    setIsSettlingPayment(movement.id);
+  const handleSettlePayment = (movement: FinancialMovement) => {
+    setMovementToSettle(movement);
+    setIsSettleDialogOpen(true);
+  };
+
+  const confirmSettlePayment = async () => {
+    if (!selectedCustomer || !movementToSettle || !settleSourceAccount || !settlePaymentMethod) return;
+    setIsSettlingPayment(movementToSettle.id);
     try {
         const result = await settleCustomerPayment({
-            movementId: movement.id,
+            movementId: movementToSettle.id,
             customerId: selectedCustomer.id,
-            amount: movement.amount,
+            amount: movementToSettle.amount,
+            sourceAccount: settleSourceAccount as SourceAccount,
+            paymentMethod: settlePaymentMethod as PaymentMethod,
         });
         toast({ title: "Sucesso!", description: result.message });
-        
+
         await handleViewDetails(selectedCustomer);
         await fetchData();
+        setIsSettleDialogOpen(false);
+        setMovementToSettle(null);
+        setSettleSourceAccount('');
+        setSettlePaymentMethod('');
     } catch (err) {
         const error = err as Error;
         toast({ title: "Erro ao dar baixa", description: error.message, variant: 'destructive' });
     } finally {
         setIsSettlingPayment(null);
     }
-  }
+  };
 
   
   if (isLoading) {
@@ -571,6 +586,71 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                         </TabsContent>
                     </Tabs>
                 </div>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isSettleDialogOpen} onOpenChange={setIsSettleDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Dar Baixa</DialogTitle>
+                    <DialogDescription>Informe conta de origem e método de pagamento.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">Conta</Label>
+                        <Select value={settleSourceAccount} onValueChange={(v) => setSettleSourceAccount(v as SourceAccount)}>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="cash">Caixa</SelectItem>
+                                <SelectItem value="bank">Banco</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">Pagamento</Label>
+                        <Select value={settlePaymentMethod} onValueChange={(v) => setSettlePaymentMethod(v as PaymentMethod)}>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="pix">PIX</SelectItem>
+                                <SelectItem value="boleto">Boleto</SelectItem>
+                                <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                                <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                                <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                            setIsSettleDialogOpen(false);
+                            setMovementToSettle(null);
+                            setSettleSourceAccount('');
+                            setSettlePaymentMethod('');
+                        }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={confirmSettlePayment}
+                        disabled={
+                            isSettlingPayment === movementToSettle?.id ||
+                            !settleSourceAccount ||
+                            !settlePaymentMethod
+                        }
+                    >
+                        {isSettlingPayment === movementToSettle?.id && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Confirmar
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     </>

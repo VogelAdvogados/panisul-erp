@@ -11,11 +11,14 @@ import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { doc, runTransaction, increment, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
+import type { SourceAccount, PaymentMethod } from '@/lib/types';
 
 const SettleCustomerPaymentInputSchema = z.object({
   movementId: z.string().describe('The ID of the financial movement to be settled.'),
   customerId: z.string().describe('The ID of the customer.'),
   amount: z.number().describe('The amount being paid.'),
+  sourceAccount: z.custom<SourceAccount>(),
+  paymentMethod: z.enum(['pix', 'boleto', 'dinheiro', 'cartao_credito', 'cartao_debito']),
 });
 
 const SettleCustomerPaymentOutputSchema = z.object({
@@ -34,7 +37,7 @@ const settleCustomerPaymentFlow = ai.defineFlow(
     inputSchema: SettleCustomerPaymentInputSchema,
     outputSchema: SettleCustomerPaymentOutputSchema,
   },
-  async ({ movementId, customerId, amount }) => {
+  async ({ movementId, customerId, amount, sourceAccount, paymentMethod }) => {
     
     await runTransaction(db, async (transaction) => {
       const movementRef = doc(db, 'financialMovements', movementId);
@@ -52,6 +55,8 @@ const settleCustomerPaymentFlow = ai.defineFlow(
       transaction.update(movementRef, {
         status: 'paid',
         paymentDate: format(new Date(), 'yyyy-MM-dd'),
+        sourceAccount,
+        paymentMethod,
       });
 
       // 2. Decrement customer's pending amount
