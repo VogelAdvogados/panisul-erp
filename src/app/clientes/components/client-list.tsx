@@ -32,7 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
-import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, XCircle, FileText, ShoppingBag, Repeat, DollarSign, User, Building, Mail, Phone, MapPin, CreditCard, Package, RefreshCw, Calendar, Eye, Loader2, ArrowRight } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, XCircle, FileText, ShoppingBag, Repeat, DollarSign, User, Building, Mail, Phone, MapPin, CreditCard, Package, RefreshCw, Calendar, Eye, Loader2, ArrowRight, MessageCircle } from 'lucide-react';
 import type { Customer, FinancialMovement, Sale, Exchange, Product } from '@/lib/types';
 import PageHeader from '@/components/page-header';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +48,21 @@ type FilterTab = 'all' | 'pessoa-juridica' | 'pessoa-fisica' | 'com-pendencias';
 
 interface ClientListProps {
     customerToOpen: string | null;
+}
+
+function formatPhoneForDisplay(phone: string) {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 11) {
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    }
+    if (digits.length === 10) {
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+    return digits;
+}
+
+function formatPhoneForWhatsApp(phone: string) {
+    return phone.replace(/\D/g, '');
 }
 
 export function ClientList({ customerToOpen }: ClientListProps) {
@@ -311,7 +326,18 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                        <div className="text-sm text-muted-foreground space-y-2">
                            <div className="flex items-center gap-2"><CreditCard className="h-4 w-4" /> <span>Doc: {customer.doc}</span></div>
                            <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> <span>{customer.email || 'N/A'}</span></div>
-                           <div className="flex items-center gap-2"><Phone className="h-4 w-4" /> <span>{customer.phone}</span></div>
+                           <div className="flex items-center gap-2">
+                               <Phone className="h-4 w-4" />
+                               <a
+                                   href={`https://wa.me/${formatPhoneForWhatsApp(customer.phone)}`}
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   className="flex items-center gap-1 text-blue-600 hover:underline"
+                               >
+                                   {formatPhoneForDisplay(customer.phone)}
+                                   <MessageCircle className="h-4 w-4" />
+                               </a>
+                           </div>
                            <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> <span>{customer.address}</span></div>
                        </div>
                        <Separator />
