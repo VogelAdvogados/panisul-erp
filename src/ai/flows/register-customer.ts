@@ -22,6 +22,7 @@ const RegisterCustomerInputSchema = z.object({
     address: z.string(),
     type: z.enum(['pessoa-fisica', 'pessoa-juridica']),
     status: z.enum(['ativo', 'inativo']),
+    notes: z.string().optional(),
 });
 
 const RegisterCustomerOutputSchema = z.object({
@@ -54,6 +55,7 @@ const registerCustomerFlow = ai.defineFlow(
         address: input.address,
         type: input.type,
         status: input.status,
+        notes: input.notes || '',
     };
     
     if (customerId) {

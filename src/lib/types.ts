@@ -20,6 +20,7 @@ export interface Customer {
   type: 'pessoa-juridica' | 'pessoa-fisica';
   doc: string;
   address: string;
+  notes?: string;
   totalPurchasesValue: number;
   totalOrders: number;
   exchanges: number;
