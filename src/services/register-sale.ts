@@ -49,13 +49,13 @@ export async function registerSale(
 
   if (isConcluded) {
     for (const item of items) {
-      const productSnap = await getDoc<Product>(
+      const productSnap = await getDoc(
         doc(db, 'products', item.productId),
       );
-      const product = productSnap.data();
       if (!productSnap.exists()) {
         throw new Error(`Produto ${item.productName} não encontrado.`);
       }
+      const product = productSnap.data() as Product;
       const currentStock = product.stock || 0;
       if (currentStock < item.quantity) {
         throw new Error(

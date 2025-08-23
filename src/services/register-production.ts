@@ -15,26 +15,26 @@ export async function registerProduction(
 ): Promise<{ message: string }> {
   const { productId, quantity } = input;
 
-  const productSnap = await getDoc<Product>(doc(db, 'products', productId));
-  const product = productSnap.data();
+  const productSnap = await getDoc(doc(db, 'products', productId));
   if (!productSnap.exists()) {
     throw new Error(`Produto com ID ${productId} não encontrado.`);
   }
+  const product = productSnap.data() as Product;
 
-  const recipeSnap = await getDoc<Recipe>(doc(db, 'recipes', productId));
-  const recipe = recipeSnap.data();
+  const recipeSnap = await getDoc(doc(db, 'recipes', productId));
   if (!recipeSnap.exists()) {
     throw new Error(`Ficha técnica para o produto ${product.name} não encontrada.`);
   }
+  const recipe = recipeSnap.data() as Recipe;
 
   for (const item of recipe.items) {
-    const ingredientSnap = await getDoc<Ingredient>(
+    const ingredientSnap = await getDoc(
       doc(db, 'ingredients', item.ingredientId),
     );
-    const ingredient = ingredientSnap.data();
     if (!ingredientSnap.exists()) {
       throw new Error(`Insumo com ID ${item.ingredientId} da receita não foi encontrado.`);
     }
+    const ingredient = ingredientSnap.data() as Ingredient;
     const currentStock = ingredient.stock || 0;
     const requiredStock = item.quantity * quantity;
     if (currentStock < requiredStock) {

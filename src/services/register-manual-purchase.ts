@@ -27,11 +27,11 @@ export type RegisterManualPurchaseInput = z.infer<typeof RegisterManualPurchaseI
 export async function registerManualPurchase(
   input: RegisterManualPurchaseInput,
 ): Promise<{ purchaseId: string; message: string }> {
-  const supplierSnap = await getDoc<Supplier>(doc(db, 'suppliers', input.supplierId));
-  const supplier = supplierSnap.data();
+  const supplierSnap = await getDoc(doc(db, 'suppliers', input.supplierId));
   if (!supplierSnap.exists()) {
     throw new Error('Fornecedor não encontrado.');
   }
+  const supplier = supplierSnap.data() as Supplier;
 
   const purchaseData: Omit<Purchase, 'id'> = {
     supplierId: input.supplierId,
@@ -43,13 +43,13 @@ export async function registerManualPurchase(
   };
 
   for (const item of input.items) {
-    const ingredientSnap = await getDoc<Ingredient>(
+    const ingredientSnap = await getDoc(
       doc(db, 'ingredients', item.ingredientId),
     );
-    const ingredient = ingredientSnap.data();
     if (!ingredientSnap.exists()) {
       throw new Error(`Insumo com ID ${item.ingredientId} não encontrado.`);
     }
+    const ingredient = ingredientSnap.data() as Ingredient;
 
     const oldStock = ingredient.stock;
     const oldCost = ingredient.cost;

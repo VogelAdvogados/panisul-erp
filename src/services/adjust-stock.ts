@@ -20,11 +20,11 @@ export async function adjustStock(
   const collectionPath = itemType === 'product' ? 'products' : 'ingredients';
   const itemRef = doc(db, collectionPath, itemId);
 
-  const itemSnap = await getDoc<Product | Ingredient>(itemRef);
-  const item = itemSnap.data();
+  const itemSnap = await getDoc(itemRef);
   if (!itemSnap.exists()) {
     throw new Error(`Item with ID ${itemId} not found in ${collectionPath}.`);
   }
+  const item = itemSnap.data() as Product | Ingredient;
 
   let stockChange = 0;
   switch (adjustmentType) {

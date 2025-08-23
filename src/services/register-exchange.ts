@@ -20,14 +20,13 @@ export async function registerExchange(
   const { customerId, returnedProductId, newProductId, reason, returnedProductStatus } = input;
 
   const newProductRef = doc(db, 'products', newProductId);
-  const newProductSnap = await getDoc<Product>(newProductRef);
-  const newProduct = newProductSnap.data();
-  if (!newProductSnap.exists() || newProduct.stock < 1) {
-    throw new Error(
-      `Estoque insuficiente para o produto de troca: ${
-        newProductSnap.exists() ? newProduct.name : 'ID ' + newProductId
-      }`,
-    );
+  const newProductSnap = await getDoc(newProductRef);
+  if (!newProductSnap.exists()) {
+    throw new Error(`Produto de troca com ID ${newProductId} não encontrado.`);
+  }
+  const newProduct = newProductSnap.data() as Product;
+  if (newProduct.stock < 1) {
+    throw new Error(`Estoque insuficiente para o produto de troca: ${newProduct.name}`);
   }
   await updateDoc(newProductRef, { stock: increment(-1) });
 
