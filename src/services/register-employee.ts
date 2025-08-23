@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { addDoc, updateDoc, doc } from '@/lib/netly';
+import { db, addDoc, updateDoc, doc } from '@/lib/netly';
 import type { Employee } from '@/lib/types';
 
 const RegisterEmployeeInputSchema = z.object({
@@ -20,7 +20,7 @@ export async function registerEmployee(
   const { id, ...employeePayload } = input;
 
   if (id) {
-    const employeeRef = doc('employees', id);
+    const employeeRef = doc(db, 'employees', id);
     await updateDoc(employeeRef, employeePayload);
     return {
       employeeId: id,
@@ -28,7 +28,7 @@ export async function registerEmployee(
     };
   }
 
-  const newEmployeeData: Omit<Employee, 'id'> = employeePayload;
+  const newEmployeeData: Omit<Employee, 'id'> = employeePayload as Omit<Employee, 'id'>;
   const employeeRef = await addDoc('employees', newEmployeeData);
   return {
     employeeId: employeeRef.id,
