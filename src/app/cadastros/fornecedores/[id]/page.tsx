@@ -7,6 +7,7 @@ import { ChevronLeft } from 'lucide-react';
 
 // Revalidate this page at most once every hour
 export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 async function getSupplierData(id: string) {
     const supplierDocRef = doc(db, 'suppliers', id);
@@ -84,17 +85,4 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
       <SupplierDetail supplier={supplier} purchases={purchases} movements={movements} />
     </div>
   );
-}
-
-export async function generateStaticParams() {
-  try {
-    const suppliersCollection = collection(db, 'suppliers');
-    const suppliersSnapshot = await getDocs(suppliersCollection);
-    return suppliersSnapshot.docs.map(doc => ({
-        id: doc.id,
-    }));
-  } catch (error) {
-    console.error("Failed to generate static params for suppliers:", error);
-    return [];
-  }
 }
