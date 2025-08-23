@@ -152,7 +152,8 @@ export function ClientList({ customerToOpen }: ClientListProps) {
         const searchLower = searchTerm.toLowerCase();
         return customer.name.toLowerCase().includes(searchLower) ||
                (customer.doc && customer.doc.toLowerCase().includes(searchLower)) ||
-               (customer.email && customer.email.toLowerCase().includes(searchLower));
+               (customer.email && customer.email.toLowerCase().includes(searchLower)) ||
+               (customer.phone && customer.phone.toLowerCase().includes(searchLower));
       })
       .filter((customer) => statusFilter === 'all' ? true : customer.status === statusFilter)
       .filter((customer) => {
@@ -279,7 +280,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
             <div className="relative w-full max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input 
-                    placeholder="Buscar por nome, documento ou email..."
+                    placeholder="Buscar por nome, documento, email ou telefone..."
                     className="pl-10"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
