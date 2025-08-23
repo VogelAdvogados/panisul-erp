@@ -17,3 +17,8 @@ To get started, take a look at `src/app/page.tsx`.
 4. Faça commit e push para a branch principal para disparar o deploy.
 5. Utilize o painel da Netly para acompanhar logs e reimplantações.
 
+## Environment Variables
+
+- `NEXT_PUBLIC_NETLY_API_URL` (**required**): Base URL for the Netly API used by the application.
+- `NEXT_PUBLIC_NETLY_API_KEY` (optional): API key for authenticating requests when required.
+
