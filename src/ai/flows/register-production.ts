@@ -8,8 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
-import { collection, doc, runTransaction, getDoc, increment } from 'firebase/firestore';
+import { db, collection, doc, runTransaction, getDoc, increment } from '@/lib/netly';
 import type { Recipe, Ingredient, Product } from '@/lib/types';
 
 const RegisterProductionInputSchema = z.object({

@@ -39,8 +39,7 @@ import { CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { registerExpense } from '@/ai/flows/register-expense';
-import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { db, collection, getDocs } from '@/lib/netly';
 import type { Employee } from '@/lib/types';
 
 

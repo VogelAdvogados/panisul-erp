@@ -1,7 +1,6 @@
 
 import { SupplierDetail } from './components/supplier-detail';
-import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { db, collection, doc, getDoc, getDocs, query, where, orderBy } from '@/lib/netly';
 import type { Supplier, Purchase, FinancialMovement } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';

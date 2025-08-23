@@ -14,8 +14,7 @@ import { ArrowRight, Loader2, ShoppingBag, Truck } from 'lucide-react';
 import type { Sale } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, collection, getDocs, orderBy, query } from '@/lib/netly';
 import { useToast } from '@/hooks/use-toast';
 
 export function SalesHistory() {

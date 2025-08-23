@@ -8,8 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
-import { doc, runTransaction } from 'firebase/firestore';
+import { db, doc, runTransaction } from '@/lib/netly';
 import { format } from 'date-fns';
 
 const SettleExpenseInputSchema = z.object({
