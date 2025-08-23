@@ -13,7 +13,10 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
-  file: z.any().refine((files) => files?.length > 0, 'Um arquivo é necessário.'),
+  file: z.custom<FileList>(
+    (files) => files instanceof FileList && files.length > 0,
+    { message: 'Um arquivo é necessário.' }
+  ),
 });
 
 export function PurchaseImportForm() {
@@ -23,8 +26,8 @@ export function PurchaseImportForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      file: undefined,
-    }
+      file: new DataTransfer().files,
+    },
   });
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
