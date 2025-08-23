@@ -19,7 +19,13 @@ export interface Customer {
   registeredAt: string;
   type: 'pessoa-juridica' | 'pessoa-fisica';
   doc: string;
-  address: string;
+  address?: string;
+  cep?: string;
+  street?: string;
+  number?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
   totalPurchasesValue: number;
   totalOrders: number;
   exchanges: number;

@@ -69,6 +69,13 @@ export function ClientList({ customerToOpen }: ClientListProps) {
   const [customerExchanges, setCustomerExchanges] = useState<Exchange[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [isSettlingPayment, setIsSettlingPayment] = useState<string | null>(null);
+
+  const [cep, setCep] = useState('');
+  const [street, setStreet] = useState('');
+  const [addressNumber, setAddressNumber] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [city, setCity] = useState('');
+  const [stateValue, setStateValue] = useState('');
   
   const { toast } = useToast();
   
@@ -184,6 +191,32 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     setIsFormOpen(false);
   }
 
+  useEffect(() => {
+    setCep(editingCustomer?.cep || '');
+    setStreet(editingCustomer?.street || '');
+    setAddressNumber(editingCustomer?.number || '');
+    setNeighborhood(editingCustomer?.neighborhood || '');
+    setCity(editingCustomer?.city || '');
+    setStateValue(editingCustomer?.state || '');
+  }, [editingCustomer]);
+
+  const handleCepBlur = async () => {
+    const sanitized = cep.replace(/\D/g, '');
+    if (sanitized.length !== 8) return;
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${sanitized}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setStreet(data.logradouro || '');
+        setNeighborhood(data.bairro || '');
+        setCity(data.localidade || '');
+        setStateValue(data.uf || '');
+      }
+    } catch (err) {
+      // ignore
+    }
+  };
+
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -196,7 +229,12 @@ export function ClientList({ customerToOpen }: ClientListProps) {
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
       doc: formData.get('doc') as string,
-      address: formData.get('address') as string,
+      cep: formData.get('cep') as string,
+      street: formData.get('street') as string,
+      number: formData.get('number') as string,
+      neighborhood: formData.get('neighborhood') as string,
+      city: formData.get('city') as string,
+      state: formData.get('state') as string,
       type: formData.get('type') as 'pessoa-fisica' | 'pessoa-juridica',
       status: formData.get('status') as 'ativo' | 'inativo',
     };
@@ -312,7 +350,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                            <div className="flex items-center gap-2"><CreditCard className="h-4 w-4" /> <span>Doc: {customer.doc}</span></div>
                            <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> <span>{customer.email || 'N/A'}</span></div>
                            <div className="flex items-center gap-2"><Phone className="h-4 w-4" /> <span>{customer.phone}</span></div>
-                           <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> <span>{customer.address}</span></div>
+                           <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> <span>{customer.street ? `${customer.street}, ${customer.number} - ${customer.neighborhood}, ${customer.city} - ${customer.state}` : (customer.address || 'N/A')}</span></div>
                        </div>
                        <Separator />
                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -388,9 +426,29 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                             <Label htmlFor="doc" className="text-right">CPF/CNPJ</Label>
                             <Input id="doc" name="doc" defaultValue={editingCustomer?.doc} className="col-span-3" />
                         </div>
-                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="address" className="text-right">Endereço</Label>
-                            <Input id="address" name="address" defaultValue={editingCustomer?.address} className="col-span-3" />
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="cep" className="text-right">CEP</Label>
+                            <Input id="cep" name="cep" value={cep} onChange={e => setCep(e.target.value)} onBlur={handleCepBlur} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="street" className="text-right">Rua</Label>
+                            <Input id="street" name="street" value={street} onChange={e => setStreet(e.target.value)} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="number" className="text-right">Número</Label>
+                            <Input id="number" name="number" value={addressNumber} onChange={e => setAddressNumber(e.target.value)} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="neighborhood" className="text-right">Bairro</Label>
+                            <Input id="neighborhood" name="neighborhood" value={neighborhood} onChange={e => setNeighborhood(e.target.value)} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="city" className="text-right">Cidade</Label>
+                            <Input id="city" name="city" value={city} onChange={e => setCity(e.target.value)} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="state" className="text-right">Estado</Label>
+                            <Input id="state" name="state" value={stateValue} onChange={e => setStateValue(e.target.value)} className="col-span-3" />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="type" className="text-right">Tipo</Label>
