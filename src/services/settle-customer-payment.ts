@@ -18,11 +18,11 @@ export async function settleCustomerPayment(
   const { movementId, customerId, amount } = input;
 
   const movementRef = doc(db, 'financialMovements', movementId);
-  const movementSnap = await getDoc<{ status: string }>(movementRef);
-  const movement = movementSnap.data();
+  const movementSnap = await getDoc(movementRef);
   if (!movementSnap.exists()) {
     throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
   }
+  const movement = movementSnap.data() as { status: string };
   if (movement.status === 'paid') {
     throw new Error('Esta conta já foi liquidada anteriormente.');
   }
@@ -33,11 +33,11 @@ export async function settleCustomerPayment(
   });
 
   const customerRef = doc(db, 'customers', customerId);
-  const customerSnap = await getDoc<Customer>(customerRef);
-  const customer = customerSnap.data();
+  const customerSnap = await getDoc(customerRef);
   if (!customerSnap.exists()) {
     throw new Error(`Cliente ${customerId} não encontrado.`);
   }
+  const customer = customerSnap.data() as Customer;
 
   await updateDoc(customerRef, {
     pendingAmount: increment(-Math.abs(amount)),

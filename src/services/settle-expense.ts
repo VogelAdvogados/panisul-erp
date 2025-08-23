@@ -15,11 +15,11 @@ export async function settleExpense(
   const { movementId } = input;
 
   const movementRef = doc(db, 'financialMovements', movementId);
-  const movementSnap = await getDoc<{ status: string }>(movementRef);
-  const movement = movementSnap.data();
+  const movementSnap = await getDoc(movementRef);
   if (!movementSnap.exists()) {
     throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
   }
+  const movement = movementSnap.data() as { status: string };
   if (movement.status === 'paid') {
     throw new Error('Esta conta já foi liquidada anteriormente.');
   }
