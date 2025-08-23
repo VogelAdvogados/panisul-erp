@@ -4,7 +4,6 @@ import type { Supplier, Purchase, FinancialMovement } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
-import type { PageProps } from 'next';
 
 // Revalidate this page at most once every hour
 export const revalidate = 3600;
@@ -47,7 +46,7 @@ async function getSupplierData(id: string) {
 }
 
 
-export default async function SupplierDetailPage({ params }: PageProps<{ id: string }>) {
+export default async function SupplierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const data = await getSupplierData(id);
 
