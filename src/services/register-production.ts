@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, getDoc, updateDoc, increment } from '@/lib/netly';
+import { db, doc, getDoc, updateDoc, increment } from '@/lib/netly';
 import type { Recipe, Ingredient, Product } from '@/lib/types';
 
 const RegisterProductionInputSchema = z.object({
@@ -15,19 +15,24 @@ export async function registerProduction(
 ): Promise<{ message: string }> {
   const { productId, quantity } = input;
 
-  const product = (await getDoc(doc('products', productId))) as Product | null;
-  if (!product) {
+  const productSnap = await getDoc<Product>(doc(db, 'products', productId));
+  const product = productSnap.data();
+  if (!productSnap.exists()) {
     throw new Error(`Produto com ID ${productId} não encontrado.`);
   }
 
-  const recipe = (await getDoc(doc('recipes', productId))) as Recipe | null;
-  if (!recipe) {
+  const recipeSnap = await getDoc<Recipe>(doc(db, 'recipes', productId));
+  const recipe = recipeSnap.data();
+  if (!recipeSnap.exists()) {
     throw new Error(`Ficha técnica para o produto ${product.name} não encontrada.`);
   }
 
   for (const item of recipe.items) {
-    const ingredient = (await getDoc(doc('ingredients', item.ingredientId))) as Ingredient | null;
-    if (!ingredient) {
+    const ingredientSnap = await getDoc<Ingredient>(
+      doc(db, 'ingredients', item.ingredientId),
+    );
+    const ingredient = ingredientSnap.data();
+    if (!ingredientSnap.exists()) {
       throw new Error(`Insumo com ID ${item.ingredientId} da receita não foi encontrado.`);
     }
     const currentStock = ingredient.stock || 0;
@@ -37,10 +42,12 @@ export async function registerProduction(
         `Estoque insuficiente para o insumo "${ingredient.name}". Necessário: ${requiredStock}${ingredient.unitOfMeasure}, Disponível: ${currentStock}${ingredient.unitOfMeasure}`,
       );
     }
-    await updateDoc(doc('ingredients', item.ingredientId), { stock: increment(-requiredStock) });
+    await updateDoc(doc(db, 'ingredients', item.ingredientId), {
+      stock: increment(-requiredStock),
+    });
   }
 
-  await updateDoc(doc('products', productId), {
+  await updateDoc(doc(db, 'products', productId), {
     stock: increment(quantity),
     produced: increment(quantity),
   });

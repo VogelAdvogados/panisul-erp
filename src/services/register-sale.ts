@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, getDoc, updateDoc, addDoc, increment } from '@/lib/netly';
+import { db, doc, getDoc, updateDoc, addDoc, increment } from '@/lib/netly';
 import type { Product, FinancialMovement, SourceAccount, Sale, SaleItem, SaleChannel } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -49,15 +49,20 @@ export async function registerSale(
 
   if (isConcluded) {
     for (const item of items) {
-      const product = (await getDoc(doc('products', item.productId))) as Product | null;
-      if (!product) {
+      const productSnap = await getDoc<Product>(
+        doc(db, 'products', item.productId),
+      );
+      const product = productSnap.data();
+      if (!productSnap.exists()) {
         throw new Error(`Produto ${item.productName} não encontrado.`);
       }
       const currentStock = product.stock || 0;
       if (currentStock < item.quantity) {
-        throw new Error(`Estoque insuficiente para ${product.name}. Disponível: ${currentStock}, Solicitado: ${item.quantity}`);
+        throw new Error(
+          `Estoque insuficiente para ${product.name}. Disponível: ${currentStock}, Solicitado: ${item.quantity}`,
+        );
       }
-      await updateDoc(doc('products', item.productId), {
+      await updateDoc(doc(db, 'products', item.productId), {
         stock: increment(-item.quantity),
         sold: increment(item.quantity),
       });
@@ -103,7 +108,7 @@ export async function registerSale(
     await addDoc('financialMovements', financialMovement);
 
     if (customerId) {
-      await updateDoc(doc('customers', customerId), {
+      await updateDoc(doc(db, 'customers', customerId), {
         pendingAmount: isSaleOnCredit ? increment(totalAmount) : increment(0),
         lastPurchaseDate: format(today, 'dd/MM/yyyy'),
         totalOrders: increment(1),

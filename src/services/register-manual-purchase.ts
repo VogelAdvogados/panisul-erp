@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { addDoc, doc, getDoc, updateDoc, increment } from '@/lib/netly';
+import { db, addDoc, doc, getDoc, updateDoc, increment } from '@/lib/netly';
 import type { Purchase, FinancialMovement, Supplier, Ingredient, SourceAccount } from '@/lib/types';
 import { format, addMonths } from 'date-fns';
 
@@ -27,8 +27,9 @@ export type RegisterManualPurchaseInput = z.infer<typeof RegisterManualPurchaseI
 export async function registerManualPurchase(
   input: RegisterManualPurchaseInput,
 ): Promise<{ purchaseId: string; message: string }> {
-  const supplier = (await getDoc(doc('suppliers', input.supplierId))) as Supplier | null;
-  if (!supplier) {
+  const supplierSnap = await getDoc<Supplier>(doc(db, 'suppliers', input.supplierId));
+  const supplier = supplierSnap.data();
+  if (!supplierSnap.exists()) {
     throw new Error('Fornecedor não encontrado.');
   }
 
@@ -42,8 +43,11 @@ export async function registerManualPurchase(
   };
 
   for (const item of input.items) {
-    const ingredient = (await getDoc(doc('ingredients', item.ingredientId))) as Ingredient | null;
-    if (!ingredient) {
+    const ingredientSnap = await getDoc<Ingredient>(
+      doc(db, 'ingredients', item.ingredientId),
+    );
+    const ingredient = ingredientSnap.data();
+    if (!ingredientSnap.exists()) {
       throw new Error(`Insumo com ID ${item.ingredientId} não encontrado.`);
     }
 
@@ -57,7 +61,7 @@ export async function registerManualPurchase(
         ? (oldStock * oldCost + newQuantity * newPrice) / newTotalStock
         : newPrice;
 
-    await updateDoc(doc('ingredients', item.ingredientId), {
+    await updateDoc(doc(db, 'ingredients', item.ingredientId), {
       stock: increment(newQuantity),
       cost: newAverageCost,
     });
