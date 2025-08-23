@@ -76,6 +76,7 @@ export interface FinancialMovement {
     referenceId?: string; // e.g., purchaseId or saleId
     employeeId?: string;
     sourceAccount: SourceAccount;
+    paymentMethod?: PaymentMethod;
 }
 
 export interface PurchaseItem {
