@@ -10,8 +10,7 @@ import { QuickActions } from '@/components/dashboard/quick-actions';
 import { Alerts } from '@/components/dashboard/alerts';
 import { BillingChart } from '@/components/dashboard/billing-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, limit, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import type { FinancialMovement, Ingredient } from '@/lib/types';
 import { StatCard } from '@/components/stat-card';
 import { LatestTransactions } from '@/components/dashboard/latest-transactions';
@@ -25,11 +24,7 @@ async function getDashboardData() {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
 
     // More efficient queries
-    const movementsRef = collection(db, 'financialMovements');
-    const paidTodayQuery = query(movementsRef, where('paymentDate', '==', todayStr));
-    const dueTodayQuery = query(movementsRef, where('dueDate', '==', todayStr), where('status', '==', 'pending'));
-    const allMovementsQuery = query(movementsRef, where('status', '==', 'paid'));
-
+    const movementsRef = adminDb.collection('financialMovements');
 
     const [
         paidTodaySnapshot,
@@ -38,11 +33,16 @@ async function getDashboardData() {
         lowStockSnapshot,
         latestTransactionsSnapshot,
     ] = await Promise.all([
-        getDocs(paidTodayQuery),
-        getDocs(dueTodayQuery),
-        getDocs(allMovementsQuery), // For total balance calculation
-        getDocs(query(collection(db, 'ingredients'), where('stock', '<', 1000), limit(5))),
-        getDocs(query(collection(db, "financialMovements"), where('status', '==', 'paid'), orderBy("paymentDate", "desc"), limit(5)))
+        movementsRef.where('paymentDate', '==', todayStr).get(),
+        movementsRef.where('dueDate', '==', todayStr).where('status', '==', 'pending').get(),
+        movementsRef.where('status', '==', 'paid').get(), // For total balance calculation
+        adminDb.collection('ingredients').where('stock', '<', 1000).limit(5).get(),
+        adminDb
+            .collection('financialMovements')
+            .where('status', '==', 'paid')
+            .orderBy('paymentDate', 'desc')
+            .limit(5)
+            .get(),
     ]);
 
     const paidToday = paidTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);

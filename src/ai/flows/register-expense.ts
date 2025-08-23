@@ -7,9 +7,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
-import type { FinancialMovement, ExpenseCategory, SourceAccount } from '@/lib/types';
+import { adminDb } from '@/lib/firebase-admin';
+import type { FinancialMovement, ExpenseCategory } from '@/lib/types';
 import { format } from 'date-fns';
 
 const RegisterExpenseInputSchema = z.object({
@@ -53,7 +52,9 @@ const registerExpenseFlow = ai.defineFlow(
       employeeId: input.employeeId === 'none' ? undefined : input.employeeId,
     };
 
-    const movementRef = await addDoc(collection(db, 'financialMovements'), financialMovement);
+    const movementRef = await adminDb
+      .collection('financialMovements')
+      .add(financialMovement);
 
     return {
       movementId: movementRef.id,
