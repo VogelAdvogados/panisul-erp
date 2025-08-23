@@ -5,7 +5,7 @@
  * @fileOverview An AI agent that analyzes a supplier's history using tools.
  *
  * - analyzeSupplierHistory - A function that performs the analysis.
- * - analyzeSupplierHistoryFlow - The Genkit flow that defines the agent.
+ * - analyzeSupplierHistoryFlow - The flow that defines the agent.
  */
 
 import { ai } from '@/ai/genkit';
