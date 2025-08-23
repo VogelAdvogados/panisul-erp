@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import {
   Table,
   TableHeader,
@@ -27,7 +27,7 @@ export function LatestTransactions() {
     const fetchTransactions = async () => {
       setIsLoading(true);
       try {
-        const transactions = ((await getDocs(collection('financialMovements'))) as Array<FinancialMovement & { id: string }>)
+        const transactions = ((await getDocs(collection(db, 'financialMovements'))) as Array<FinancialMovement & { id: string }>)
           .filter(t => t.status === 'paid')
           .sort((a, b) => (b.paymentDate || '').localeCompare(a.paymentDate || ''))
           .slice(0, 5);

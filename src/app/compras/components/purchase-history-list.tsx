@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import {
   Table,
   TableHeader,
@@ -33,8 +33,8 @@ export function PurchaseHistoryList() {
     setIsLoading(true);
     try {
       const [purchasesList, suppliersList] = await Promise.all([
-        getDocs(collection('purchases')) as Promise<Array<Purchase & { id: string }>>,
-        getDocs(collection('suppliers')) as Promise<Array<Supplier & { id: string }>>,
+        getDocs(collection(db, 'purchases')) as Promise<Array<Purchase & { id: string }>>,
+        getDocs(collection(db, 'suppliers')) as Promise<Array<Supplier & { id: string }>>,
       ]);
 
       const suppliersMap = suppliersList.reduce<Record<string, Supplier>>((acc, doc) => {

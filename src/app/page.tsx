@@ -11,7 +11,7 @@ import { QuickActions } from '@/components/dashboard/quick-actions';
 import { Alerts } from '@/components/dashboard/alerts';
 import { BillingChart } from '@/components/dashboard/billing-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import type { FinancialMovement, Ingredient } from '@/lib/types';
 import { StatCard } from '@/components/stat-card';
 import { LatestTransactions } from '@/components/dashboard/latest-transactions';
@@ -25,8 +25,8 @@ async function getDashboardData() {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
 
     const [movements, ingredients] = await Promise.all([
-        getDocs(collection('financialMovements')) as Promise<Array<FinancialMovement & { id: string }>>,
-        getDocs(collection('ingredients')) as Promise<Array<Ingredient & { id: string }>>,
+        getDocs(collection(db, 'financialMovements')) as Promise<Array<FinancialMovement & { id: string }>>,
+        getDocs(collection(db, 'ingredients')) as Promise<Array<Ingredient & { id: string }>>,
     ]);
 
     const paidToday = movements.filter(m => m.paymentDate === todayStr && m.status === 'paid');

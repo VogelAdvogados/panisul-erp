@@ -15,7 +15,7 @@ import { ArrowRight, Loader2, ShoppingBag, Truck } from 'lucide-react';
 import type { Sale } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
-import { collection, getDocs } from '@/lib/netly';
+import { collection, getDocs, db } from '@/lib/netly';
 import { useToast } from '@/hooks/use-toast';
 
 export function SalesHistory() {
@@ -27,7 +27,7 @@ export function SalesHistory() {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const salesList = (await getDocs(collection('sales'))) as Array<Sale & { id: string }>;
+                const salesList = (await getDocs(collection(db, 'sales'))) as Array<Sale & { id: string }>;
                 setSales(salesList.sort((a, b) => b.date.localeCompare(a.date)));
             } catch (error) {
                 toast({
