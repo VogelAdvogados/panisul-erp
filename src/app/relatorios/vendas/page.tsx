@@ -19,7 +19,7 @@ import { CalendarIcon, Sparkles, Loader2, TrendingUp, TrendingDown, Package, Use
 import PageHeader from '@/components/page-header';
 import { Separator } from '@/components/ui/separator';
 import { analyzeSales, type SalesAnalysisInput, type SalesAnalysisOutput } from '@/ai/flows/analyze-sales';
-import { products } from '@/lib/data';
+import { initialProducts as products } from '@/lib/data';
 
 
 const formSchema = z.object({
