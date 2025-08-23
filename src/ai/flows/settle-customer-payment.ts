@@ -6,9 +6,8 @@
  * It marks a financial movement as 'paid' and updates the customer's pending amount.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { db, doc, runTransaction, increment, getDoc } from '@/lib/netly';
+import { db, doc, runTransaction, increment } from '@/lib/netly';
 import { format } from 'date-fns';
 
 const SettleCustomerPaymentInputSchema = z.object({
@@ -24,47 +23,37 @@ const SettleCustomerPaymentOutputSchema = z.object({
 export async function settleCustomerPayment(
   input: z.infer<typeof SettleCustomerPaymentInputSchema>
 ): Promise<z.infer<typeof SettleCustomerPaymentOutputSchema>> {
-  return settleCustomerPaymentFlow(input);
-}
+  const { movementId, customerId, amount } = input;
 
-const settleCustomerPaymentFlow = ai.defineFlow(
-  {
-    name: 'settleCustomerPaymentFlow',
-    inputSchema: SettleCustomerPaymentInputSchema,
-    outputSchema: SettleCustomerPaymentOutputSchema,
-  },
-  async ({ movementId, customerId, amount }) => {
-    
-    await runTransaction(db, async (transaction) => {
-      const movementRef = doc(db, 'financialMovements', movementId);
-      const customerRef = doc(db, 'customers', customerId);
-      
-      const movementDoc = await transaction.get(movementRef);
-      if (!movementDoc.exists()) {
-        throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
-      }
-       if (movementDoc.data()?.status === 'paid') {
-        throw new Error(`Esta conta já foi liquidada anteriormente.`);
-      }
+  await runTransaction(db, async (transaction) => {
+    const movementRef = doc(db, 'financialMovements', movementId);
+    const customerRef = doc(db, 'customers', customerId);
 
-      // 1. Update Financial Movement status and payment date
-      transaction.update(movementRef, {
-        status: 'paid',
-        paymentDate: format(new Date(), 'yyyy-MM-dd'),
-      });
+    const movementDoc = await transaction.get(movementRef);
+    if (!movementDoc.exists()) {
+      throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
+    }
+    if (movementDoc.data()?.status === 'paid') {
+      throw new Error(`Esta conta já foi liquidada anteriormente.`);
+    }
 
-      // 2. Decrement customer's pending amount
-      const customerDoc = await transaction.get(customerRef);
-      if (!customerDoc.exists()) {
-        throw new Error(`Cliente ${customerId} não encontrado.`);
-      }
-      transaction.update(customerRef, {
-        pendingAmount: increment(-Math.abs(amount)),
-      });
+    // 1. Update Financial Movement status and payment date
+    transaction.update(movementRef, {
+      status: 'paid',
+      paymentDate: format(new Date(), 'yyyy-MM-dd'),
     });
 
-    return {
-      message: `Pagamento de ${amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} registrado com sucesso!`,
-    };
-  }
-);
+    // 2. Decrement customer's pending amount
+    const customerDoc = await transaction.get(customerRef);
+    if (!customerDoc.exists()) {
+      throw new Error(`Cliente ${customerId} não encontrado.`);
+    }
+    transaction.update(customerRef, {
+      pendingAmount: increment(-Math.abs(amount)),
+    });
+  });
+
+  return {
+    message: `Pagamento de ${amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} registrado com sucesso!`,
+  };
+}

@@ -6,9 +6,8 @@
  * and linking the exchange to a customer if provided.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { db, collection, doc, runTransaction, increment, addDoc } from '@/lib/netly';
+import { db, collection, doc, runTransaction, increment } from '@/lib/netly';
 import type { Exchange } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -31,58 +30,47 @@ export type RegisterExchangeOutput = z.infer<typeof RegisterExchangeOutputSchema
 export async function registerExchange(
   input: RegisterExchangeInput
 ): Promise<RegisterExchangeOutput> {
-  return registerExchangeFlow(input);
-}
+  const { customerId, returnedProductId, newProductId, reason, returnedProductStatus } = input;
 
+  const exchangeId = await runTransaction(db, async (transaction) => {
+    const returnedProductRef = doc(db, 'products', returnedProductId);
+    const newProductRef = doc(db, 'products', newProductId);
 
-const registerExchangeFlow = ai.defineFlow(
-  {
-    name: 'registerExchangeFlow',
-    inputSchema: RegisterExchangeInputSchema,
-    outputSchema: RegisterExchangeOutputSchema,
-  },
-  async ({ customerId, returnedProductId, newProductId, reason, returnedProductStatus }) => {
-    
-    const exchangeId = await runTransaction(db, async (transaction) => {
-        const returnedProductRef = doc(db, 'products', returnedProductId);
-        const newProductRef = doc(db, 'products', newProductId);
+    // 1. Decrement stock of the new product given to the customer
+    const newProductDoc = await transaction.get(newProductRef);
+    if (!newProductDoc.exists() || newProductDoc.data().stock < 1) {
+      throw new Error(`Estoque insuficiente para o produto de troca: ${newProductDoc.data()?.name || 'ID ' + newProductId}`);
+    }
+    transaction.update(newProductRef, { stock: increment(-1) });
 
-        // 1. Decrement stock of the new product given to the customer
-        const newProductDoc = await transaction.get(newProductRef);
-        if (!newProductDoc.exists() || newProductDoc.data().stock < 1) {
-            throw new Error(`Estoque insuficiente para o produto de troca: ${newProductDoc.data()?.name || 'ID ' + newProductId}`);
-        }
-        transaction.update(newProductRef, { stock: increment(-1) });
+    // 2. Handle the returned product stock
+    if (returnedProductStatus === 'restock') {
+      transaction.update(returnedProductRef, { stock: increment(1) });
+    }
 
-        // 2. Handle the returned product stock
-        if (returnedProductStatus === 'restock') {
-            transaction.update(returnedProductRef, { stock: increment(1) });
-        }
-        
-        // 3. Increment customer's exchange count if customer is provided
-        if (customerId) {
-            const customerRef = doc(db, 'customers', customerId);
-            transaction.update(customerRef, { exchanges: increment(1) });
-        }
+    // 3. Increment customer's exchange count if customer is provided
+    if (customerId) {
+      const customerRef = doc(db, 'customers', customerId);
+      transaction.update(customerRef, { exchanges: increment(1) });
+    }
 
-        // 4. Create the exchange record
-        const exchangeData: Omit<Exchange, 'id'> = {
-            date: format(new Date(), 'yyyy-MM-dd'),
-            customerId: customerId === 'none' ? undefined : customerId,
-            returnedProductId,
-            newProductId,
-            reason,
-            returnedProductStatus,
-        };
-        const exchangeRef = doc(collection(db, 'exchanges'));
-        transaction.set(exchangeRef, exchangeData);
-        
-        return exchangeRef.id;
-    });
-
-    return {
-        message: `Troca registrada com sucesso. Estoque ajustado.`,
-        exchangeId,
+    // 4. Create the exchange record
+    const exchangeData: Omit<Exchange, 'id'> = {
+      date: format(new Date(), 'yyyy-MM-dd'),
+      customerId: customerId === 'none' ? undefined : customerId,
+      returnedProductId,
+      newProductId,
+      reason,
+      returnedProductStatus,
     };
-  }
-);
+    const exchangeRef = doc(collection(db, 'exchanges'));
+    transaction.set(exchangeRef, exchangeData);
+
+    return exchangeRef.id;
+  });
+
+  return {
+    message: `Troca registrada com sucesso. Estoque ajustado.`,
+    exchangeId,
+  };
+}

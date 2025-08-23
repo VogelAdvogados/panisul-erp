@@ -6,7 +6,6 @@
  * It marks a financial movement as 'paid'.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db, doc, runTransaction } from '@/lib/netly';
 import { format } from 'date-fns';
@@ -22,38 +21,27 @@ const SettleExpenseOutputSchema = z.object({
 export async function settleExpense(
   input: z.infer<typeof SettleExpenseInputSchema>
 ): Promise<z.infer<typeof SettleExpenseOutputSchema>> {
-  return settleExpenseFlow(input);
-}
+  const { movementId } = input;
 
-const settleExpenseFlow = ai.defineFlow(
-  {
-    name: 'settleExpenseFlow',
-    inputSchema: SettleExpenseInputSchema,
-    outputSchema: SettleExpenseOutputSchema,
-  },
-  async ({ movementId }) => {
-    
-    await runTransaction(db, async (transaction) => {
-      const movementRef = doc(db, 'financialMovements', movementId);
-      
-      const movementDoc = await transaction.get(movementRef);
-      if (!movementDoc.exists()) {
-        throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
-      }
-       if (movementDoc.data()?.status === 'paid') {
-        throw new Error(`Esta conta já foi liquidada anteriormente.`);
-      }
+  await runTransaction(db, async (transaction) => {
+    const movementRef = doc(db, 'financialMovements', movementId);
 
-      // 1. Update Financial Movement status and payment date
-      transaction.update(movementRef, {
-        status: 'paid',
-        paymentDate: format(new Date(), 'yyyy-MM-dd'),
-      });
+    const movementDoc = await transaction.get(movementRef);
+    if (!movementDoc.exists()) {
+      throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
+    }
+    if (movementDoc.data()?.status === 'paid') {
+      throw new Error(`Esta conta já foi liquidada anteriormente.`);
+    }
 
+    // 1. Update Financial Movement status and payment date
+    transaction.update(movementRef, {
+      status: 'paid',
+      paymentDate: format(new Date(), 'yyyy-MM-dd'),
     });
+  });
 
-    return {
-      message: `Pagamento de despesa registrado com sucesso!`,
-    };
-  }
-);
+  return {
+    message: `Pagamento de despesa registrado com sucesso!`,
+  };
+}

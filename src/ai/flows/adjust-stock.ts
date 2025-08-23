@@ -5,7 +5,6 @@
  * @fileOverview Manually adjusts the stock of a single product or ingredient.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db, doc, runTransaction, increment } from '@/lib/netly';
 
@@ -26,43 +25,36 @@ export type AdjustStockOutput = z.infer<typeof AdjustStockOutputSchema>;
 export async function adjustStock(
   input: AdjustStockInput
 ): Promise<AdjustStockOutput> {
-  return adjustStockFlow(input);
+  const { itemId, itemType, adjustmentType, quantity } = input;
+
+  const collectionPath = itemType === 'product' ? 'products' : 'ingredients';
+  const itemRef = doc(db, collectionPath, itemId);
+
+  let itemName = 'item';
+  await runTransaction(db, async (transaction) => {
+    const itemDoc = await transaction.get(itemRef);
+    if (!itemDoc.exists()) {
+      throw new Error(`Item with ID ${itemId} not found in ${collectionPath}.`);
+    }
+
+    itemName = (itemDoc.data() as { name?: string }).name || 'item';
+
+    let stockChange = 0;
+    switch (adjustmentType) {
+      case 'entrada':
+      case 'acerto':
+        stockChange = quantity;
+        break;
+      case 'saida':
+      case 'perda':
+        stockChange = -quantity;
+        break;
+    }
+
+    transaction.update(itemRef, { stock: increment(stockChange) });
+  });
+
+  return {
+    message: `Estoque de ${itemName} ajustado com sucesso.`,
+  };
 }
-
-const adjustStockFlow = ai.defineFlow(
-  {
-    name: 'adjustStockFlow',
-    inputSchema: AdjustStockInputSchema,
-    outputSchema: AdjustStockOutputSchema,
-  },
-  async ({ itemId, itemType, adjustmentType, quantity }) => {
-    
-    const collectionPath = itemType === 'product' ? 'products' : 'ingredients';
-    const itemRef = doc(db, collectionPath, itemId);
-
-    await runTransaction(db, async (transaction) => {
-        const itemDoc = await transaction.get(itemRef);
-        if (!itemDoc.exists()) {
-            throw new Error(`Item with ID ${itemId} not found in ${collectionPath}.`);
-        }
-
-        let stockChange = 0;
-        switch (adjustmentType) {
-            case 'entrada':
-            case 'acerto': // For simplicity, acerto sets the stock, but here we model it as an addition for now. A true 'set' would need more info. Or let's assume 'acerto' is 'add what was missing'.
-                stockChange = quantity;
-                break;
-            case 'saida':
-            case 'perda':
-                stockChange = -quantity;
-                break;
-        }
-
-        transaction.update(itemRef, { stock: increment(stockChange) });
-    });
-
-    return {
-        message: `Estoque de ${itemDoc.data()?.name || 'item'} ajustado com sucesso.`,
-    };
-  }
-);
