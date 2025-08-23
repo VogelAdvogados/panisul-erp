@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { registerExpense } from '@/ai/flows/register-expense';
+import { registerExpense } from '@/services/register-expense';
 import { db, collection, getDocs } from '@/lib/netly';
 import type { Employee } from '@/lib/types';
 

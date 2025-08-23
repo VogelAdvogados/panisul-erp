@@ -5,7 +5,19 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, Loader2 } from 'lucide-react';
-import { analyzeFinancials, type FinancialAnalysisInput, type FinancialAnalysisOutput } from '@/ai/flows/analyze-financials';
+interface FinancialAnalysisInput {
+    revenues: number;
+    expenses: number;
+    receivable: number;
+    payable: number;
+}
+
+interface FinancialAnalysisOutput {
+    netResult: number;
+    resultComment: string;
+    accountsAnalysis: string;
+    recommendation: string;
+}
 
 const mockFinancialData: FinancialAnalysisInput = {
     revenues: 1247.50,
@@ -18,14 +30,18 @@ export function FinancialAnalysis() {
     const [isLoading, setIsLoading] = useState(false);
     const [analysis, setAnalysis] = useState<FinancialAnalysisOutput | null>(null);
 
-    const handleAnalyze = async () => {
+    const handleAnalyze = () => {
         setIsLoading(true);
         setAnalysis(null);
         try {
-            const result = await analyzeFinancials(mockFinancialData);
+            const netResult = mockFinancialData.revenues - mockFinancialData.expenses;
+            const result: FinancialAnalysisOutput = {
+                netResult,
+                resultComment: netResult >= 0 ? 'Resultado positivo no dia.' : 'Resultado negativo no dia.',
+                accountsAnalysis: `Recebíveis: ${mockFinancialData.receivable.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Pagáveis: ${mockFinancialData.payable.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
+                recommendation: 'Revise suas receitas e despesas para otimizar o fluxo de caixa.',
+            };
             setAnalysis(result);
-        } catch (error) {
-            console.error(error);
         } finally {
             setIsLoading(false);
         }

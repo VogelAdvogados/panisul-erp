@@ -46,7 +46,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { registerEmployee } from '@/ai/flows/register-employee';
+import { registerEmployee } from '@/services/register-employee';
 
 export function EmployeeList() {
   const [employees, setEmployees] = useState<Employee[]>([]);

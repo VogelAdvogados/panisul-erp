@@ -18,8 +18,35 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon, Sparkles, Loader2, TrendingUp, TrendingDown, Package, Users, BarChart, Info, Lightbulb } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import { Separator } from '@/components/ui/separator';
-import { analyzeSales, type SalesAnalysisInput, type SalesAnalysisOutput } from '@/ai/flows/analyze-sales';
 import { initialProducts as products } from '@/lib/data';
+
+interface ProductSale {
+  productId: string;
+  productName: string;
+  quantitySold: number;
+  totalValue: number;
+}
+
+interface ProductInfo {
+  id: string;
+  name: string;
+  stock: number;
+}
+
+interface SalesAnalysisInput {
+  startDate: string;
+  endDate: string;
+  salesData: ProductSale[];
+  products: ProductInfo[];
+}
+
+interface SalesAnalysisOutput {
+  summary: string;
+  topSellingProducts: ProductSale[];
+  lowSellingProducts: ProductSale[];
+  trends: string;
+  recommendations: string;
+}
 
 
 const formSchema = z.object({
@@ -44,19 +71,25 @@ export default function SalesReportPage() {
         const input: SalesAnalysisInput = {
             startDate: data.dateRange.from.toISOString(),
             endDate: data.dateRange.to.toISOString(),
-            // Mocking sales data for demonstration
             salesData: [
                 { productId: 'PROD-001', productName: 'Pão Francês', quantitySold: 350, totalValue: 262.50 },
                 { productId: 'PROD-002', productName: 'Croissant', quantitySold: 120, totalValue: 420.00 },
                 { productId: 'PROD-003', productName: 'Baguete', quantitySold: 80, totalValue: 320.00 },
             ],
             products: products.map(p => ({ id: p.id, name: p.name, stock: p.stock })),
-        }
-      const result = await analyzeSales(input);
-      setAnalysis(result);
-    } catch (error) {
-      console.error(error);
-      // Handle error with a toast message
+        };
+
+        const topSellingProducts = [...input.salesData].sort((a,b)=>b.quantitySold - a.quantitySold).slice(0,3);
+        const lowSellingProducts = [...input.salesData].sort((a,b)=>a.quantitySold - b.quantitySold).slice(0,3);
+        const totalRevenue = input.salesData.reduce((sum,p)=>sum+p.totalValue,0);
+        const analysis: SalesAnalysisOutput = {
+            summary: `Período de ${format(data.dateRange.from, 'dd/MM/yyyy')} a ${format(data.dateRange.to, 'dd/MM/yyyy')} gerou receita total de ${totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.`,
+            topSellingProducts,
+            lowSellingProducts,
+            trends: 'Análise detalhada indisponível.',
+            recommendations: 'Sem recomendações automáticas.',
+        };
+        setAnalysis(analysis);
     } finally {
       setIsLoading(false);
     }

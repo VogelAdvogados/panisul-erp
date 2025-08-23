@@ -22,8 +22,6 @@ import { Mail, Hash, DollarSign, Package, Sparkles, Loader2, CreditCard, Clock }
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-import { analyzeSupplierHistory } from '@/ai/flows/analyze-supplier-history';
-import { useToast } from '@/hooks/use-toast';
 
 interface SupplierDetailProps {
   supplier: Supplier;
@@ -34,7 +32,6 @@ interface SupplierDetailProps {
 export function SupplierDetail({ supplier, purchases, movements }: SupplierDetailProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const totalDue = movements.reduce((acc, fm) => acc + fm.amount, 0);
   const totalPaid = movements
@@ -45,22 +42,12 @@ export function SupplierDetail({ supplier, purchases, movements }: SupplierDetai
   // Correct calculation for pending amount based on financial movements
   const pendingAmount = totalDue - totalPaid;
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = () => {
     setIsLoading(true);
     setAnalysis(null);
-    try {
-        const result = await analyzeSupplierHistory(supplier.id);
-        setAnalysis(result.analysis);
-    } catch (error) {
-        console.error(error);
-        toast({
-          title: 'Erro na Análise de IA',
-          description: error instanceof Error ? error.message : 'Não foi possível gerar a análise do fornecedor.',
-          variant: 'destructive',
-        });
-    } finally {
-        setIsLoading(false);
-    }
+    const analysisText = `Fornecedor ${supplier.name} possui ${purchases.length} compras registradas, totalizando ${totalPurchasedValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Saldo devedor atual: ${Math.abs(pendingAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.`;
+    setAnalysis(analysisText);
+    setIsLoading(false);
   }
 
   const getMovementStatus = (movement: FinancialMovement) => {

@@ -28,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Repeat } from 'lucide-react';
 import { useState } from 'react';
 import type { SourceAccount } from '@/lib/types';
-import { transferFunds } from '@/ai/flows/transfer-funds';
+import { transferFunds } from '@/services/transfer-funds';
 
 const formSchema = z.object({
   fromAccount: z.custom<SourceAccount>({ required_error: 'Selecione a conta de origem.'}),

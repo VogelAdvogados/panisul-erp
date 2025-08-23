@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { Product } from '@/lib/types';
-import { registerProduction } from '@/ai/flows/register-production';
+import { registerProduction } from '@/services/register-production';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
