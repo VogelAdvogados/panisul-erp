@@ -109,7 +109,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     try {
         const salesQuery = query(collection(db, 'sales'), where('customerId', '==', customer.id), orderBy('date', 'desc'));
         const exchangesQuery = query(collection(db, 'exchanges'), where('customerId', '==', customer.id), orderBy('date', 'desc'));
-        const financialsQuery = query(collection(db, 'financialMovements'), where('referenceId', '==', customer.id));
+        const financialsQuery = query(collection(db, 'financialMovements'), where('customerId', '==', customer.id));
 
         const [salesSnapshot, exchangesSnapshot, financialsSnapshot] = await Promise.all([
             getDocs(salesQuery),

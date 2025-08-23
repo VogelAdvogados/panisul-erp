@@ -74,6 +74,7 @@ export interface FinancialMovement {
     paymentDate?: string;
     category: ExpenseCategory;
     referenceId?: string; // e.g., purchaseId or saleId
+    customerId?: string;
     employeeId?: string;
     sourceAccount: SourceAccount;
 }

@@ -110,6 +110,7 @@ const registerSaleFlow = ai.defineFlow(
         const financialMovement: Omit<FinancialMovement, 'id'> = {
           description: movementDescription,
           referenceId: saleRef.id,
+          customerId,
           dueDate: isSaleOnCredit ? dueDate : format(today, 'yyyy-MM-dd'),
           paymentDate: movementStatus === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
           amount: totalAmount,
@@ -118,11 +119,8 @@ const registerSaleFlow = ai.defineFlow(
           category: 'vendas',
           sourceAccount,
         };
-        
-        // If sale is on credit, link financial movement to customer for receivable tracking
-        if (isSaleOnCredit && customerId) {
-          financialMovement.referenceId = customerId; 
-        }
+
+        // referenceId always points to the sale document; customerId links to the client when applicable
         
         const movementRef = doc(collection(db, 'financialMovements'));
         transaction.set(movementRef, financialMovement);
