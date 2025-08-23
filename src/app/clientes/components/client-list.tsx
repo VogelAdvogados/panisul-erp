@@ -72,14 +72,15 @@ export function ClientList({ customerToOpen }: ClientListProps) {
   
   const { toast } = useToast();
   
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (): Promise<Customer[]> => {
        setIsLoading(true);
+       let customersList: Customer[] = [];
        try {
         const [customersSnapshot, productsSnapshot] = await Promise.all([
             getDocs(query(collection(db, 'customers'), orderBy('name', 'asc'))),
             getDocs(collection(db, 'products'))
         ]);
-        const customersList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
+        customersList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
         setCustomers(customersList);
 
         const productList = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
@@ -96,6 +97,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
       } finally {
         setIsLoading(false);
       }
+      return customersList;
   }, [toast]);
 
   useEffect(() => {
@@ -202,9 +204,13 @@ export function ClientList({ customerToOpen }: ClientListProps) {
     };
 
     try {
-        const result = await registerCustomer(customerData);
-        toast({ title: "Sucesso!", description: result.message });
-        await fetchData();
+        const { customerId, message } = await registerCustomer(customerData);
+        toast({ title: "Sucesso!", description: message });
+        const updatedCustomers = await fetchData();
+        const createdCustomer = updatedCustomers.find(c => c.id === customerId);
+        if (createdCustomer) {
+            handleViewDetails(createdCustomer);
+        }
         handleCloseForm();
     } catch(err) {
         const error = err as Error;
