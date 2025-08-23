@@ -8,7 +8,7 @@ import { PlusCircle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Exchange, Customer } from '@/lib/types';
-import { db, collection, getDocs, orderBy, query } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import { ExchangeForm } from './components/exchange-form';
 import { ExchangeHistory } from './components/exchange-history';
 
@@ -24,27 +24,21 @@ export default function TrocasPage() {
    const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const exchangesQuery = query(collection(db, 'exchanges'), orderBy('date', 'desc'));
-
-      const [productsSnapshot, exchangesSnapshot, customersSnapshot] = await Promise.all([
-        getDocs(collection(db, 'products')),
-        getDocs(exchangesQuery),
-        getDocs(collection(db, 'customers')),
+      const [productList, exchangeListRaw, customerList] = await Promise.all([
+        getDocs(collection('products')) as Promise<Array<Product & { id: string }>>,
+        getDocs(collection('exchanges')) as Promise<Array<Exchange & { id: string }>>,
+        getDocs(collection('customers')) as Promise<Array<Customer & { id: string }>>,
       ]);
-      
-      const productList = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+
       const productsMap = new Map(productList.map(p => [p.id, p]));
-      
-      const exchangeList = exchangesSnapshot.docs.map(doc => {
-        const data = { id: doc.id, ...doc.data() } as Exchange;
-        return {
+
+      const exchangeList = exchangeListRaw
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map(data => ({
           ...data,
           returnedProduct: productsMap.get(data.returnedProductId),
           newProduct: productsMap.get(data.newProductId),
-        }
-      });
-      
-      const customerList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
+        }));
 
       setProducts(productList);
       setCustomers(customerList);

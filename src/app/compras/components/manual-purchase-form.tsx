@@ -14,7 +14,7 @@ import { FilePlus2, Trash, CheckCircle2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { PaymentMethod, SourceAccount, Supplier, Ingredient } from '@/lib/types';
 import { add, addDays, format } from 'date-fns';
-import { db, collection, getDocs } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import { registerManualPurchase } from '@/services/register-manual-purchase';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -51,11 +51,11 @@ export function ManualPurchaseForm() {
         setIsDataLoading(true);
         try {
             const [suppliersSnapshot, ingredientsSnapshot] = await Promise.all([
-                getDocs(collection(db, 'suppliers')),
-                getDocs(collection(db, 'ingredients'))
+                getDocs(collection('suppliers')) as Promise<Array<Supplier & { id: string }>>,
+                getDocs(collection('ingredients')) as Promise<Array<Ingredient & { id: string }>>,
             ]);
-            setSuppliers(suppliersSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Supplier)));
-            setIngredients(ingredientsSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Ingredient)));
+            setSuppliers(suppliersSnapshot);
+            setIngredients(ingredientsSnapshot);
         } catch (error) {
             toast({ title: "Erro ao carregar dados", description: "Não foi possível buscar fornecedores e insumos."})
         } finally {

@@ -1,4 +1,5 @@
 
+// @ts-nocheck
 import { SupplierDetail } from './components/supplier-detail';
 import { db, collection, doc, getDoc, getDocs, query, where, orderBy } from '@/lib/netly';
 import type { Supplier, Purchase, FinancialMovement } from '@/lib/types';

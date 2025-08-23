@@ -14,7 +14,7 @@ import { ArrowRight, Loader2, ShoppingBag, Truck } from 'lucide-react';
 import type { Sale } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
-import { db, collection, getDocs, orderBy, query } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import { useToast } from '@/hooks/use-toast';
 
 export function SalesHistory() {
@@ -26,10 +26,8 @@ export function SalesHistory() {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const salesQuery = query(collection(db, 'sales'), orderBy('date', 'desc'));
-                const salesSnapshot = await getDocs(salesQuery);
-                const salesList = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Sale);
-                setSales(salesList);
+                const salesList = (await getDocs(collection('sales'))) as Array<Sale & { id: string }>;
+                setSales(salesList.sort((a, b) => b.date.localeCompare(a.date)));
             } catch (error) {
                 toast({
                     title: "Erro ao buscar histórico",

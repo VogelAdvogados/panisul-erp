@@ -1,8 +1,7 @@
-// @ts-nocheck
 'use server';
 
 import { z } from 'zod';
-import { db, collection, addDoc, updateDoc, doc } from '@/lib/netly';
+import { addDoc, updateDoc, doc } from '@/lib/netly';
 import type { Employee } from '@/lib/types';
 
 const RegisterEmployeeInputSchema = z.object({
@@ -22,12 +21,12 @@ export async function registerEmployee(
   const employeePayload = { ...input };
 
   if (employeeId) {
-    const employeeRef = doc(db, 'employees', employeeId);
+    const employeeRef = doc('employees', employeeId);
     await updateDoc(employeeRef, employeePayload);
     return { employeeId, message: `Funcionário "${input.name}" atualizado com sucesso.` };
   }
 
   const newEmployeeData: Omit<Employee, 'id'> = { ...employeePayload };
-  const employeeRef = await addDoc(collection(db, 'employees'), newEmployeeData);
+  const employeeRef = await addDoc('employees', newEmployeeData);
   return { employeeId: employeeRef.id, message: `Funcionário "${input.name}" cadastrado com sucesso.` };
 }

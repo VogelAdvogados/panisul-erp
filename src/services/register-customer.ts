@@ -1,8 +1,7 @@
-// @ts-nocheck
 'use server';
 
 import { z } from 'zod';
-import { db, collection, addDoc, updateDoc, doc } from '@/lib/netly';
+import { addDoc, updateDoc, doc } from '@/lib/netly';
 import type { Customer } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -35,7 +34,7 @@ export async function registerCustomer(
   };
 
   if (customerId) {
-    const customerRef = doc(db, 'customers', customerId);
+    const customerRef = doc('customers', customerId);
     await updateDoc(customerRef, customerPayload);
     return { customerId, message: `Cliente "${input.name}" atualizado com sucesso.` };
   }
@@ -49,6 +48,6 @@ export async function registerCustomer(
     exchanges: 0,
     lastPurchaseDate: '',
   };
-  const customerRef = await addDoc(collection(db, 'customers'), newCustomerData);
+  const customerRef = await addDoc('customers', newCustomerData);
   return { customerId: customerRef.id, message: `Cliente "${input.name}" cadastrado com sucesso.` };
 }

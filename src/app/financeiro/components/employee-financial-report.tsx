@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db, collection, getDocs, query, where } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import type { FinancialMovement, Employee } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -29,8 +29,8 @@ export function EmployeeFinancialReport() {
 
   useEffect(() => {
     const fetchEmployees = async () => {
-      const snap = await getDocs(collection(db, 'employees'));
-      setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() } as Employee)));
+      const snap = (await getDocs(collection('employees'))) as Array<Employee & { id: string }>;
+      setEmployees(snap);
     };
     fetchEmployees();
   }, []);
@@ -38,16 +38,15 @@ export function EmployeeFinancialReport() {
   const fetchReport = async () => {
     setIsLoading(true);
     try {
-      const q = query(
-        collection(db, 'financialMovements'),
-        where('paymentDate', '>=', startDate),
-        where('paymentDate', '<=', endDate),
-        where('status', '==', 'paid')
-      );
-      const snap = await getDocs(q);
-      const movements = snap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement))
-        .filter(m => m.employeeId);
+      const movements = ((await getDocs(collection('financialMovements'))) as Array<FinancialMovement & { id: string }>)
+        .filter(
+          m =>
+            !!m.paymentDate &&
+            m.paymentDate >= startDate &&
+            m.paymentDate <= endDate &&
+            m.status === 'paid' &&
+            m.employeeId,
+        );
 
       const grouped = movements.reduce<Record<string, Summary>>((acc, mov) => {
         const id = mov.employeeId as string;
@@ -59,7 +58,7 @@ export function EmployeeFinancialReport() {
         }
         acc[id] = current;
         return acc;
-      }, {});
+      }, {} as Record<string, Summary>);
 
       setSummary(grouped);
     } finally {

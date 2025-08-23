@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { db, collection, getDocs, query, orderBy, where } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import {
   Table,
   TableHeader,
@@ -41,14 +41,9 @@ export function AccountsPayable() {
     const fetchMovements = useCallback(async () => {
         setIsLoading(true);
         try {
-            const movementsCollection = collection(db, 'financialMovements');
-            const q = query(
-                movementsCollection, 
-                where('type', '==', 'expense'),
-                orderBy('dueDate', 'asc')
-            );
-            const snapshot = await getDocs(q);
-            const movementList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement));
+            const movementList = ((await getDocs(collection('financialMovements'))) as Array<FinancialMovement & { id: string }>)
+                .filter(m => m.type === 'expense')
+                .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
             setMovements(movementList);
         } catch (error) {
             toast({
@@ -67,11 +62,11 @@ export function AccountsPayable() {
     }, [fetchMovements]);
 
 
-    const getStatus = (movement: FinancialMovement) => {
+    const getStatus = (movement: FinancialMovement): { variant: 'default' | 'secondary' | 'destructive'; text: string; icon: typeof CheckCircle | typeof Clock } => {
         if (movement.status === 'paid') return { variant: 'default', text: 'Pago', icon: CheckCircle };
         if (new Date(movement.dueDate) < new Date() && movement.status === 'pending') return { variant: 'destructive', text: 'Vencido', icon: Clock };
         return { variant: 'secondary', text: 'Pendente', icon: Clock };
-    }
+    };
     
     const handleSettleExpense = async (movementId: string) => {
         setIsSettling(movementId);

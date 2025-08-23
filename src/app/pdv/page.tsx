@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { db, collection, getDocs } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import type { Product, Customer } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -31,13 +31,11 @@ export default function PdvPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [productsSnapshot, customersSnapshot] = await Promise.all([
-        getDocs(collection(db, 'products')),
-        getDocs(collection(db, 'customers')),
+      const [productList, customerList] = await Promise.all([
+        getDocs(collection('products')) as Promise<Array<Product & { id: string }>>,
+        getDocs(collection('customers')) as Promise<Array<Customer & { id: string }>>,
       ]);
-      const productList = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
       setProducts(productList);
-      const customerList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
       setCustomers(customerList);
     } catch (error) {
       toast({

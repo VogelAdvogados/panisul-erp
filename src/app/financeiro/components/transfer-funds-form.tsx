@@ -30,16 +30,18 @@ import { useState } from 'react';
 import type { SourceAccount } from '@/lib/types';
 import { transferFunds } from '@/services/transfer-funds';
 
-const formSchema = z.object({
-  fromAccount: z.custom<SourceAccount>({ required_error: 'Selecione a conta de origem.'}),
-  toAccount: z.custom<SourceAccount>({ required_error: 'Selecione a conta de destino.'}),
-  amount: z.coerce.number().min(0.01, 'O valor deve ser maior que zero.'),
-  date: z.string().min(1, 'A data é obrigatória.'),
-  notes: z.string().optional(),
-}).refine(data => data.fromAccount !== data.toAccount, {
-    message: "A conta de origem e destino não podem ser as mesmas.",
-    path: ["toAccount"],
-});
+const formSchema = z
+  .object({
+    fromAccount: z.enum(['cash', 'bank'], { required_error: 'Selecione a conta de origem.' }) as z.ZodType<SourceAccount>,
+    toAccount: z.enum(['cash', 'bank'], { required_error: 'Selecione a conta de destino.' }) as z.ZodType<SourceAccount>,
+    amount: z.coerce.number().min(0.01, 'O valor deve ser maior que zero.'),
+    date: z.string().min(1, 'A data é obrigatória.'),
+    notes: z.string().optional(),
+  })
+  .refine(data => data.fromAccount !== data.toAccount, {
+    message: 'A conta de origem e destino não podem ser as mesmas.',
+    path: ['toAccount'],
+  });
 
 interface TransferFundsFormProps {
     onTransferDone: () => void;
