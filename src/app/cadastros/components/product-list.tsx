@@ -146,7 +146,7 @@ export function ProductList() {
         if (snapshot.data().count > 0) {
             toast({
                 title: 'Banco de dados já populado',
-                description: 'Os dados iniciais já existem no Firestore.',
+                description: 'Os dados iniciais já existem no banco de dados.',
                 variant: 'destructive',
             });
             setIsSeeding(false);
