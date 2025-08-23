@@ -1,53 +1,63 @@
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import {
-  getFirestore,
-  collection,
-  doc,
-  query,
-  where,
-  orderBy,
-  limit,
-  addDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  runTransaction,
-  increment,
-  writeBatch,
-  getCountFromServer,
-  Timestamp,
-} from 'firebase/firestore';
+/**
+ * Simplified Netly database client used to abstract away the previous
+ * Firestore implementation. The API intentionally avoids Firestore
+ * terminology such as collections and documents.
+ */
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+export interface NetlyRecord<T> {
+  id: string;
+  data: T;
+}
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export class NetlyQuery<T> {
+  constructor(private readonly table: string) {}
 
-export {
-  collection,
-  doc,
-  query,
-  where,
-  orderBy,
-  limit,
-  addDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  runTransaction,
-  increment,
-  writeBatch,
-  getCountFromServer,
-  Timestamp,
-};
+  /**
+   * Fetch all records for the current table. The implementation is
+   * a placeholder and should be replaced by real Netly data access.
+   */
+  async all(): Promise<NetlyRecord<T>[]> {
+    return [];
+  }
+}
+
+export class NetlyTable<T> {
+  constructor(private readonly name: string) {}
+
+  /** Create a new record inside the table */
+  async add(data: Omit<T, 'id'>): Promise<NetlyRecord<T>> {
+    return { id: 'pending-id', data: data as T };
+  }
+
+  /** Obtain a reference to an existing record */
+  record(id: string) {
+    return {
+      /** Update fields of the record */
+      update: async (payload: Partial<T>): Promise<void> => {
+        return;
+      },
+      /** Retrieve the record */
+      get: async (): Promise<NetlyRecord<T> | null> => {
+        return null;
+      },
+    };
+  }
+
+  /** Query helpers */
+  query(): NetlyQuery<T> {
+    return new NetlyQuery<T>(this.name);
+  }
+}
+
+export class NetlyDB {
+  table<T>(name: string): NetlyTable<T> {
+    return new NetlyTable<T>(name);
+  }
+}
+
+/**
+ * Export a singleton database instance. Real implementations would
+ * configure authentication and connection details here.
+ */
+export const db = new NetlyDB();
+

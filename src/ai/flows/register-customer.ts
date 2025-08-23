@@ -7,7 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { db, collection, addDoc, updateDoc, doc } from '@/lib/netly';
+import { db } from '@/lib/netly';
 import type { Customer } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -45,7 +45,7 @@ const registerCustomerFlow = ai.defineFlow(
   async (input) => {
     const customerId = input.id;
     
-    // Ensure email is an empty string if not provided, to avoid 'undefined' in Firestore.
+    // Ensure email is an empty string if not provided to avoid undefined values.
     const customerPayload = {
         name: input.name,
         email: input.email || '',
@@ -57,14 +57,15 @@ const registerCustomerFlow = ai.defineFlow(
         notes: input.notes || '',
     };
     
+    const customers = db.table<Customer>('customers');
+
     if (customerId) {
         // Update existing customer
-        const customerRef = doc(db, 'customers', customerId);
-        await updateDoc(customerRef, customerPayload);
+        await customers.record(customerId).update(customerPayload);
         return {
             customerId,
-            message: `Cliente "${input.name}" atualizado com sucesso.`
-        }
+            message: `Cliente \"${input.name}\" atualizado com sucesso.`
+        };
     } else {
         // Create new customer with all required fields initialized
         const newCustomerData: Omit<Customer, 'id'> = {
@@ -76,11 +77,11 @@ const registerCustomerFlow = ai.defineFlow(
             exchanges: 0,
             lastPurchaseDate: '',
         };
-        const customerRef = await addDoc(collection(db, 'customers'), newCustomerData);
+        const customerRef = await customers.add(newCustomerData);
         return {
             customerId: customerRef.id,
-            message: `Cliente "${input.name}" cadastrado com sucesso.`
-        }
+            message: `Cliente \"${input.name}\" cadastrado com sucesso.`
+        };
     }
   }
 );
