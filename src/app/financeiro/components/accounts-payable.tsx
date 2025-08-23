@@ -164,7 +164,7 @@ export function AccountsPayable() {
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Confirmar Pagamento?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Você está prestes a marcar a despesa "{movement.description}" no valor de {movement.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} como paga. Esta ação não pode ser desfeita.
+                                            Você está prestes a marcar a despesa &quot;{movement.description}&quot; no valor de {movement.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} como paga. Esta ação não pode ser desfeita.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>

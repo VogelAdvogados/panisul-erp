@@ -236,21 +236,22 @@ export default function PdvPage() {
         </div>
       </div>
 
-      <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Finalizar Venda: {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</DialogTitle>
-            <DialogDescription>
-              Selecione o cliente (se houver) e a forma de pagamento para concluir a venda.
-            </DialogDescription>
-          </DialogHeader>
-          <RegisterSaleForm
-            cart={cart}
-            total={total}
-            customers={customers}
-            onSaleRegistered={handleSaleSuccess}
-          />
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+  <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Finalizar Venda: {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</DialogTitle>
+        <DialogDescription>
+          Selecione o cliente (se houver) e a forma de pagamento para concluir a venda.
+        </DialogDescription>
+      </DialogHeader>
+      <RegisterSaleForm
+        cart={cart}
+        total={total}
+        customers={customers}
+        onSaleRegistered={handleSaleSuccess}
+      />
+    </DialogContent>
+  </Dialog>
+</>
+);
+}

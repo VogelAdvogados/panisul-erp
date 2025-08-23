@@ -299,7 +299,7 @@ export function ProductList() {
                     {products.length === 0 && !isLoading && (
                         <TableRow>
                             <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                Nenhum produto encontrado. Clique em "Popular Dados Iniciais" para começar.
+                                Nenhum produto encontrado. Clique em &quot;Popular Dados Iniciais&quot; para começar.
                             </TableCell>
                         </TableRow>
                     )}

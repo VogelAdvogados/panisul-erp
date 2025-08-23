@@ -64,9 +64,9 @@ export function PurchaseHistoryList() {
     fetchData();
   }, [fetchData]);
 
-  const getSupplierName = (supplierId: string) => {
+  const getSupplierName = useCallback((supplierId: string) => {
     return suppliers[supplierId]?.name || 'Fornecedor Desconhecido';
-  };
+  }, [suppliers]);
 
   const filteredPurchases = useMemo(() => {
     return purchases.filter(p => {
@@ -75,7 +75,7 @@ export function PurchaseHistoryList() {
         const searchLower = searchTerm.toLowerCase();
         return supplierName.includes(searchLower) || invoiceNumber.includes(searchLower);
     })
-  }, [purchases, searchTerm, suppliers]);
+  }, [purchases, searchTerm, getSupplierName]);
 
 
   const getOverallStatus = (movements: FinancialMovement[]): {variant: 'default' | 'secondary' | 'destructive' | 'outline', text: string} => {
