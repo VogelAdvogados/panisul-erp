@@ -10,7 +10,7 @@ import { QuickActions } from '@/components/dashboard/quick-actions';
 import { Alerts } from '@/components/dashboard/alerts';
 import { BillingChart } from '@/components/dashboard/billing-chart';
 import { ExpenseChart } from '@/components/dashboard/expense-chart';
-import { db, collection, getDocs, limit, query, where, orderBy, Timestamp } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import type { FinancialMovement, Ingredient } from '@/lib/types';
 import { StatCard } from '@/components/stat-card';
 import { LatestTransactions } from '@/components/dashboard/latest-transactions';
@@ -23,31 +23,15 @@ export const revalidate = 60; // Revalidate the dashboard every 60 seconds
 async function getDashboardData() {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-    // More efficient queries
-    const movementsRef = collection(db, 'financialMovements');
-    const paidTodayQuery = query(movementsRef, where('paymentDate', '==', todayStr));
-    const dueTodayQuery = query(movementsRef, where('dueDate', '==', todayStr), where('status', '==', 'pending'));
-    const allMovementsQuery = query(movementsRef, where('status', '==', 'paid'));
-
-
-    const [
-        paidTodaySnapshot,
-        dueTodaySnapshot,
-        allMovementsSnapshot,
-        lowStockSnapshot,
-        latestTransactionsSnapshot,
-    ] = await Promise.all([
-        getDocs(paidTodayQuery),
-        getDocs(dueTodayQuery),
-        getDocs(allMovementsQuery), // For total balance calculation
-        getDocs(query(collection(db, 'ingredients'), where('stock', '<', 1000), limit(5))),
-        getDocs(query(collection(db, "financialMovements"), where('status', '==', 'paid'), orderBy("paymentDate", "desc"), limit(5)))
+    const [movements, ingredients] = await Promise.all([
+        getDocs(collection('financialMovements')) as Promise<Array<FinancialMovement & { id: string }>>,
+        getDocs(collection('ingredients')) as Promise<Array<Ingredient & { id: string }>>,
     ]);
 
-    const paidToday = paidTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);
-    const dueToday = dueTodaySnapshot.docs.map(doc => doc.data() as FinancialMovement);
-    const allMovements = allMovementsSnapshot.docs.map(doc => doc.data() as FinancialMovement);
-    
+    const paidToday = movements.filter(m => m.paymentDate === todayStr && m.status === 'paid');
+    const dueToday = movements.filter(m => m.dueDate === todayStr && m.status === 'pending');
+    const allMovements = movements.filter(m => m.status === 'paid');
+
     const cashBalance = allMovements
         .filter(m => m.sourceAccount === 'cash')
         .reduce((acc, m) => acc + m.amount, 0);
@@ -61,9 +45,12 @@ async function getDashboardData() {
 
     const totalPayableToday = dueToday.filter(m => m.type === 'expense').reduce((acc, m) => acc + m.amount, 0);
     const totalReceivableToday = dueToday.filter(m => m.type === 'revenue').reduce((acc, m) => acc + m.amount, 0);
-    
-    const lowStockItems = lowStockSnapshot.docs.map(doc => doc.data() as Ingredient);
-    const latestTransactions = latestTransactionsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as FinancialMovement);
+
+    const lowStockItems = ingredients.filter(i => i.stock < 1000).slice(0, 5);
+    const latestTransactions = movements
+        .filter(m => m.status === 'paid')
+        .sort((a, b) => (b.paymentDate || '').localeCompare(a.paymentDate || ''))
+        .slice(0, 5);
 
     return {
         cashBalance,

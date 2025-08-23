@@ -39,7 +39,7 @@ import { CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { registerExpense } from '@/services/register-expense';
-import { db, collection, getDocs } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import type { Employee } from '@/lib/types';
 
 
@@ -85,8 +85,8 @@ export default function NewExpensePage() {
     const fetchEmployees = async () => {
         if (shouldShowEmployeeField) {
             try {
-                const employeesSnapshot = await getDocs(collection(db, 'employees'));
-                setEmployees(employeesSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Employee)));
+                const employeesSnapshot = (await getDocs(collection('employees'))) as Array<Employee & { id: string }>;
+                setEmployees(employeesSnapshot);
             } catch (error) {
                  toast({ title: "Erro ao buscar funcionários", variant: 'destructive' });
             }

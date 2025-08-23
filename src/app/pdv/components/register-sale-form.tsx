@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import type { Customer } from '@/lib/types';
+import type { Customer, SourceAccount } from '@/lib/types';
 import { registerSale } from '@/services/register-sale';
 import { useState, useEffect } from 'react';
 import { Loader2, ShoppingCart, UserSearch } from 'lucide-react';
@@ -78,13 +78,12 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
         }));
         
         const sourceAccount = data.paymentMethod === 'dinheiro' ? 'cash' : 'bank';
-        const isConcluded = form.getValues('status') === 'concluida';
 
         const payload = {
             ...data,
             items: itemsToSell,
             totalAmount: total,
-            sourceAccount: sourceAccount,
+            sourceAccount: sourceAccount as SourceAccount,
             channel: 'interna' as const,
             status: 'concluida' as const,
             customerId: data.customerId === 'none' ? undefined : data.customerId,
@@ -240,7 +239,7 @@ export function RegisterSaleForm({ cart, total, customers, onSaleRegistered }: R
                     <FormItem>
                     <FormLabel>Parcelas</FormLabel>
                     <FormControl>
-                        <Input type="number" min="1" step="1" placeholder="Nº de parcelas" {...field} disabled={isLoading || paymentType === 'a_vista'} />
+                        <Input type="number" min="1" step="1" placeholder="Nº de parcelas" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>

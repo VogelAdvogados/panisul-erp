@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, ShoppingCart, Package, RefreshCw, Eye, ShoppingBag, SlidersHorizontal } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
-import { db, collection, getDocs, orderBy, query } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import type { Product, Customer, Ingredient } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -23,14 +23,11 @@ export default function OperacoesPage() {
 
   const fetchData = useCallback(async () => {
     try {
-        const [productsSnapshot, ingredientsSnapshot] = await Promise.all([
-            getDocs(query(collection(db, 'products'), orderBy('name'))),
-            getDocs(query(collection(db, 'ingredients'), orderBy('name')))
+        const [productList, ingredientList] = await Promise.all([
+            getDocs(collection('products')) as Promise<Array<Product & { id: string }>>,
+            getDocs(collection('ingredients')) as Promise<Array<Ingredient & { id: string }>>,
         ]);
-        const productList = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
         setProducts(productList);
-
-        const ingredientList = ingredientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ingredient));
         setIngredients(ingredientList);
 
     } catch (error) {

@@ -1,9 +1,8 @@
-// @ts-nocheck
 'use server';
 
 import { z } from 'zod';
-import { db, collection, doc, runTransaction, increment } from '@/lib/netly';
-import type { Product, FinancialMovement, Customer, SourceAccount, Sale, SaleItem, SaleChannel } from '@/lib/types';
+import { doc, getDoc, updateDoc, addDoc, increment } from '@/lib/netly';
+import type { Product, FinancialMovement, SourceAccount, Sale, SaleItem, SaleChannel } from '@/lib/types';
 import { format } from 'date-fns';
 
 const SaleItemSchema = z.object({
@@ -29,89 +28,92 @@ const RegisterSaleInputSchema = z.object({
 export type RegisterSaleInput = z.infer<typeof RegisterSaleInputSchema>;
 
 export async function registerSale(
-  input: RegisterSaleInput
+  input: RegisterSaleInput,
 ): Promise<{ message: string; saleId: string }> {
-  const { items, totalAmount, paymentMethod, sourceAccount, customerId, dueDate, channel, salespersonId, location, notes, status } = input;
+  const {
+    items,
+    totalAmount,
+    paymentMethod,
+    sourceAccount,
+    customerId,
+    dueDate,
+    channel,
+    salespersonId,
+    location,
+    notes,
+    status,
+  } = input;
   const isSaleOnCredit = !!dueDate;
+  const isConcluded = status === 'concluida';
+  const productNames: string[] = [];
 
-  const { saleId, productNames } = await runTransaction(db, async (transaction) => {
-    const productNames: string[] = [];
-    const isConcluded = status === 'concluida';
-
-    if (isConcluded) {
-      for (const item of items) {
-        const productRef = doc(db, 'products', item.productId);
-        const productDoc = await transaction.get(productRef);
-        if (!productDoc.exists()) {
-          throw new Error(`Produto ${item.productName} não encontrado.`);
-        }
-        const product = productDoc.data() as Product;
-        const currentStock = product.stock || 0;
-        if (currentStock < item.quantity) {
-          throw new Error(`Estoque insuficiente para ${product.name}. Disponível: ${currentStock}, Solicitado: ${item.quantity}`);
-        }
-        transaction.update(productRef, {
-          stock: increment(-item.quantity),
-          sold: increment(item.quantity),
-        });
-        productNames.push(item.productName);
+  if (isConcluded) {
+    for (const item of items) {
+      const product = (await getDoc(doc('products', item.productId))) as Product | null;
+      if (!product) {
+        throw new Error(`Produto ${item.productName} não encontrado.`);
       }
+      const currentStock = product.stock || 0;
+      if (currentStock < item.quantity) {
+        throw new Error(`Estoque insuficiente para ${product.name}. Disponível: ${currentStock}, Solicitado: ${item.quantity}`);
+      }
+      await updateDoc(doc('products', item.productId), {
+        stock: increment(-item.quantity),
+        sold: increment(item.quantity),
+      });
+      productNames.push(item.productName);
     }
+  }
 
-    const today = new Date();
-    const saleRef = doc(collection(db, 'sales'));
-    const saleData: Omit<Sale, 'id'> = {
+  const today = new Date();
+  const saleData: Omit<Sale, 'id'> = {
+    customerId,
+    date: format(today, 'yyyy-MM-dd'),
+    items: items.map(i => ({
+      productId: i.productId,
+      productName: i.productName,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+    })),
+    totalAmount,
+    paymentMethod,
+    status,
+    channel,
+    salespersonId: salespersonId === 'none' ? undefined : salespersonId,
+    location,
+    notes,
+  };
+  const saleRef = await addDoc('sales', saleData);
+
+  if (isConcluded) {
+    const movementStatus = isSaleOnCredit ? 'pending' : 'paid';
+    const movementDescription = `Venda ${saleRef.id}: ${items.length} item(s) - ${productNames.slice(0, 2).join(', ')}${productNames.length > 2 ? '...' : ''}`;
+    const financialMovement: Omit<FinancialMovement, 'id'> = {
+      description: movementDescription,
+      referenceId: saleRef.id,
       customerId,
-      date: format(today, 'yyyy-MM-dd'),
-      items: items.map(i => ({ productId: i.productId, productName: i.productName, quantity: i.quantity, unitPrice: i.unitPrice })),
-      totalAmount,
-      paymentMethod,
-      status,
-      channel,
-      salespersonId: salespersonId === 'none' ? undefined : salespersonId,
-      location,
-      notes,
+      dueDate: isSaleOnCredit ? dueDate : format(today, 'yyyy-MM-dd'),
+      paymentDate: movementStatus === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
+      amount: totalAmount,
+      status: movementStatus,
+      type: 'revenue',
+      category: 'vendas',
+      sourceAccount,
     };
-    transaction.set(saleRef, saleData);
+    await addDoc('financialMovements', financialMovement);
 
-    if (isConcluded) {
-      const movementStatus = isSaleOnCredit ? 'pending' : 'paid';
-      const movementDescription = `Venda ${saleRef.id}: ${items.length} item(s) - ${productNames.slice(0, 2).join(', ')}${productNames.length > 2 ? '...' : ''}`;
-      const financialMovement: Omit<FinancialMovement, 'id'> = {
-        description: movementDescription,
-        referenceId: saleRef.id,
-        customerId,
-        dueDate: isSaleOnCredit ? dueDate : format(today, 'yyyy-MM-dd'),
-        paymentDate: movementStatus === 'paid' ? format(today, 'yyyy-MM-dd') : undefined,
-        amount: totalAmount,
-        status: movementStatus,
-        type: 'revenue',
-        category: 'vendas',
-        sourceAccount,
-      };
-      const movementRef = doc(collection(db, 'financialMovements'));
-      transaction.set(movementRef, financialMovement);
-    }
-
-    if (customerId && isConcluded) {
-      const customerRef = doc(db, 'customers', customerId);
-      const customerDoc = await transaction.get(customerRef);
-      if (!customerDoc.exists()) {
-        throw new Error(`Cliente ${customerId} não encontrado.`);
-      }
-      transaction.update(customerRef, {
+    if (customerId) {
+      await updateDoc(doc('customers', customerId), {
         pendingAmount: isSaleOnCredit ? increment(totalAmount) : increment(0),
         lastPurchaseDate: format(today, 'dd/MM/yyyy'),
         totalOrders: increment(1),
         totalPurchasesValue: increment(totalAmount),
       });
     }
-
-    return { saleId: saleRef.id, productNames };
-  });
+  }
 
   return {
-    message: `Venda ${saleId} no valor de ${totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} registrada com sucesso.`,
-    saleId,
+    message: `Venda ${saleRef.id} no valor de ${totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} registrada com sucesso.`,
+    saleId: saleRef.id,
   };
 }

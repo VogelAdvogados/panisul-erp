@@ -1,8 +1,7 @@
-// @ts-nocheck
 'use server';
 
 import { z } from 'zod';
-import { db, collection, doc, runTransaction, getDoc, increment } from '@/lib/netly';
+import { doc, getDoc, updateDoc, increment } from '@/lib/netly';
 import type { Recipe, Ingredient, Product } from '@/lib/types';
 
 const RegisterProductionInputSchema = z.object({
@@ -12,51 +11,41 @@ const RegisterProductionInputSchema = z.object({
 export type RegisterProductionInput = z.infer<typeof RegisterProductionInputSchema>;
 
 export async function registerProduction(
-  input: RegisterProductionInput
+  input: RegisterProductionInput,
 ): Promise<{ message: string }> {
   const { productId, quantity } = input;
 
-  const productName = await runTransaction(db, async (transaction) => {
-    const productRef = doc(db, 'products', productId);
-    const recipeRef = doc(db, 'recipes', productId);
-    const [productDoc, recipeDoc] = await Promise.all([
-      transaction.get(productRef),
-      transaction.get(recipeRef),
-    ]);
-    if (!productDoc.exists()) {
-      throw new Error(`Produto com ID ${productId} não encontrado.`);
-    }
-    if (!recipeDoc.exists()) {
-      throw new Error(`Ficha técnica para o produto ${productDoc.data().name} não encontrada.`);
-    }
-    const product = productDoc.data() as Product;
-    const recipe = recipeDoc.data() as Recipe;
+  const product = (await getDoc(doc('products', productId))) as Product | null;
+  if (!product) {
+    throw new Error(`Produto com ID ${productId} não encontrado.`);
+  }
 
-    for (const item of recipe.items) {
-      const ingredientRef = doc(db, 'ingredients', item.ingredientId);
-      const ingredientDoc = await transaction.get(ingredientRef);
-      if (!ingredientDoc.exists()) {
-        throw new Error(`Insumo com ID ${item.ingredientId} da receita não foi encontrado.`);
-      }
-      const ingredient = ingredientDoc.data() as Ingredient;
-      const currentStock = ingredient.stock || 0;
-      const requiredStock = item.quantity * quantity;
-      if (currentStock < requiredStock) {
-        throw new Error(
-          `Estoque insuficiente para o insumo "${ingredient.name}". Necessário: ${requiredStock}${ingredient.unitOfMeasure}, Disponível: ${currentStock}${ingredient.unitOfMeasure}`,
-        );
-      }
-      transaction.update(ingredientRef, { stock: increment(-requiredStock) });
-    }
+  const recipe = (await getDoc(doc('recipes', productId))) as Recipe | null;
+  if (!recipe) {
+    throw new Error(`Ficha técnica para o produto ${product.name} não encontrada.`);
+  }
 
-    transaction.update(productRef, {
-      stock: increment(quantity),
-      produced: increment(quantity),
-    });
-    return product.name;
+  for (const item of recipe.items) {
+    const ingredient = (await getDoc(doc('ingredients', item.ingredientId))) as Ingredient | null;
+    if (!ingredient) {
+      throw new Error(`Insumo com ID ${item.ingredientId} da receita não foi encontrado.`);
+    }
+    const currentStock = ingredient.stock || 0;
+    const requiredStock = item.quantity * quantity;
+    if (currentStock < requiredStock) {
+      throw new Error(
+        `Estoque insuficiente para o insumo "${ingredient.name}". Necessário: ${requiredStock}${ingredient.unitOfMeasure}, Disponível: ${currentStock}${ingredient.unitOfMeasure}`,
+      );
+    }
+    await updateDoc(doc('ingredients', item.ingredientId), { stock: increment(-requiredStock) });
+  }
+
+  await updateDoc(doc('products', productId), {
+    stock: increment(quantity),
+    produced: increment(quantity),
   });
 
   return {
-    message: `${quantity} unidade(s) de ${productName} registradas com sucesso. Estoques de produtos e insumos foram atualizados.`,
+    message: `${quantity} unidade(s) de ${product.name} registradas com sucesso. Estoques de produtos e insumos foram atualizados.`,
   };
 }

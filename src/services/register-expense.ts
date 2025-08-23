@@ -1,8 +1,7 @@
-// @ts-nocheck
 'use server';
 
 import { z } from 'zod';
-import { db, collection, addDoc } from '@/lib/netly';
+import { addDoc } from '@/lib/netly';
 import type { FinancialMovement, ExpenseCategory, SourceAccount } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -35,7 +34,7 @@ export async function registerExpense(
     employeeId: input.employeeId === 'none' ? undefined : input.employeeId,
   };
 
-  const movementRef = await addDoc(collection(db, 'financialMovements'), financialMovement);
+  const movementRef = await addDoc('financialMovements', financialMovement);
   return {
     movementId: movementRef.id,
     message: `Despesa "${input.description}" registrada com sucesso.`,

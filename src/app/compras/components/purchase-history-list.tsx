@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { db, collection, getDocs } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import {
   Table,
   TableHeader,
@@ -31,14 +31,13 @@ export function PurchaseHistoryList() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [purchasesSnapshot, suppliersSnapshot] = await Promise.all([
-        getDocs(collection(db, 'purchases')),
-        getDocs(collection(db, 'suppliers'))
+      const [purchasesList, suppliersList] = await Promise.all([
+        getDocs(collection('purchases')) as Promise<Array<Purchase & { id: string }>>,
+        getDocs(collection('suppliers')) as Promise<Array<Supplier & { id: string }>>,
       ]);
-      
-      const purchasesList = purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
-      const suppliersMap = suppliersSnapshot.docs.reduce((acc, doc) => {
-          acc[doc.id] = { id: doc.id, ...doc.data() } as Supplier;
+
+      const suppliersMap = suppliersList.reduce<Record<string, Supplier>>((acc, doc) => {
+          acc[doc.id] = doc;
           return acc;
       }, {} as Record<string, Supplier>);
 
@@ -82,7 +81,7 @@ export function PurchaseHistoryList() {
     if (total === 0) return { variant: 'outline', text: 'N/A' };
     
     const paidCount = movements.filter(m => m.status === 'paid').length;
-    const overdueCount = movements.filter(m => m.status === 'overdue' || (m.status === 'pending' && new Date(m.dueDate) < new Date())).length;
+    const overdueCount = movements.filter(m => m.status === 'pending' && new Date(m.dueDate) < new Date()).length;
 
     if(overdueCount > 0) return { variant: 'destructive', text: 'Vencida' };
     if(paidCount === total) return { variant: 'default', text: 'Paga' };

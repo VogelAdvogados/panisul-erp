@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { db, collection, getDocs, query, where, orderBy } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import {
   Table,
   TableHeader,
@@ -34,16 +34,10 @@ export function TransactionsList({ accountFilter }: TransactionsListProps) {
         const fetchTransactions = async () => {
             setIsLoading(true);
             try {
-                // Fetch paid expenses
-                const movementsQuery = query(
-                    collection(db, 'financialMovements'), 
-                    orderBy('paymentDate', 'desc')
-                );
-                const movementsSnapshot = await getDocs(movementsQuery);
-                const allMovements = movementsSnapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() } as FinancialMovement))
-                    .filter(doc => doc.status === 'paid'); // Only show paid transactions in the statement
-                
+                const allMovements = ((await getDocs(collection('financialMovements'))) as Array<FinancialMovement & { id: string }>)
+                    .filter(doc => doc.status === 'paid')
+                    .sort((a, b) => (b.paymentDate || '').localeCompare(a.paymentDate || ''));
+
                 setTransactions(allMovements);
 
             } catch (error) {

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db, collection, getDocs, query, orderBy, limit } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import {
   Table,
   TableHeader,
@@ -26,15 +26,11 @@ export function LatestTransactions() {
     const fetchTransactions = async () => {
       setIsLoading(true);
       try {
-        const movementsRef = collection(db, 'financialMovements');
-        // Get the last 5 transactions paid, ordering by paymentDate
-        const q = query(movementsRef, orderBy('paymentDate', 'desc'), limit(5));
-        const snapshot = await getDocs(q);
-        
-        const transactions = snapshot.docs.map(doc => {
-            return { id: doc.id, ...doc.data() } as FinancialMovement;
-        }).filter(t => t.status === 'paid'); // Ensure we only show paid ones
-        
+        const transactions = ((await getDocs(collection('financialMovements'))) as Array<FinancialMovement & { id: string }>)
+          .filter(t => t.status === 'paid')
+          .sort((a, b) => (b.paymentDate || '').localeCompare(a.paymentDate || ''))
+          .slice(0, 5);
+
         setLatestTransactions(transactions);
 
       } catch (error) {

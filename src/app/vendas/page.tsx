@@ -8,7 +8,7 @@ import { PlusCircle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Customer, Salesperson } from '@/lib/types';
-import { db, collection, getDocs, orderBy, query } from '@/lib/netly';
+import { collection, getDocs } from '@/lib/netly';
 import { ExternalSaleForm } from './components/external-sale-form';
 import { SalesHistory } from './components/sales-history';
 
@@ -24,16 +24,12 @@ export default function VendasExternasPage() {
    const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [productsSnapshot, customersSnapshot, salespeopleSnapshot] = await Promise.all([
-        getDocs(collection(db, 'products')),
-        getDocs(collection(db, 'customers')),
-        getDocs(collection(db, 'salespeople')),
+      const [productList, customerList, salespersonList] = await Promise.all([
+        getDocs(collection('products')) as Promise<Array<Product & { id: string }>>,
+        getDocs(collection('customers')) as Promise<Array<Customer & { id: string }>>,
+        getDocs(collection('salespeople')) as Promise<Array<Salesperson & { id: string }>>,
       ]);
-      
-      const productList = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      const customerList = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
-      const salespersonList = salespeopleSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Salesperson));
-      
+
       setProducts(productList);
       setCustomers(customerList);
       setSalespeople(salespersonList);

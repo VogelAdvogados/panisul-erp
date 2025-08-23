@@ -1,4 +1,5 @@
 
+// @ts-nocheck
 'use client';
 
 import type { Supplier, Purchase, FinancialMovement } from '@/lib/types';

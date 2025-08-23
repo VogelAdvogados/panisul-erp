@@ -1,8 +1,7 @@
-// @ts-nocheck
 'use server';
 
 import { z } from 'zod';
-import { db, doc, runTransaction } from '@/lib/netly';
+import { doc, getDoc, updateDoc } from '@/lib/netly';
 import { format } from 'date-fns';
 
 const SettleExpenseInputSchema = z.object({
@@ -11,23 +10,22 @@ const SettleExpenseInputSchema = z.object({
 export type SettleExpenseInput = z.infer<typeof SettleExpenseInputSchema>;
 
 export async function settleExpense(
-  input: SettleExpenseInput
+  input: SettleExpenseInput,
 ): Promise<{ message: string }> {
   const { movementId } = input;
 
-  await runTransaction(db, async (transaction) => {
-    const movementRef = doc(db, 'financialMovements', movementId);
-    const movementDoc = await transaction.get(movementRef);
-    if (!movementDoc.exists()) {
-      throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
-    }
-    if (movementDoc.data()?.status === 'paid') {
-      throw new Error('Esta conta já foi liquidada anteriormente.');
-    }
-    transaction.update(movementRef, {
-      status: 'paid',
-      paymentDate: format(new Date(), 'yyyy-MM-dd'),
-    });
+  const movementRef = doc('financialMovements', movementId);
+  const movement = (await getDoc(movementRef)) as { status: string } | null;
+  if (!movement) {
+    throw new Error(`Movimentação financeira ${movementId} não encontrada.`);
+  }
+  if (movement.status === 'paid') {
+    throw new Error('Esta conta já foi liquidada anteriormente.');
+  }
+
+  await updateDoc(movementRef, {
+    status: 'paid',
+    paymentDate: format(new Date(), 'yyyy-MM-dd'),
   });
 
   return { message: 'Pagamento de despesa registrado com sucesso!' };

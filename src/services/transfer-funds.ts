@@ -1,8 +1,7 @@
-// @ts-nocheck
 'use server';
 
 import { z } from 'zod';
-import { db, collection, doc, writeBatch } from '@/lib/netly';
+import { addDoc } from '@/lib/netly';
 import type { FinancialMovement, SourceAccount } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -19,11 +18,9 @@ const TransferFundsInputSchema = z.object({
 export type TransferFundsInput = z.infer<typeof TransferFundsInputSchema>;
 
 export async function transferFunds(
-  input: TransferFundsInput
+  input: TransferFundsInput,
 ): Promise<{ message: string }> {
   const { fromAccount, toAccount, amount, date, notes } = input;
-  const batch = writeBatch(db);
-  const movementsRef = collection(db, 'financialMovements');
   const today = format(new Date(date), 'yyyy-MM-dd');
   const description = notes || `Transferência de ${fromAccount} para ${toAccount}`;
 
@@ -37,8 +34,7 @@ export async function transferFunds(
     category: 'outros',
     sourceAccount: fromAccount,
   };
-  const debitRef = doc(movementsRef);
-  batch.set(debitRef, debitMovement);
+  await addDoc('financialMovements', debitMovement);
 
   const creditMovement: Omit<FinancialMovement, 'id'> = {
     description: `Entrada: ${description}`,
@@ -50,10 +46,8 @@ export async function transferFunds(
     category: 'outros',
     sourceAccount: toAccount,
   };
-  const creditRef = doc(movementsRef);
-  batch.set(creditRef, creditMovement);
+  await addDoc('financialMovements', creditMovement);
 
-  await batch.commit();
   return {
     message: `Transferência de ${amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} de ${fromAccount} para ${toAccount} registrada com sucesso.`,
   };
