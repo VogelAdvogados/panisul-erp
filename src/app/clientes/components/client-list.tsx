@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, XCircle, FileText, ShoppingBag, Repeat, DollarSign, User, Building, Mail, Phone, MapPin, CreditCard, Package, RefreshCw, Calendar, Eye, Loader2, ArrowRight, MessageCircle } from 'lucide-react';
@@ -217,6 +218,7 @@ export function ClientList({ customerToOpen }: ClientListProps) {
       address: formData.get('address') as string,
       type: formData.get('type') as 'pessoa-fisica' | 'pessoa-juridica',
       status: formData.get('status') as 'ativo' | 'inativo',
+      notes: (formData.get('notes') as string) || '',
     };
 
     try {
@@ -449,6 +451,10 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                                 </SelectContent>
                             </Select>
                         </div>
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label htmlFor="notes" className="text-right">Anotações</Label>
+                            <Textarea id="notes" name="notes" defaultValue={editingCustomer?.notes} className="col-span-3" />
+                        </div>
                     </div>
                      <DialogFooter>
                         <Button type="button" variant="ghost" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
@@ -471,6 +477,12 @@ export function ClientList({ customerToOpen }: ClientListProps) {
                     </DialogDescription>
                 </DialogHeader>
                 <div className='flex-grow overflow-y-auto -mx-6 px-6'>
+                    {selectedCustomer?.notes && (
+                        <div className="my-4 p-4 bg-muted rounded-md">
+                            <h3 className="font-medium mb-1">Anotações</h3>
+                            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{selectedCustomer.notes}</p>
+                        </div>
+                    )}
                     <Tabs defaultValue="financial" className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="financial"><DollarSign className="mr-2"/>Financeiro</TabsTrigger>
