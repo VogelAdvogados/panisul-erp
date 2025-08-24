@@ -6,7 +6,9 @@ To get started, take a look at `src/app/page.tsx`.
 
 ## Desenvolvimento Local
 
-1. Instale as dependências: `npm install`
+Certifique-se de usar Node.js 18 ou superior.
+
+1. Instale as dependências: `npm ci`
 2. Inicie o servidor de desenvolvimento: `npm run dev` e acesse `http://localhost:9002`.
 
 ## Implantação na Netly
